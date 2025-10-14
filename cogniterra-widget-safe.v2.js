@@ -347,9 +347,10 @@
       u.el('div',{class:'preview'},[
         u.el('div',{},['Lokalita: ', u.el('strong',{},[f.obec||'-'])]),
         (S.flow.typ==='pozemek' ? u.el('div',{},['KÚ: ', u.el('strong',{},[f.ku||'-'])]) : null),
-        u.el('div',{},['Výměra: ', u.el('strong',{},[f.vymera+' m²']),
-        u.el('div',{},['Výsledek: ', u.el('span',{class:'price'},[u.money(Math.round(p.median))]), ' (', u.money(Math.round(p.min)), ' – ', u.money(Math.round(p.max)), ') ']),
-        u.el('div',{class:'hint'},['Zdroj: ', p.source])
+       u.el('div',{},['Výměra: ', u.el('strong',{},[f.vymera+' m²'])]),
+u.el('div',{},['Výsledek: ', u.el('span',{class:'price'},[u.money(Math.round(p.median))]), ' (', u.money(Math.round(p.min)), ' – ', u.money(Math.round(p.max)), ') ']),
+u.el('div',{class:'hint'},['Zdroj: ', p.source])
+
       ])
     );
 
