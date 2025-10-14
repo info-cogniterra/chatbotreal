@@ -82,4 +82,4 @@
 
   btn.addEventListener('click', () => (open ? hide() : show()));
   closeBtn.addEventListener('click', hide);
-})();// placeholder
+})();
