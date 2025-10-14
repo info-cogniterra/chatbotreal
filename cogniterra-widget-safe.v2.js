@@ -1,5 +1,5 @@
 
-/* Cogniterra Chatbot Widget v2 — LIVE CHAT ("Potřebuji pomoc") */
+/* Cogniterra Chatbot Widget v2 — LIVE CHAT + CORS-safe fetch */
 (function(){
   const THIS_SCRIPT=document.currentScript;
   const CFG_URL=THIS_SCRIPT&&THIS_SCRIPT.getAttribute('data-config');
@@ -31,7 +31,6 @@
   .input{display:flex;gap:8px;padding:10px;border-top:1px solid rgba(255,255,255,.08)}
   .input textarea{flex:1;resize:none;min-height:42px;max-height:140px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:var(--text)}
   .btn{border:0;border-radius:12px;padding:10px 14px;cursor:pointer;background:linear-gradient(135deg,var(--a1),var(--a2));color:var(--text)}
-  .hint{font-size:12px;color:var(--muted)}
   .typing{opacity:.8}`;
 
   const mount=document.getElementById('chatbot-container')||(()=>{const d=document.createElement('div'); d.id='chatbot-container'; d.style.width='420px'; d.style.height='650px'; d.style.margin='20px auto'; document.body.appendChild(d); return d;})();
@@ -78,18 +77,21 @@
     S.history.push({role:'user',content:q}); if(S.history.length>20)S.history=S.history.slice(-20);
 
     const ctx=makeContext(q);
-    const kbText=(ctx.kbPick||[]).map((it,i)=>`${i+1}) ${it.title}\n${(it.text||'').slice(0,700)}\nURL: ${it.url||''}`).join('\\n\\n') || '—';
+    const kbText=(ctx.kbPick||[]).map((it,i)=>`${i+1}) ${it.title}\n${(it.text||'').slice(0,700)}\nURL: ${it.url||''}`).join('\n\n') || '—';
     const messages=[
-      {role:'system',content:'Odpovídej česky, přátelsky a věcně. Krátce (2–5 vět nebo odrážek). Preferuj poskytnutý kontext z Cogniterra KB a ÚP odkazy, nevymýšlej URL. Když jde o obecné rady mimo KB, napiš, že jde o obecný postup. Nabídni spojení se specialistou jen pokud o něj uživatel projeví zájem.'}
+      {role:'system',content:'Odpovídej česky, přátelsky a věcně. Krátce (2–5 vět nebo odrážek). Preferuj kontext z Cogniterra KB a ÚP odkazy, nevymýšlej URL. Když jde o obecné rady mimo KB, napiš, že jde o obecný postup. Nabídni spojení se specialistou jen pokud o něj uživatel projeví zájem.'}
     ].concat(S.history.slice(-9)).concat([{role:'user',content:q+`
-
 KONTEXT:
 ÚP: ${ctx.upLink || 'není k dispozici'}
 KB:
 ${kbText}`}]);
     const payload={secret:S.cfg.secret, model:S.cfg.model||'gpt-4o-mini', temperature:S.cfg.temperature??0.3, messages, metadata:{session_id:S.session, branch:'chat'}};
     try{
-      const r=await fetch(S.cfg.chat_url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const r=await fetch(S.cfg.chat_url,{
+        method:'POST',
+        headers:{'Content-Type':'text/plain;charset=UTF-8'},
+        body: JSON.stringify(payload)
+      });
       const j=await r.json(); typing(false);
       const ans=(j&&j.ok&&j.answer)?j.answer:'Omlouvám se, odpověď se nepodařilo získat.';
       addAI(ans + (ctx.upLink? `\n\nOdkaz na ÚP: ${ctx.upLink}` : ''));
@@ -98,10 +100,11 @@ ${kbText}`}]);
   }
 
   function maybeOfferContact(q){
-    if(/kontakt|zavolat|spojit|konzultac/i.test(q)){ addAI('Rád vás propojím se specialistou. Pokud chcete, napište jméno, e‑mail a telefon — mohu to předat kolegům.'); }
+    if(/kontakt|zavolat|spojit|konzultac/i.test(q)){
+      addAI('Rád vás propojím se specialistou. Pokud chcete, napište jméno, e-mail a telefon — mohu to předat kolegům.');
+    }
   }
 
-  // Send handlers
   send.addEventListener('click', async()=>{ const q=ta.value; ta.value=''; await ask(q); maybeOfferContact(q); });
   ta.addEventListener('keydown', async(e)=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); const q=ta.value; ta.value=''; await ask(q); maybeOfferContact(q); }});
 })();
