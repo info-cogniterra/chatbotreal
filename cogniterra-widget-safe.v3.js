@@ -127,9 +127,9 @@ ${kbText}`}]);
       source:'chat_widget', timestamp:new Date().toISOString()
     };
     try{
-      const r=await fetch(S.cfg.lead_url,{method:'POST',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify(payload)});
-      const j=await r.json().catch(()=>({}));
-      if(j && j.ok){ addAI('Děkujeme, údaje byly předány kolegům. ✅'); }
+      const r=await fetch(S.cfg.lead_url,{method:'POST',headers:{'Content-Type':'text/plain;charset=UTF-8','Accept':'application/json'},body:JSON.stringify(payload)});
+      let ok=false; if(r.ok){ ok=true; try{ const j=await r.json(); ok = !!(j && (j.ok===true || j.status==='ok')); }catch(e){ /* if not JSON, still ok */ } }
+      if(ok){ addAI('Děkujeme, údaje byly předány kolegům. ✅'); }
       else { addAI('Kontakt se nepodařilo odeslat. Zkuste to prosím znovu o chvíli později.'); }
     }catch(e){ addAI('Kontakt se nepodařilo odeslat. Zkuste to prosím znovu.'); }
   }
