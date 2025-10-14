@@ -6,7 +6,7 @@
     "up": "REPLACE_WITH_CDN/up.v1.json"
   },
   "lead_url": "REPLACE_WITH_APPS_SCRIPT_URL",
-  "secret": "REPLACE_WITH_SHARED_SECRET",
+  "secret": "cogniterra_secret_2398751098",
   "default_type": "pozemky",
   "fallback_order": [
     "obec",
