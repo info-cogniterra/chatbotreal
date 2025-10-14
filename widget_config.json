@@ -1,0 +1,17 @@
+{
+  "data_urls": {
+    "byty": "REPLACE_WITH_CDN/prices_byty.v1.json",
+    "domy": "REPLACE_WITH_CDN/prices_domy.v1.json",
+    "pozemky": "REPLACE_WITH_CDN/prices_pozemky.v1.json",
+    "up": "REPLACE_WITH_CDN/up.v1.json"
+  },
+  "lead_url": "REPLACE_WITH_APPS_SCRIPT_URL",
+  "secret": "REPLACE_WITH_SHARED_SECRET",
+  "default_type": "pozemky",
+  "fallback_order": [
+    "obec",
+    "okres",
+    "kraj",
+    "cr"
+  ]
+}
