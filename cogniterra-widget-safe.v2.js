@@ -84,7 +84,7 @@
     ].concat(S.history.slice(-9)).concat([{role:'user',content:q+`
 
 KONTEXT:
-${ctx.upLink || 'není k dispozici'}
+ÚP: ${ctx.upLink || 'není k dispozici'}
 KB:
 ${kbText}`}]);
     const payload={secret:S.cfg.secret, model:S.cfg.model||'gpt-4o-mini', temperature:S.cfg.temperature??0.3, messages, metadata:{session_id:S.session, branch:'chat'}};
