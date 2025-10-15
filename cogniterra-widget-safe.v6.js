@@ -81,7 +81,7 @@
       .concat(S.history.slice(-9))
       .concat([{role:'user',content:q+`\n\nKONTEXT:\nÚP: ${ctx.upLink||'není k dispozici'}\nKB:\n${kbText}`}]);
     try{
-      const resp=await fetch(S.cfg.chat_url,{method:'POST',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({secret:S.cfg.secret,model:S.cfg.model,temperature:S.cfg.temperature,messages,metadata:{session_id:S.session,branch:'chat'}})});
+      const resp=await fetch(S.cfg.chat_url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({secret:S.cfg.secret,model:S.cfg.model,temperature:S.cfg.temperature,messages,metadata:{session_id:S.session,branch:'chat'}})});
       const j=await resp.json().catch(()=>({}));
       const ans=(j&&j.ok&&j.answer)?j.answer:'Omlouvám se, odpověď se nepodařilo získat.';
       addAI(ans + (ctx.upLink?`\n\nOdkaz na ÚP: ${ctx.upLink}`:''));
@@ -111,14 +111,14 @@
         message:(S.history.find(h=>h.role==='user')||{}).content||'',source:'chat_widget',timestamp:new Date().toISOString(), path:'lead'};
 
       // 1) fire-and-forget (no-cors) – zajistí zápis i bez čitelné odpovědi
-      fetch(S.cfg.lead_url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify(payload)}).catch(()=>{});
+      console.debug('[lead] fire-and-forget'); fetch(S.cfg.lead_url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).catch(()=>{});
 
       // 2) ověřovací požadavek s timeoutem (3 s)
       let done=false; const ok=()=>{ if(!done){ done=true; addAI('Děkujeme, údaje byly předány kolegům. ✅'); } };
       const timer=setTimeout(ok,3000);
 
       try{
-        const r=await fetch(S.cfg.lead_url,{method:'POST',headers:{'Content-Type':'text/plain;charset=UTF-8','Accept':'application/json, text/plain'},body:JSON.stringify(payload)});
+        console.debug('[lead] probe'); const r=await fetch(S.cfg.lead_url,{method:'POST',mode:'cors',redirect:'follow',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload)});
         let success=false, detail='';
         try{ const j=await r.clone().json(); success=!!(j&&(j.ok===true||j.status==='ok'||j.result==='ok')); detail=JSON.stringify(j).slice(0,160); }
         catch(_){ const t=await r.text(); success=/ok|success|ulozeno/i.test(t||''); detail=(t||'').slice(0,160); }
