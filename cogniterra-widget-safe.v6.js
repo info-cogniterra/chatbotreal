@@ -108,17 +108,17 @@
       if(!name || !U.emailOk(email) || !U.phoneOk(phone)){ addAI('Zkontrolujte prosím jméno, e-mail a telefon (formát +420…).'); if(btn){btn.disabled=false;btn.textContent='Odeslat kontakt';} return; }
 
       const payload={secret:S.cfg.secret,branch:'chat',session_id:S.session,jmeno:name,email,telefon:phone,
-        message:(S.history.find(h=>h.role==='user')||{}).content||'',source:'chat_widget',timestamp:new Date().toISOString(), path:'lead'};
+        message:(S.history.find(h=>h.role==='user')||{}).content||'',source:'chat_widget',timestamp:new Date().toISOString(), path:'/lead'};
 
       // 1) fire-and-forget (no-cors) – zajistí zápis i bez čitelné odpovědi
-      console.debug('[lead] fire-and-forget'); fetch(S.cfg.lead_url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).catch(()=>{});
+      console.debug('[lead] fire-and-forget'); fetch(S.cfg.lead_url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(Object.entries(payload)).toString()}).catch(()=>{});
 
       // 2) ověřovací požadavek s timeoutem (3 s)
       let done=false; const ok=()=>{ if(!done){ done=true; addAI('Děkujeme, údaje byly předány kolegům. ✅'); } };
       const timer=setTimeout(ok,3000);
 
       try{
-        console.debug('[lead] probe'); const r=await fetch(S.cfg.lead_url,{method:'POST',mode:'cors',redirect:'follow',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload)});
+        console.debug('[lead] probe'); const r=await fetch(S.cfg.lead_url,{method:'POST',mode:'cors',redirect:'follow',headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'},body:new URLSearchParams(Object.entries(payload)).toString()});
         let success=false, detail='';
         try{ const j=await r.clone().json(); success=!!(j&&(j.ok===true||j.status==='ok'||j.result==='ok')); detail=JSON.stringify(j).slice(0,160); }
         catch(_){ const t=await r.text(); success=/ok|success|ulozeno/i.test(t||''); detail=(t||'').slice(0,160); }

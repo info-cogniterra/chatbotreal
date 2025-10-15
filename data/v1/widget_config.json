@@ -6,7 +6,7 @@
     "up": "https://info-cogniterra.github.io/chatbotreal/data/v1/up.v1.json",
     "kb": "https://info-cogniterra.github.io/chatbotreal/data/v1/kb.v1.json"
   },
-  "lead_url": "https://script.google.com/macros/s/AKfycbz-ZG370wHVj9ZI2yTOqOXPlPl-jaFWc9nbAvml4Ea1CZ6HtxQJdHyixyRGCIbrmCgZvg/exec?path=lead",
+  "lead_url": "https://script.google.com/macros/s/AKfycbz-ZG370wHVj9ZI2yTOqOXPlPl-jaFWc9nbAvml4Ea1CZ6HtxQJdHyixyRGCIbrmCgZvg/exec?path=/lead",
   "chat_url": "https://script.google.com/macros/s/AKfycbyNLWmhYxwrUtxMDrE33bs8jUdiZNdJERL8CGgn8wB2cwttnPHXogXFtSEGh1q0EvE_sw/exec?path=chat",
   "secret": "cogniterra_secret_2398751098",
   "model": "gpt-4o-mini",
