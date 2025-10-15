@@ -1,5 +1,7 @@
 
-/* Cogniterra widget v6: chat + robust lead submit (dual-send) */
+/* Cogniterra widget v6: chat + robust lead submit (dual-send)
+ * MERGED: pouze 3 drobné změny označené // === PATCH ===
+ */
 (function(){
   const THIS=document.currentScript;
   const CFG_URL=(THIS && THIS.getAttribute('data-config')) || (window.CGTR && window.CGTR.configUrl);
@@ -54,10 +56,10 @@
     }catch(e){ addAI('Chyba načítání konfigurace: '+String(e)); }
   })();
 
-  function addAI(t,extra){ 
-    // male persona tweak: if model returns "Ráda" at sentence start, prefer "Rád"
+  function addAI(t,extra){
+    // === PATCH: male persona tweak ===
     if(/^Ráda\b/.test(t)) t=t.replace(/^Ráda\b/,'Rád');
-    const b=U.el('div',{class:'msg ai'},[t]); if(extra) b.append(extra); chat.append(b); chat.scrollTop=chat.scrollHeight; 
+    const b=U.el('div',{class:'msg ai'},[t]); if(extra) b.append(extra); chat.append(b); chat.scrollTop=chat.scrollHeight;
   }
   function addME(t){ const b=U.el('div',{class:'msg me'},[t]); chat.append(b); chat.scrollTop=chat.scrollHeight; }
 
@@ -91,7 +93,7 @@
         secret: S.cfg.secret,
         model: S.cfg.model,
         temperature: S.cfg.temperature,
-        // FIX: stringify messages & metadata so Apps Script can JSON.parse(params.messages)
+        // === PATCH: stringify messages & metadata so Apps Script can parse ===
         messages: JSON.stringify(messages),
         metadata: JSON.stringify({session_id:S.session,branch:'chat'})
       };
@@ -103,6 +105,7 @@
       const j=await resp.json().catch(()=>({}));
       const ans=(j&&j.ok&&j.answer)?j.answer:'Omlouvám se, odpověď se nepodařilo získat.';
       addAI(ans + (ctx.upLink?`\n\nOdkaz na ÚP: ${ctx.upLink}`:''));
+      // === PATCH: uložit odpověď asistenta do historie (konverzační paměť) ===
       S.history.push({role:'assistant',content:ans}); if(S.history.length>20) S.history=S.history.slice(-20);
     }catch(e){ addAI('AI je dočasně nedostupná. Zkuste to prosím později.'); }
   }
@@ -128,15 +131,15 @@
       const payload={secret:S.cfg.secret,branch:'chat',session_id:S.session,jmeno:name,email,telefon:phone,
         message:(S.history.find(h=>h.role==='user')||{}).content||'',source:'chat_widget',timestamp:new Date().toISOString(), path:'/lead'};
 
-      // 1) fire-and-forget (no-cors) – zajistí zápis i bez čitelné odpovědi
-      console.debug('[lead] fire-and-forget'); fetch(S.cfg.lead_url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(Object.entries(payload)).toString()}).catch(()=>{});
+      // 1) fire-and-forget (no-cors)
+      fetch(S.cfg.lead_url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(Object.entries(payload)).toString()}).catch(()=>{});
 
       // 2) ověřovací požadavek s timeoutem (3 s)
       let done=false; const ok=()=>{ if(!done){ done=true; addAI('Děkujeme, údaje byly předány kolegům. ✅'); } };
       const timer=setTimeout(ok,3000);
 
       try{
-        console.debug('[lead] probe'); const r=await fetch(S.cfg.lead_url,{method:'POST',mode:'cors',redirect:'follow',headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'},body:new URLSearchParams(Object.entries(payload)).toString()});
+        const r=await fetch(S.cfg.lead_url,{method:'POST',mode:'cors',redirect:'follow',headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'},body:new URLSearchParams(Object.entries(payload)).toString()});
         let success=false, detail='';
         try{ const j=await r.clone().json(); success=!!(j&&(j.ok===true||j.status==='ok'||j.result==='ok')); detail=JSON.stringify(j).slice(0,160); }
         catch(_){ const t=await r.text(); success=/ok|success|ulozeno/i.test(t||''); detail=(t||'').slice(0,160); }
