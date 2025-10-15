@@ -81,7 +81,7 @@
       .concat(S.history.slice(-9))
       .concat([{role:'user',content:q+`\n\nKONTEXT:\nÚP: ${ctx.upLink||'není k dispozici'}\nKB:\n${kbText}`}]);
     try{
-      const resp=await fetch(S.cfg.chat_url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({secret:S.cfg.secret,model:S.cfg.model,temperature:S.cfg.temperature,messages,metadata:{session_id:S.session,branch:'chat'}})});
+      const resp=await fetch(S.cfg.chat_url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:new URLSearchParams(Object.entries({secret:S.cfg.secret,model:S.cfg.model,temperature:S.cfg.temperature,messages,metadata:{session_id:S.session,branch:'chat'}})).toString()});
       const j=await resp.json().catch(()=>({}));
       const ans=(j&&j.ok&&j.answer)?j.answer:'Omlouvám se, odpověď se nepodařilo získat.';
       addAI(ans + (ctx.upLink?`\n\nOdkaz na ÚP: ${ctx.upLink}`:''));
