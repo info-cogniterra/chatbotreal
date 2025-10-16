@@ -103,6 +103,8 @@
   }
   function addME(t){ const b=U.el('div',{class:'msg me'},[t]); chat.append(b); chat.scrollTop=chat.scrollHeight; }
 
+  function addPanel(el){ const wrap=U.el('div',{class:'panel'},[]); wrap.append(el); chat.append(wrap); chat.scrollTop=chat.scrollHeight; }
+
   // Typing indicator
   let typingEl=null;
   function showTyping(on){
@@ -258,7 +260,7 @@
   
   // --- Start screen & pricing flow (v1) ---
   function renderStart(){
-    shadow.querySelector('.messages').innerHTML='';
+    shadow.querySelector('.chat').innerHTML='';
     const box=U.el('div',{class:'cg-start'},[
       U.el('div',{class:'cg-cards'},[
         U.el('div',{class:'cg-card',onclick:()=>startPricing()},[U.el('h3',{},['Nacenit nemovitost']),U.el('p',{},['Rychlý odhad ceny z tržních dat.'])]),
@@ -397,7 +399,7 @@
     addAI('Výsledek odhadu', box);
   }
 
-  function cgSafeStart(){ try{ if(!shadow || !shadow.querySelector('.messages')){ return setTimeout(cgSafeStart,40); } renderStart(); }catch(e){ setTimeout(cgSafeStart,40); } }
+  function cgSafeStart(){ try{ if(!shadow || !shadow.querySelector('.chat')){ return setTimeout(cgSafeStart,40); } renderStart(); }catch(e){ setTimeout(cgSafeStart,40); } }
   cgSafeStart();
   send.addEventListener('click',()=>{ const q=ta.value; ta.value=''; ask(q); });
   ta.addEventListener('keydown',(e)=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); const q=ta.value; ta.value=''; ask(q); }});
