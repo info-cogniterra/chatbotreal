@@ -1,7 +1,10 @@
 
-/* Cogniterra widget v6: chat + robust lead submit (dual-send)
- * FIXROLE: silný system prompt vložený na straně widgetu + beze změny zbytku funkcí
- */
+/* Cogniterra widget v7: lead-first intents + typing indicator + ISNS & ÚP lookup
+   - Keeps original UI and lead flow
+   - Adds: intent detection (sell/buy/rent -> lead form), verify -> ISNS + ÚP link (asks for KÚ if missing)
+   - Adds: typing indicator with ~700ms delay before rendering AI reply
+   - Uses up.v1.json structure: { map: [{ku, obec, url}, ...] }
+*/
 (function(){
   const THIS=document.currentScript;
   const CFG_URL=(THIS && THIS.getAttribute('data-config')) || (window.CGTR && window.CGTR.configUrl);
@@ -15,11 +18,8 @@
       for(const x of[].concat(c)) e.append(x&&x.nodeType?x:document.createTextNode(String(x??''))); return e;},
     fetchJson:async u=>{const r=await fetch(u,{cache:'force-cache'}); if(!r.ok) throw new Error('HTTP '+r.status+' '+u); return r.json();},
     norm:s=>(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim(),
-    pickKB:(kb,q)=>{const qq=U.norm(q); if(!qq||!kb)return[]; const ws=qq.split(' ').filter(Boolean);
-      return kb.map(it=>{const hay=(it.title+' '+(it.keywords||[]).join(' ')+' '+(it.text||'')).toLowerCase();
-        const sc=ws.reduce((a,w)=>a+(hay.includes(w)?1:0),0); return {...it,sc};}).sort((a,b)=>b.sc-a.sc).slice(0,5);},
     emailOk:s=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s||''),
-    phoneOk:s=>/^\+?\d[\d\s\-]{7,}$/.test(s||'')
+    phoneOk:s=>/^\+?\d[\d\s\-]{7,}$/.test(s||''),
   };
 
   const css=`:host,*{box-sizing:border-box}
@@ -34,18 +34,23 @@
   .input textarea{flex:1;resize:none;min-height:42px;max-height:140px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:#EAF2FF}
   .btn{border:0;border-radius:12px;padding:10px 14px;cursor:pointer;background:linear-gradient(135deg,#6E7BFF,#9B6BFF);color:#EAF2FF}
   .leadbox{display:flex;flex-direction:column;gap:8px;margin-top:6px}
-  .leadbox input{width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#EAF2FF}`;
+  .leadbox input{width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#EAF2FF}
+  .typing{display:inline-block;padding:10px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.06);margin:8px 0}
+  .dots{display:inline-block;min-width:2ch}
+  @keyframes blink{0%{opacity:.2}50%{opacity:1}100%{opacity:.2}}
+  .dots span{animation:blink 1.4s infinite}
+  .dots span:nth-child(2){animation-delay:.2s}
+  .dots span:nth-child(3){animation-delay:.4s}`;
 
   const mount=document.getElementById((window.CGTR&&window.CGTR.containerId)||'chatbot-container')
     ||(()=>{const d=document.createElement('div'); d.id='chatbot-container'; d.style.width='420px'; d.style.height='650px'; d.style.margin='20px auto'; document.body.appendChild(d); return d;})();
   const shadow=mount.attachShadow({mode:'open'}); shadow.append(U.el('style',{},[css]));
   const wrap=U.el('div',{class:'wrap'}); const hdr=U.el('header',{},[U.el('div',{class:'brand'},['Cogniterra']),U.el('div',{class:'cta'},['Férově • Transparentně • Bezpečně'])]);
   const chat=U.el('div',{class:'chat'}); const input=U.el('div',{class:'input'});
-  const ta=U.el('textarea',{placeholder:'S čím vám mohu pomoci? (realitní dotazy, informace o Cogniterra)'});
+  const ta=U.el('textarea',{placeholder:'S čím vám mohu pomoci? (prodej/pronájem, prověření ISNS, ÚP)'});
   const send=U.el('button',{class:'btn'},['Odeslat']); input.append(ta,send); wrap.append(hdr,chat,input); shadow.append(wrap);
 
   const S={cfg:null,data:{kb:[],up:null},session:Math.random().toString(36).slice(2),history:[],lead_suggested:false};
-  const SYSTEM_PROMPT = 'Jsi virtuální asistent Cogniterry pro web cogniterra.cz. Mluv výhradně česky a v mužském rodě.\nÚčel: pomáhej návštěvníkům s realitními tématy (prodej, pronájem, koupě, prověření nemovitosti) a navigací po webu Cogniterra.\nStyl: přívětivý, profesionální, stručný. Značka: „Férově • Transparentně • Bezpečně“.\nChování:\n- Vysvětluj postupy a základní pojmy, ale neposkytuj závazné právní/daňové rady.\n- NEDĚLEJ žádné odhady ceny (nacenění není součást této části).\n- Když je dotaz mimo realitní témata, zdvořile vrať konverzaci k realitám.\n- V každé odpovědi nabídni jasný další krok (CTA) a při zájmu navrhni otevřít kontaktní formulář.\n- Pokud se ptají na ISNS, popiš jej jako nástroj pro prověření nemovitosti (LV, ÚP, sítě, limity, mapy) a uveď, že jsou balíčky LITE / PREMIUM / ULTRA.\n- Při dotazech na web uveď, kde to najdou (Služby, Nabídka, ISNS, Reference, Tým, O nás, Kontakt, Blog, FAQ).\nFormát:\n- Krátké odstavce nebo odrážky, srozumitelně. Nepředstírej odkazy (nepiš URL), jen lidsky pojmenuj sekci nebo krok.';
 
   (async()=>{
     try{
@@ -53,7 +58,7 @@
       const urls=S.cfg.data_urls||{};
       const [kb,up]=await Promise.all([urls.kb?U.fetchJson(urls.kb):[], urls.up?U.fetchJson(urls.up):null]);
       S.data={kb,up};
-      addAI('Dobrý den 👋 Jsem virtuální asistent Cogniterry. S čím vám mohu pomoci?');
+      addAI('Dobrý den 👋 Jsem virtuální asistent Cogniterry. Rád pomohu s prodejem/pronájmem, prověřením ISNS nebo ÚP. Jak mohu pomoci?');
     }catch(e){ addAI('Chyba načítání konfigurace: '+String(e)); }
   })();
 
@@ -63,14 +68,51 @@
   }
   function addME(t){ const b=U.el('div',{class:'msg me'},[t]); chat.append(b); chat.scrollTop=chat.scrollHeight; }
 
+  // Typing indicator
+  let typingEl=null;
+  function showTyping(on){
+    if(on){
+      typingEl = U.el('div',{class:'typing'},['AI píše ', U.el('span',{class:'dots'},[U.el('span',{},['.']),U.el('span',{},['.']),U.el('span',{},['.'])])]);
+      chat.append(typingEl); chat.scrollTop=chat.scrollHeight;
+    }else{
+      if(typingEl && typingEl.parentNode) typingEl.parentNode.removeChild(typingEl);
+      typingEl=null;
+    }
+  }
+  const sleep = ms => new Promise(r=>setTimeout(r, ms));
+
   function makeContext(q){
-    const kbPick=U.pickKB(S.data.kb,q);
-    let upLink=''; const up=S.data.up; if(up){ const map=up.map||up; const qn=U.norm(q);
-      const keys=Array.isArray(map)? map.map(r=>(r.ku||r.katastr||r.obec||r.obec_key||'')) : Object.keys(map);
-      for(const raw of keys.slice(0,2000)){ const kn=U.norm(String(raw)); if(kn && qn.includes(kn)){
-        const rec=Array.isArray(map)? (map.find(r=>U.norm(r.ku||r.katastr||r.obec||r.obec_key||'')===kn)||{}) : (map[raw]||{});
-        upLink=rec.url||rec.odkaz||rec.link||''; if(upLink) break; } } }
+    const kbPick = []; // keep light; server gets core
+    let upLink=''; const up=S.data.up;
+    const qn=U.norm(q);
+    if(up){
+      const list = up.map || up;
+      const arr = Array.isArray(list) ? list : Object.keys(list).map(k=>list[k]);
+      // Try to extract candidate KU from user input: "k.ú ...", or obvious tokens
+      const kuMatch = q.match(/k\.?\s*ú\.?\s*([A-Za-zÁ-Žá-ž0-9\s\-]+)/i);
+      const kuCandidate = kuMatch ? kuMatch[1].trim().toLowerCase() : null;
+      for(const rec of arr){
+        const ku = String(rec.ku||'').toLowerCase();
+        const obec = String(rec.obec||'').toLowerCase();
+        if(kuCandidate && ku.includes(kuCandidate)){ upLink = rec.url||''; break; }
+        if(ku && qn.includes(ku)){ upLink = rec.url||''; break; }
+        if(obec && qn.includes(obec)){ upLink = rec.url||''; } // keep last match
+      }
+    }
     return {kbPick, upLink};
+  }
+
+  function needLead(q){
+    const s = U.norm(q);
+    return /(prodat|prodej|prodávám|prodali|prodejem|pronajmout|pronajímám|nájemníka|koupit|kupujeme|sháním bydlení|mám zájem)/.test(s);
+  }
+  function needVerify(q){
+    const s = U.norm(q);
+    return /(prov[eě]r[ií]t|prov[eě]rka|due diligence|isns|lustraci|v[eě]cn[eé] b[rř]emeno|lv|[uú]zemn[ií]\s*pl[aá]n)/.test(s);
+  }
+  function extractKU(q){
+    const m = q.match(/k\.?\s*ú\.?\s*([A-Za-zÁ-Žá-ž0-9\s\-]+)/i);
+    return m ? m[1].trim() : '';
   }
 
   async function ask(q){
@@ -78,20 +120,31 @@
     addME(q);
     S.history.push({role:'user',content:q}); if(S.history.length>20) S.history=S.history.slice(-20);
 
-    if(/kontakt|zavolat|spojit|konzultac|kontaktujte|chci kontakt|chci byt kontaktovan/i.test(q) && !S.lead_suggested){
+    // 1) Lead-first intent: sell/buy/rent -> contact form
+    if(needLead(q) && !S.lead_suggested){
       S.lead_suggested=true; renderLeadBox(); return;
     }
 
-    const ctx=makeContext(q);
-    const kbText=(ctx.kbPick||[]).map(function(it,i){
-      return (i+1)+') '+it.title+'\n'+String(it.text||'').slice(0,700)+'\nURL: '+(it.url||'');
-    }).join('\n\n') || '—';
+    // 2) Verify intent: ISNS + ÚP
+    if(needVerify(q)){
+      const ku = extractKU(q);
+      if(!ku){
+        addAI('Rád prověřím. Napište prosím **katastrální území (KÚ)**, abych mohl přidat odkaz na aktuální územní plán. Zároveň můžete využít náš systém **ISNS** pro kompletní prověření (LITE / PREMIUM / ULTRA). Otevřít ISNS: https://cogniterra.cz/isns/');
+      }else{
+        const ctx = makeContext(q);
+        const link = ctx.upLink || 'Přímý odkaz se mi nepodařilo najít. Mrkněte na ISNS: https://cogniterra.cz/isns/';
+        addAI('Rád prověřím. Zde je odkaz na aktuální **ÚP** pro zadané KÚ: ' + link + '\n\nPro kompletní prověření doporučuji **ISNS** (LITE / PREMIUM / ULTRA): https://cogniterra.cz/isns/');
+      }
+      return;
+    }
 
-    // Připrav zprávy, vždy s naším silným system promptem na začátku
-    const base = [{role:'system', content: SYSTEM_PROMPT}];
-    const messages = base
+    // Otherwise go through AI with typing indicator + delay
+    showTyping(true);
+    const ctx=makeContext(q);
+    const kbText='—'; // keep payload light
+    const messages=[{role:'system',content:'Jsi virtuální asistent Cogniterra. Mluv česky v mužském rodě. Realitní témata, navigace po webu, ISNS; bez nacenění; nabídni další krok a kontakt.'}]
       .concat(S.history.slice(-9))
-      .concat([{role:'user', content: q+'\n\nKONTEXT:\nÚP: '+(ctx.upLink||'není k dispozici')+'\nKB:\n'+kbText}]);
+      .concat([{role:'user',content:q+'\n\nKONTEXT:\nÚP: '+(ctx.upLink||'není k dispozici')+'\nKB:\n'+kbText}]);
 
     try{
       const payload = {
@@ -107,10 +160,16 @@
         body:new URLSearchParams(Object.entries(payload)).toString()
       });
       const j=await resp.json().catch(()=>({}));
+      await sleep(700); // slight delay for realism
+      showTyping(false);
       const ans=(j&&j.ok&&j.answer)?j.answer:'Omlouvám se, odpověď se nepodařilo získat.';
       addAI(ans + (ctx.upLink?('\n\nOdkaz na ÚP: '+ctx.upLink):''));
       S.history.push({role:'assistant',content:ans}); if(S.history.length>20) S.history=S.history.slice(-20);
-    }catch(e){ addAI('AI je dočasně nedostupná. Zkuste to prosím později.'); }
+    }catch(e){
+      await sleep(700);
+      showTyping(false);
+      addAI('AI je dočasně nedostupná. Zkuste to prosím později.');
+    }
   }
 
   function renderLeadBox(){
@@ -134,6 +193,7 @@
       const payload={secret:S.cfg.secret,branch:'chat',session_id:S.session,jmeno:name,email,telefon:phone,
         message:(S.history.find(h=>h.role==='user')||{}).content||'',source:'chat_widget',timestamp:new Date().toISOString(), path:'/lead'};
 
+      // Dual-send (as-is from v6)
       fetch(S.cfg.lead_url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(Object.entries(payload)).toString()}).catch(()=>{});
 
       let done=false; const ok=()=>{ if(!done){ done=true; addAI('Děkujeme, údaje byly předány kolegům. ✅'); } };
