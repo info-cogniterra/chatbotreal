@@ -145,6 +145,11 @@
     const s = U.norm(q);
     return /(prov[eě]r[ií]t|prov[eě]rka|due diligence|isns|lustraci|v[eě]cn[eé] b[rř]emeno|lv|[uú]zemn[ií]\s*pl[aá]n)/.test(s);
   }
+  function needPricing(q){
+    const s = U.norm(q);
+    return /(nacenit|nacen[eě]n[ií]|odhad(?:\s*ceny)?|ocenit|ocen[eě]n[ií]|kolik\s+to\s*stoj[ií]|cena\s+nemovitosti|spocitat\s*cenu)/i.test(s);
+  }
+
   function extractKU(q){
     const m = q.match(/k\.?\s*ú\.?\s*([A-Za-zÁ-Žá-ž0-9\s\-]+)/i);
     return m ? m[1].trim() : '';
@@ -154,6 +159,9 @@
     if(!q.trim()) return;
     addME(q);
     S.history.push({role:'user',content:q}); if(S.history.length>20) S.history=S.history.slice(-20);
+
+    // 0) Pricing intent: trigger pricing flow
+    if(needPricing(q)){ startPricing(); return; }
 
     // 1) Lead-first intent: sell/buy/rent -> contact form
     if(needLead(q) && !S.lead_suggested){
