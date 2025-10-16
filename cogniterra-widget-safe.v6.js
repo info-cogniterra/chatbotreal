@@ -111,7 +111,23 @@
 
 // --- Úvodní rozcestník ---
 function renderStart() {
+  // Úvodní bublina
+  // Panel se dvěma klikacími kartami (mimo bublinu)
   const cards = U.el('div', { class: 'cg-start' }, [
+    U.el('div', { class: 'cg-cards' }, [
+      U.el('button', { class: 'cg-card', onclick: () => startPricing(), type: 'button' }, [
+        U.el('h3', {}, ['Nacenit nemovitost']),
+        U.el('p', {}, ['Rychlý odhad ceny z tržních dat.'])
+      ]),
+      U.el('button', { class: 'cg-card', onclick: () => startHelp(), type: 'button' }, [
+        U.el('h3', {}, ['Potřebuji pomoct']),
+        U.el('p', {}, ['Chat s naším asistentem (problém s nemovitostí, Vaše dotazy)'])
+      ])
+    ])
+  ]);
+
+  addPanel(cards);
+}, [
     U.el('div', { class: 'cg-cards' }, [
       U.el('button', { class: 'cg-card', onclick: () => startPricing(), type: 'button' }, [
         U.el('h3', {}, ['Nacenit nemovitost']),
@@ -158,6 +174,8 @@ function stepParamsByt(obec){
   ]);
   addAI('Nacenění – krok 3/3', box);
 
+
+}
 function renderLeadBoxPricing(params){
     S.tempPricing = params;
     const consentId = 'cgConsent_'+(Math.random().toString(36).slice(2));
@@ -198,7 +216,7 @@ function renderLeadBoxPricing(params){
       if(typ==='Byt') res = window.CG_Estimator.estimateByt(PRICES.byty, P);
       else if(typ==='Dům') res = window.CG_Estimator.estimateDum(PRICES.domy, P);
       else res = window.CG_Estimator.estimatePozemek(PRICES.pozemky, P);
-      renderEstimate(res, typ);
+      renderLeadBoxPricing({typ:'Byt', obec, dispozice:disp.value, stav:stav.value, vlastnictvi:vlast.value, vymera:parseFloat(area.value||0)});
     }catch(e){
       addAI('Něco se pokazilo při odesílání kontaktu. Zkuste to prosím znovu.');
     }
@@ -223,4 +241,3 @@ function renderLeadBoxPricing(params){
   cgSafeStart();
   send.addEventListener('click',()=>{ const q=ta.value; ta.value=''; ask(q); });
   ta.addEventListener('keydown',(e)=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); const q=ta.value; ta.value=''; ask(q); }});
-  }
