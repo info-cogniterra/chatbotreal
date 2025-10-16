@@ -1,9 +1,9 @@
 {
   "data_urls": {
-    "byty": "https://info-cogniterra.github.io/chatbotreal/data/v1/prices_byty.v1.json",
-    "domy": "https://info-cogniterra.github.io/chatbotreal/data/v1/prices_domy.v1.json",
-    "pozemky": "https://info-cogniterra.github.io/chatbotreal/data/v1/prices_pozemky.v1.json",
-    "up": "https://info-cogniterra.github.io/chatbotreal/data/v1/up.v1.json"
+    "byty": "./data/v1/prices_byty.v1.json",
+    "domy": "./data/v1/prices_domy.v1.json",
+    "pozemky": "./data/v1/prices_pozemky.v1.json",
+    "up": "./data/v1/up.v1.json"
   },
   "lead_url": "https://script.google.com/macros/s/AKfycbyNLWmhYxwrUtxMDrE33bs8jUdiZNdJERL8CGgn8wB2cwttnPHXogXFtSEGh1q0EvE_sw/exec?path=/lead",
   "chat_url": "https://script.google.com/macros/s/AKfycbyNLWmhYxwrUtxMDrE33bs8jUdiZNdJERL8CGgn8wB2cwttnPHXogXFtSEGh1q0EvE_sw/exec?path=/chat",

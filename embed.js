@@ -25,6 +25,8 @@
   const close=document.createElement('button'); close.className='cg-close'; close.innerHTML = 'Zavřít'; panel.appendChild(close);
   const cont=document.createElement('div'); cont.id='chatbot-container'; cont.style.width='100%'; cont.style.height='100%'; panel.appendChild(cont);
   document.body.appendChild(panel);
+  // Ensure widget host exists for bubble-only build
+  const host=document.createElement('div'); host.setAttribute('data-cogniterra-widget',''); host.style.width='100%'; host.style.height='100%'; cont.appendChild(host);
 
   const sc=document.createElement('script'); sc.src=WIDGET+'?v='+Date.now(); sc.setAttribute('data-config',CFG); document.body.appendChild(sc);
 
