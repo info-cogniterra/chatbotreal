@@ -104,7 +104,7 @@
 
   function needLead(q){
     const s = U.norm(q);
-    return /(prodat|prodej|prodávám|prodali|prodejem|pronajmout|pronajímám|nájemníka|koupit|kupujeme|sháním bydlení|mám zájem)/.test(s);
+    return /(prodat|prodej|prodávám|prodali|prodejem|pronajmout|pronajímám|nájemníka|koupit|kupujeme|sháním bydlení|mám zájem|kontaktovat|kontaktuj|kontakt|ozvat|zavolat|můžete\s*se\s*mi\s*ozvat|spojit\s*se|chci\s*být\s*kontaktován|chci\s*kontakt)/i.test(s);
   }
   function needVerify(q){
     const s = U.norm(q);
