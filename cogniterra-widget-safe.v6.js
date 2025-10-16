@@ -1,6 +1,6 @@
 
 /* Cogniterra widget v6: chat + robust lead submit (dual-send)
- * PATCH2: remove `${i+1}` template literal to avoid "Unexpected token '+'" in some parsers.
+ * FIXROLE: silný system prompt vložený na straně widgetu + beze změny zbytku funkcí
  */
 (function(){
   const THIS=document.currentScript;
@@ -45,6 +45,7 @@
   const send=U.el('button',{class:'btn'},['Odeslat']); input.append(ta,send); wrap.append(hdr,chat,input); shadow.append(wrap);
 
   const S={cfg:null,data:{kb:[],up:null},session:Math.random().toString(36).slice(2),history:[],lead_suggested:false};
+  const SYSTEM_PROMPT = 'Jsi virtuální asistent Cogniterry pro web cogniterra.cz. Mluv výhradně česky a v mužském rodě.\nÚčel: pomáhej návštěvníkům s realitními tématy (prodej, pronájem, koupě, prověření nemovitosti) a navigací po webu Cogniterra.\nStyl: přívětivý, profesionální, stručný. Značka: „Férově • Transparentně • Bezpečně“.\nChování:\n- Vysvětluj postupy a základní pojmy, ale neposkytuj závazné právní/daňové rady.\n- NEDĚLEJ žádné odhady ceny (nacenění není součást této části).\n- Když je dotaz mimo realitní témata, zdvořile vrať konverzaci k realitám.\n- V každé odpovědi nabídni jasný další krok (CTA) a při zájmu navrhni otevřít kontaktní formulář.\n- Pokud se ptají na ISNS, popiš jej jako nástroj pro prověření nemovitosti (LV, ÚP, sítě, limity, mapy) a uveď, že jsou balíčky LITE / PREMIUM / ULTRA.\n- Při dotazech na web uveď, kde to najdou (Služby, Nabídka, ISNS, Reference, Tým, O nás, Kontakt, Blog, FAQ).\nFormát:\n- Krátké odstavce nebo odrážky, srozumitelně. Nepředstírej odkazy (nepiš URL), jen lidsky pojmenuj sekci nebo krok.';
 
   (async()=>{
     try{
@@ -82,14 +83,15 @@
     }
 
     const ctx=makeContext(q);
-    // PATCH2: build kbText without backticks interpolation
     const kbText=(ctx.kbPick||[]).map(function(it,i){
       return (i+1)+') '+it.title+'\n'+String(it.text||'').slice(0,700)+'\nURL: '+(it.url||'');
     }).join('\n\n') || '—';
 
-    const messages=[{role:'system',content:'Odpovídej česky, stručně a věcně. Preferuj znalost Cogniterra a ÚP odkazy. Nenamáhej uživatele zbytečnými detaily.'}]
+    // Připrav zprávy, vždy s naším silným system promptem na začátku
+    const base = [{role:'system', content: SYSTEM_PROMPT}];
+    const messages = base
       .concat(S.history.slice(-9))
-      .concat([{role:'user',content:q+'\n\nKONTEXT:\nÚP: '+(ctx.upLink||'není k dispozici')+'\nKB:\n'+kbText}]);
+      .concat([{role:'user', content: q+'\n\nKONTEXT:\nÚP: '+(ctx.upLink||'není k dispozici')+'\nKB:\n'+kbText}]);
 
     try{
       const payload = {
