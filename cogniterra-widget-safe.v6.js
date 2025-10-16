@@ -259,21 +259,29 @@
 
   
   // --- Start screen & pricing flow (v1) ---
-  function renderStart(){
-    shadow.querySelector('.chat').innerHTML='';
-    const box=U.el('div',{class:'cg-start'},[
-      U.el('div',{class:'cg-cards'},[
-        U.el('div',{class:'cg-card',onclick:()=>startPricing()},[U.el('h3',{},['Nacenit nemovitost']),U.el('p',{},['Rychlý odhad ceny z tržních dat.'])]),
-        U.el('div',{class:'cg-card',onclick:()=>startHelp()},[U.el('h3',{},['Potřebuji pomoct']),U.el('p',{},['Chat s naším asistentem (ISNS, územní plán, dotazy).'])])
+function renderStart() {
+  // 1) Úvodní bublina
+  addAI('Dobrý den 👋 Jsem virtuální asistent Cogniterry. Jak mohu pomoci?');
+
+  // 2) Panel se dvěma klikacími volbami (mimo bublinu)
+  const cards = U.el('div', { class: 'cg-start' }, [
+    U.el('div', { class: 'cg-cards' }, [
+      // Karta 1 – nacenění
+      U.el('button', { class: 'cg-card', onclick: () => startPricing(), type: 'button' }, [
+        U.el('h3', {}, ['Nacenit nemovitost']),
+        U.el('p', {}, ['Rychlý odhad ceny z tržních dat.'])
+      ]),
+      // Karta 2 – pomoc
+      U.el('button', { class: 'cg-card', onclick: () => startHelp(), type: 'button' }, [
+        U.el('h3', {}, ['Potřebuji pomoct']),
+        U.el('p', {}, ['Chat s naším asistentem (problém s nemovitostí, Vaše dotazy)'])
       ])
-    ]);
-    addAI('Vyberte, s čím mohu pomoci:', box);
-  }
-  function startHelp(){ addAI('Jsem připraven. Napište, s čím potřebujete pomoci.'); }
-  function startPricing(){
-    S.flow='pricing';
-    stepChooseType();
-  }
+    ])
+  ]);
+
+  addPanel(cards); // vlož panel pod bublinu
+}
+
   function stepChooseType(){
     const sel=U.el('select',{class:'cg-select',id:'cgType'},[U.el('option',{value:'Byt'},['Byt']),U.el('option',{value:'Dům'},['Dům']),U.el('option',{value:'Pozemek'},['Pozemek'])]);
     const box=U.el('div',{class:'cg-step'},[ U.el('label',{},['Vyberte typ nemovitosti']), sel, U.el('div',{class:'cg-cta'},[ U.el('button',{class:'cg-btn',onclick:()=>stepLocation(sel.value)},['Pokračovat']) ]) ]);
