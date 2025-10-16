@@ -124,20 +124,7 @@ function renderStart() {
     ])
   ]);
   addPanel(cards);
-}, [
-    U.el('div', { class: 'cg-cards' }, [
-      // Karta 1 – nacenění
-      U.el('button', { class: 'cg-card', onclick: () => startPricing(), type: 'button' }, [
-        U.el('h3', {}, ['Nacenit nemovitost']),
-        U.el('p', {}, ['Rychlý odhad ceny z tržních dat.'])
-      ]),
-      // Karta 2 – pomoc
-      U.el('button', { class: 'cg-card', onclick: () => startHelp(), type: 'button' }, [
-        U.el('h3', {}, ['Potřebuji pomoct']),
-        U.el('p', {}, ['Chat s naším asistentem (problém s nemovitostí, Vaše dotazy)'])
-      ])
-    ])
-  ]);
+
 
   addPanel(cards);
 }
