@@ -20,6 +20,25 @@
   // Load estimator module
   (function(){ var sc=document.createElement('script'); sc.src=(window.CGTR && window.CGTR.widgetUrl? window.CGTR.widgetUrl.replace(/[^\/]+$/, 'estimator.v1.js') : 'estimator.v1.js'); document.head.appendChild(sc); })();
 
+
+  // --- Mapy.cz Suggest (dynamic loader) ---
+  function loadMapy(apiKey){
+    if(window._CG_MAPY_LOADED) return;
+    var s=document.createElement('script'); s.src='https://api.mapy.cz/loader.js'; s.onload=function(){
+      if(window.Loader){
+        window.Loader.async = true;
+        window.Loader.load(null, { api:'all', key: apiKey });
+        window._CG_MAPY_LOADED = true;
+      }
+    };
+    document.head.appendChild(s);
+  }
+  function attachSuggest(input){
+    try{
+      if(input && window.SMap && SMap.Suggest){ new SMap.Suggest(input); }
+    }catch(_){}
+  }
+
   const U={
     el:(t,a={},c=[])=>{const e=document.createElement(t);
       for(const k in a){ if(k==='style'&&typeof a[k]==='object')Object.assign(e.style,a[k]);
