@@ -21,21 +21,31 @@
   (function(){ var sc=document.createElement('script'); sc.src=(window.CGTR && window.CGTR.widgetUrl? window.CGTR.widgetUrl.replace(/[^\/]+$/, 'estimator.v1.js') : 'estimator.v1.js'); document.head.appendChild(sc); })();
 
 
-  // --- Mapy.cz Suggest (dynamic loader) ---
+  // --- Mapy.cz Suggest (robust async init) ---
+  let CG_MAPY_PROMISE = null;
   function loadMapy(apiKey){
-    if(window._CG_MAPY_LOADED) return;
-    var s=document.createElement('script'); s.src='https://api.mapy.cz/loader.js'; s.onload=function(){
-      if(window.Loader){
-        window.Loader.async = true;
-        window.Loader.load(null, { api:'all', key: apiKey });
-        window._CG_MAPY_LOADED = true;
-      }
-    };
-    document.head.appendChild(s);
+    if(CG_MAPY_PROMISE) return CG_MAPY_PROMISE;
+    CG_MAPY_PROMISE = new Promise(function(resolve){
+      var s=document.createElement('script'); s.src='https://api.mapy.cz/loader.js';
+      s.onload=function(){
+        if(window.Loader){
+          window.Loader.async = true;
+          window.Loader.load(null, { api:'suggest', key: apiKey, onload: function(){
+            // SMap.Suggest ready
+            resolve(true);
+          }});
+        } else { resolve(false); }
+      };
+      document.head.appendChild(s);
+    });
+    return CG_MAPY_PROMISE;
   }
   function attachSuggest(input){
-    try{
-      if(input && window.SMap && SMap.Suggest){ new SMap.Suggest(input); }
+    if(!input) return;
+    loadMapy('EreCyrH41se5wkNErc5JEWX2eMLqnpja5BUVxsvpqzM').then(function(){
+      try{ if(window.SMap && SMap.Suggest){ new SMap.Suggest(input); } }catch(_){}
+    });
+  }
     }catch(_){}
   }
 
@@ -383,8 +393,8 @@
     addAI('Výsledek odhadu', box);
   }
 
-  loadMapy('EreCyrH41se5wkNErc5JEWX2eMLqnpja5BUVxsvpqzM');
-  renderStart();
+  function cgSafeStart(){ try{ if(!shadow || !shadow.querySelector('.messages')){ return setTimeout(cgSafeStart,40); } renderStart(); }catch(e){ setTimeout(cgSafeStart,40); } }
+  cgSafeStart();
   send.addEventListener('click',()=>{ const q=ta.value; ta.value=''; ask(q); });
   ta.addEventListener('keydown',(e)=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); const q=ta.value; ta.value=''; ask(q); }});
 })();
