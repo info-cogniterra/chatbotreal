@@ -223,3 +223,4 @@ function renderLeadBoxPricing(params){
   cgSafeStart();
   send.addEventListener('click',()=>{ const q=ta.value; ta.value=''; ask(q); });
   ta.addEventListener('keydown',(e)=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); const q=ta.value; ta.value=''; ask(q); }});
+  }
