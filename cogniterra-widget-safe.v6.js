@@ -111,11 +111,20 @@
 
 // --- Úvodní rozcestník ---
 function renderStart() {
-  // 1) Úvodní bublina
-  addAI('Dobrý den 👋 Jsem virtuální asistent Cogniterry. Jak mohu pomoci?');
-
-  // 2) Dvě klikací volby (panel mimo bublinu)
   const cards = U.el('div', { class: 'cg-start' }, [
+    U.el('div', { class: 'cg-cards' }, [
+      U.el('button', { class: 'cg-card', onclick: () => startPricing(), type: 'button' }, [
+        U.el('h3', {}, ['Nacenit nemovitost']),
+        U.el('p', {}, ['Rychlý odhad ceny z tržních dat.'])
+      ]),
+      U.el('button', { class: 'cg-card', onclick: () => startHelp(), type: 'button' }, [
+        U.el('h3', {}, ['Potřebuji pomoct']),
+        U.el('p', {}, ['Chat s naším asistentem (problém s nemovitostí, Vaše dotazy)'])
+      ])
+    ])
+  ]);
+  addPanel(cards);
+}, [
     U.el('div', { class: 'cg-cards' }, [
       // Karta 1 – nacenění
       U.el('button', { class: 'cg-card', onclick: () => startPricing(), type: 'button' }, [
@@ -161,70 +170,8 @@ function stepParamsByt(obec){
     ])
   ]);
   addAI('Nacenění – krok 3/3', box);
-}
 
-function stepParamsDum(obec){
-  const typ = U.input('typ','Typ stavby');
-  const stav = U.select('stav',['Novostavba','Po rekonstrukci','Dobrý','Špatný']);
-  const area = U.input('vymera','Výměra (m²)','number');
-
-  const box = U.el('div',{class:'cg-step'},[
-    U.el('label',{},['Parametry domu – ',obec]),
-    typ,stav,area,
-    U.el('div',{class:'cg-cta'},[
-      U.el('button',{class:'cg-btn',onclick:()=>{
-        const params={typ:'Dům', obec, typ_stavby:typ.value, stav:stav.value, vymera:parseFloat(area.value||0)};
-        renderLeadBoxPricing(params);
-      }},['Pokračovat k odhadu'])
-    ])
-  ]);
-  addAI('Nacenění – krok 3/3', box);
-}
-
-function stepParamsPozemek(obec){
-  const kat = U.input('kategorie','Kategorie pozemku');
-  const area = U.input('vymera','Výměra (m²)','number');
-
-  const box = U.el('div',{class:'cg-step'},[
-    U.el('label',{},['Parametry pozemku – ',obec]),
-    kat,area,
-    U.el('div',{class:'cg-cta'},[
-      U.el('button',{class:'cg-btn',onclick:()=>{
-        const params={typ:'Pozemek', obec, kategorie:kat.value, vymera:parseFloat(area.value||0)};
-        renderLeadBoxPricing(params);
-      }},['Pokračovat k odhadu'])
-    ])
-  ]);
-  addAI('Nacenění – krok 3/3', box);
-}
-
-  }
-
-  function stepParamsDum(obec){
-    const typ=U.el('select',{class:'cg-select',id:'cgTyp'}, Object.keys(PRICES.domy[obec]||{'Cihlová':{}}).map(x=>U.el('option',{value:x},[x])));
-    const stav=U.el('select',{class:'cg-select',id:'cgStav'},['Novostavba','Po rekonstrukci','Dobrý','Špatný'].map(x=>U.el('option',{value:x},[x])));
-    const area=U.el('input',{class:'cg-input',id:'cgArea',type:'number',placeholder:'Výměra (m²)'});
-    const box=U.el('div',{class:'cg-step'},[U.el('label',{},['Parametry domu – ',obec]),typ,stav,area,U.el('div',{class:'cg-cta'},[U.el('button',{class:'cg-btn',onclick:()=>{
-      const params={obec, typ_stavby:typ.value, stav:stav.value, vymera:parseFloat(area.value||0)};
-      const res=window.CG_Estimator.estimateDum(PRICES.domy, params);
-      renderLeadBoxPricing({typ:'Dům', obec, typ_stavby:typ.value, stav:stav.value, vymera:parseFloat(area.value||0)});
-    }},['Pokračovat k odhadu'])])]);
-    addAI('Nacenění – krok 3/3', box);
-  }
-
-  function stepParamsPoz(obec){
-    const kat=U.el('select',{class:'cg-select',id:'cgKat'}, Object.keys(PRICES.pozemky[obec]||{'Bydlení':{}}).map(x=>U.el('option',{value:x},[x])));
-    const area=U.el('input',{class:'cg-input',id:'cgArea',type:'number',placeholder:'Výměra (m²)'});
-    const box=U.el('div',{class:'cg-step'},[U.el('label',{},['Parametry pozemku – ',obec]),kat,area,U.el('div',{class:'cg-cta'},[U.el('button',{class:'cg-btn',onclick:()=>{
-      const params={obec, kategorie:kat.value, vymera:parseFloat(area.value||0)};
-      const res=window.CG_Estimator.estimatePozemek(PRICES.pozemky, params);
-      renderLeadBoxPricing({typ:'Pozemek', obec, kategorie:kat.value, vymera:parseFloat(area.value||0)});
-    }},['Pokračovat k odhadu'])])]);
-    addAI('Nacenění – krok 3/3', box);
-  }
-
-  
-  function renderLeadBoxPricing(params){
+function renderLeadBoxPricing(params){
     S.tempPricing = params;
     const consentId = 'cgConsent_'+(Math.random().toString(36).slice(2));
     const box=U.el('div',{class:'leadbox'},[
