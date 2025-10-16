@@ -436,8 +436,6 @@ function ask(q) {
       }
     })();
 }
-
-    addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod.");
   }
 
   // ==== Config / data preload (optional) ====
