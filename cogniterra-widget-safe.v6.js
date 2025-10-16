@@ -40,10 +40,17 @@
     });
     return CG_MAPY_PROMISE;
   }
+  
   function attachSuggest(input){
     if(!input) return;
     loadMapy('EreCyrH41se5wkNErc5JEWX2eMLqnpja5BUVxsvpqzM').then(function(){
-      try{ if(window.SMap && SMap.Suggest){ new SMap.Suggest(input); } }catch(_){}
+      try{
+        if(window.SMap && SMap.Suggest){ new SMap.Suggest(input); }
+      }catch(_){}
+    });
+  }
+
+}catch(_){}
     });
   }
     }catch(_){}
