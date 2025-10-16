@@ -277,7 +277,8 @@ function renderStart() {
     ])
   ]);
   addPanel(cards);
-}, [
+}
+, [
     U.el('div', { class: 'cg-cards' }, [
       // Karta 1 – nacenění
       U.el('button', { class: 'cg-card', onclick: () => startPricing(), type: 'button' }, [
