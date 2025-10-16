@@ -93,7 +93,6 @@
       const urls=S.cfg.data_urls||{};
       const [kb,up]=await Promise.all([urls.kb?U.fetchJson(urls.kb):[], urls.up?U.fetchJson(urls.up):null]);
       S.data={kb,up};
-      addAI('Dobrý den 👋 Jsem virtuální asistent Cogniterry. Rád pomohu s prodejem/pronájmem, prověřením ISNS nebo ÚP. Jak mohu pomoci?');
     }catch(e){ addAI('Chyba načítání konfigurace: '+String(e)); }
   })();
 
@@ -265,11 +264,20 @@
   
   // --- Start screen & pricing flow (v1) ---
 function renderStart() {
-  // 1) Úvodní bublina
-  addAI('Dobrý den 👋 Jsem virtuální asistent Cogniterry. Jak mohu pomoci?');
-
-  // 2) Panel se dvěma klikacími volbami (mimo bublinu)
   const cards = U.el('div', { class: 'cg-start' }, [
+    U.el('div', { class: 'cg-cards' }, [
+      U.el('button', { class: 'cg-card', onclick: () => startPricing(), type: 'button' }, [
+        U.el('h3', {}, ['Nacenit nemovitost']),
+        U.el('p', {}, ['Rychlý odhad ceny z tržních dat.'])
+      ]),
+      U.el('button', { class: 'cg-card', onclick: () => startHelp(), type: 'button' }, [
+        U.el('h3', {}, ['Potřebuji pomoct']),
+        U.el('p', {}, ['Chat s naším asistentem (problém s nemovitostí, Vaše dotazy)'])
+      ])
+    ])
+  ]);
+  addPanel(cards);
+}, [
     U.el('div', { class: 'cg-cards' }, [
       // Karta 1 – nacenění
       U.el('button', { class: 'cg-card', onclick: () => startPricing(), type: 'button' }, [
@@ -287,7 +295,11 @@ function renderStart() {
   addPanel(cards); // vlož panel pod bublinu
 }
 
-  function stepChooseType(){
+  function startHelp(){ addAI('Jsem připraven. Napište, s čím potřebujete pomoct.'); }
+
+function startPricing(){ S.flow='pricing'; stepChooseType(); }
+
+function stepChooseType(){
     const sel=U.el('select',{class:'cg-select',id:'cgType'},[U.el('option',{value:'Byt'},['Byt']),U.el('option',{value:'Dům'},['Dům']),U.el('option',{value:'Pozemek'},['Pozemek'])]);
     const box=U.el('div',{class:'cg-step'},[ U.el('label',{},['Vyberte typ nemovitosti']), sel, U.el('div',{class:'cg-cta'},[ U.el('button',{class:'cg-btn',onclick:()=>stepLocation(sel.value)},['Pokračovat']) ]) ]);
     addAI('Nacenění – krok 1/3', box);
@@ -322,8 +334,8 @@ function renderStart() {
     const box=U.el('div',{class:'cg-step'},[U.el('label',{},['Parametry bytu – ',obec]),disp,stav,vlast,area,U.el('div',{class:'cg-cta'},[U.el('button',{class:'cg-btn',onclick:()=>{
       const params={obec, dispozice:disp.value, stav:stav.value, vlastnictvi:vlast.value, vymera:parseFloat(area.value||0)};
       const res=window.CG_Estimator.estimateByt(PRICES.byty, params);
-      renderEstimate(res,'Byt');
-    }},['Spočítat'])])]);
+      renderLeadBoxPricing({typ:'Byt', obec, dispozice:disp.value, stav:stav.value, vlastnictvi:vlast.value, vymera:parseFloat(area.value||0)});
+    }},['Pokračovat k odhadu'])])]);
     addAI('Nacenění – krok 3/3', box);
   }
 
@@ -334,8 +346,8 @@ function renderStart() {
     const box=U.el('div',{class:'cg-step'},[U.el('label',{},['Parametry domu – ',obec]),typ,stav,area,U.el('div',{class:'cg-cta'},[U.el('button',{class:'cg-btn',onclick:()=>{
       const params={obec, typ_stavby:typ.value, stav:stav.value, vymera:parseFloat(area.value||0)};
       const res=window.CG_Estimator.estimateDum(PRICES.domy, params);
-      renderEstimate(res,'Dům');
-    }},['Spočítat'])])]);
+      renderLeadBoxPricing({typ:'Dům', obec, typ_stavby:typ.value, stav:stav.value, vymera:parseFloat(area.value||0)});
+    }},['Pokračovat k odhadu'])])]);
     addAI('Nacenění – krok 3/3', box);
   }
 
@@ -345,8 +357,8 @@ function renderStart() {
     const box=U.el('div',{class:'cg-step'},[U.el('label',{},['Parametry pozemku – ',obec]),kat,area,U.el('div',{class:'cg-cta'},[U.el('button',{class:'cg-btn',onclick:()=>{
       const params={obec, kategorie:kat.value, vymera:parseFloat(area.value||0)};
       const res=window.CG_Estimator.estimatePozemek(PRICES.pozemky, params);
-      renderEstimate(res,'Pozemek');
-    }},['Spočítat'])])]);
+      renderLeadBoxPricing({typ:'Pozemek', obec, kategorie:kat.value, vymera:parseFloat(area.value||0)});
+    }},['Pokračovat k odhadu'])])]);
     addAI('Nacenění – krok 3/3', box);
   }
 
