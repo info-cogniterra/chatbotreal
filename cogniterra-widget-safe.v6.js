@@ -380,62 +380,33 @@
   }
   
 function ask(q) {
-    if (!q) return;
-    addME(q);
-
-    // If pricing keyword detected, switch to pricing flow
-    if (needPricing(q)) { startPricing(); return; }
-
-    // Chat integration
-    const url = (S && S.cfg && S.cfg.chat_url) ? S.cfg.chat_url : null;
-    if (!url) {
-      addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod.");
-      return;
-    }
-
-    (async () => {
-      try {
-        // show a lightweight typing indicator
-        const typing = U.el("div", { class: "msg ai" }, ["· · ·"]);
-        messages.appendChild(typing);
-        messages.scrollTop = messages.scrollHeight;
-
-        const payload = {
-          q,
-          secret: (S.cfg && S.cfg.secret) || undefined,
-          context: { brand: "Cogniterra", modules: ["ISNS","Nacenění","UP"] }
-        };
-
-        const resp = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-
-        typing.remove();
-
-        if (!resp.ok) {
-          addAI("Omlouvám se, teď se mi nedaří získat odpověď od AI. Zkuste to prosím za chvíli.");
-          return;
-        }
-
-        // Try JSON first, fall back to text
-        let txt = "";
-        const ct = resp.headers.get("content-type") || "";
-        if (ct.includes("application/json")) {
-          const j = await resp.json();
-          txt = j.message || j.reply || j.text || "";
-        } else {
-          txt = await resp.text();
-        }
-        txt = (txt && String(txt).trim()) || "Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod.";
-        addAI(txt);
-      } catch (e) {
-        addAI("Omlouvám se, došlo k chybě při komunikaci s AI. Zkuste to prosím znovu.");
-        console.error("AI chat error:", e);
+  if (!q) return;
+  addME(q);
+  if (needPricing(q)) { startPricing(); return; }
+  const url = (S && S.cfg && (S.cfg.proxy_url || S.cfg.chat_url)) || null;
+  if (!url) { addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod."); return; }
+  (async () => {
+    try {
+      const typing = U.el("div", { class: "msg ai" }, ["· · ·"]);
+      messages.appendChild(typing); messages.scrollTop = messages.scrollHeight;
+      const form = new URLSearchParams(); form.set("q", q);
+      if (S.cfg && S.cfg.secret) form.set("secret", S.cfg.secret);
+      form.set("context", JSON.stringify({brand:"Cogniterra", modules:["ISNS","Nacenění","UP"]}));
+      let resp = null;
+      try { resp = await fetch(url, { method: "POST", body: form }); } catch(_) { resp = null; }
+      typing.remove();
+      if (!resp || !resp.ok) {
+        try { const u = new URL(url); u.searchParams.set("q", q); if (S.cfg && S.cfg.secret) u.searchParams.set("secret", S.cfg.secret); u.searchParams.set("context", JSON.stringify({brand:"Cogniterra"})); resp = await fetch(u.toString(), { method: "GET" }); } catch(_e) { addAI("Omlouvám se, teď se mi nedaří získat odpověď od AI. Zkuste to prosím za chvíli."); return; }
+        if (!resp.ok) { addAI("Omlouvám se, teď se mi nedaří získat odpověď od AI. Zkuste to prosím za chvíli."); return; }
       }
-    })();
+      const ct = (resp.headers.get("content-type")||"").toLowerCase();
+      let txt = ""; if (ct.includes("application/json")) { try { const j = await resp.json(); txt = j.message || j.reply || j.text || j.answer || JSON.stringify(j); } catch { txt = await resp.text(); } } else { txt = await resp.text(); }
+      txt = (txt && String(txt).trim()) || "Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod.";
+      addAI(txt);
+    } catch (e) { addAI("Omlouvám se, došlo k chybě při komunikaci s AI. Zkuste to prosím znovu."); console.error("AI chat error:", e); }
+  })();
 }
+
 
   
 // ==== Config / data preload (optional) ====
