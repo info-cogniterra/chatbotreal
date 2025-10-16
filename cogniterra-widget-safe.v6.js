@@ -101,8 +101,14 @@
     if (extra) b.appendChild(extra);
     messages.appendChild(b);
     messages.scrollTop = messages.scrollHeight;
+    try { S.chat = S.chat || {messages:[]}; S.chat.messages.push({ role:"assistant", content: String(t) }); } catch(_){}
+  }, [t]);
+    if (extra) b.appendChild(extra);
+    messages.appendChild(b);
+    messages.scrollTop = messages.scrollHeight;
   }
   function addME(t) {
+    try { S.chat = S.chat || {messages:[]}; S.chat.messages.push({ role:"user", content: String(q) }); } catch(_){}
     const b = U.el("div", { class: "msg me" }, [t]);
     messages.appendChild(b);
     messages.scrollTop = messages.scrollHeight;
@@ -383,8 +389,13 @@ function ask(q) {
   if (!q) return;
   addME(q);
   if (needPricing(q)) { startPricing(); return; }
+  S.chat = S.chat || { messages: [] };
   const url = (S && S.cfg && (S.cfg.proxy_url || S.cfg.chat_url)) || null;
   if (!url) { addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod."); return; }
+
+    // Contact intent (CZ variants) -> open lead form immediately
+    const wantContact = /(^|\b)(chci ?být ?kontaktov[aá]n|kontaktuj(te)? m[ěe]|zavolejte|napi[sš]te|nechte kontakt|ozv[eu] se|m[ůu]žete m[ěě] kontaktovat)/i.test(q);
+    if (wantContact) { stepContactVerify(); return; }
   (async () => {
     try {
       const typing = U.el("div", { class: "msg ai" }, ["· · ·"]);
@@ -410,6 +421,10 @@ function ask(q) {
 
   
 // ==== Config / data preload (optional) ====
+
+    // Contact intent (CZ variants) -> open lead form immediately
+    const wantContact = /(^|\b)(chci ?být ?kontaktov[aá]n|kontaktuj(te)? m[ěe]|zavolejte|napi[sš]te|nechte kontakt|ozv[eu] se|m[ůu]žete m[ěě] kontaktovat)/i.test(q);
+    if (wantContact) { stepContactVerify(); return; }
   (async () => {
     try {
       const scriptEl = document.currentScript || document.querySelector('script[data-config]');
