@@ -378,10 +378,65 @@
     const s = U.norm(q);
     return /(nacenit|naceněn|ocenit|odhad(\s*ceny)?|cena\s+nemovitosti|spočítat\s*cenu|kolik\s+to\s*stojí)/i.test(s);
   }
-  function ask(q) {
+  
+function ask(q) {
     if (!q) return;
     addME(q);
+
+    // If pricing keyword detected, switch to pricing flow
     if (needPricing(q)) { startPricing(); return; }
+
+    // Chat integration
+    const url = (S && S.cfg && S.cfg.chat_url) ? S.cfg.chat_url : null;
+    if (!url) {
+      addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod.");
+      return;
+    }
+
+    (async () => {
+      try {
+        // show a lightweight typing indicator
+        const typing = U.el("div", { class: "msg ai" }, ["· · ·"]);
+        messages.appendChild(typing);
+        messages.scrollTop = messages.scrollHeight;
+
+        const payload = {
+          q,
+          secret: (S.cfg && S.cfg.secret) || undefined,
+          context: { brand: "Cogniterra", modules: ["ISNS","Nacenění","UP"] }
+        };
+
+        const resp = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        typing.remove();
+
+        if (!resp.ok) {
+          addAI("Omlouvám se, teď se mi nedaří získat odpověď od AI. Zkuste to prosím za chvíli.");
+          return;
+        }
+
+        // Try JSON first, fall back to text
+        let txt = "";
+        const ct = resp.headers.get("content-type") || "";
+        if (ct.includes("application/json")) {
+          const j = await resp.json();
+          txt = j.message || j.reply || j.text || "";
+        } else {
+          txt = await resp.text();
+        }
+        txt = (txt && String(txt).trim()) || "Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod.";
+        addAI(txt);
+      } catch (e) {
+        addAI("Omlouvám se, došlo k chybě při komunikaci s AI. Zkuste to prosím znovu.");
+        console.error("AI chat error:", e);
+      }
+    })();
+}
+
     addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod.");
   }
 
