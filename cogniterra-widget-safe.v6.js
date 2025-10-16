@@ -436,9 +436,9 @@ function ask(q) {
       }
     })();
 }
-  }
 
-  // ==== Config / data preload (optional) ====
+  
+// ==== Config / data preload (optional) ====
   (async () => {
     try {
       const scriptEl = document.currentScript || document.querySelector('script[data-config]');
@@ -471,6 +471,7 @@ function ask(q) {
       setTimeout(cgSafeStart, 40);
     }
   }
+
   // kick it
   cgSafeStart();
 
