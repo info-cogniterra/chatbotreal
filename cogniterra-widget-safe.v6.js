@@ -21,8 +21,8 @@
   (function(){ var sc=document.createElement('script'); sc.src=(window.CGTR && window.CGTR.widgetUrl? window.CGTR.widgetUrl.replace(/[^\/]+$/, 'estimator.v1.js') : 'estimator.v1.js'); document.head.appendChild(sc); })();
 
 
-  // --- Mapy.cz Suggest (robust async init) ---
-  let CG_MAPY_PROMISE = null;
+  // --- Mapy.cz Suggest (robust async init CLEAN) ---
+  var CG_MAPY_PROMISE = null;
   function loadMapy(apiKey){
     if(CG_MAPY_PROMISE) return CG_MAPY_PROMISE;
     CG_MAPY_PROMISE = new Promise(function(resolve){
@@ -30,31 +30,20 @@
       s.onload=function(){
         if(window.Loader){
           window.Loader.async = true;
-          window.Loader.load(null, { api:'suggest', key: apiKey, onload: function(){
-            // SMap.Suggest ready
-            resolve(true);
-          }});
+          window.Loader.load(null, { api:'suggest', key: apiKey, onload: function(){ resolve(true); } });
         } else { resolve(false); }
       };
       document.head.appendChild(s);
     });
     return CG_MAPY_PROMISE;
   }
-  
   function attachSuggest(input){
     if(!input) return;
     loadMapy('EreCyrH41se5wkNErc5JEWX2eMLqnpja5BUVxsvpqzM').then(function(){
-      try{
-        if(window.SMap && SMap.Suggest){ new SMap.Suggest(input); }
-      }catch(_){}
+      try{ if(window.SMap && SMap.Suggest){ new SMap.Suggest(input); } }catch(_){}
     });
   }
 
-}catch(_){}
-    });
-  }
-    }catch(_){}
-  }
 
   const U={
     el:(t,a={},c=[])=>{const e=document.createElement(t);
