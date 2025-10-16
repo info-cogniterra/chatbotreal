@@ -103,7 +103,12 @@
   }
   function addME(t){ const b=U.el('div',{class:'msg me'},[t]); chat.append(b); chat.scrollTop=chat.scrollHeight; }
 
-  function addPanel(el){ const wrap=U.el('div',{class:'panel'},[]); wrap.append(el); chat.append(wrap); chat.scrollTop=chat.scrollHeight; }
+  function addPanel(el){
+  const wrap = U.el('div', { class: 'panel' }, []);
+  wrap.append(el);
+  chat.append(wrap);
+  chat.scrollTop = chat.scrollHeight;
+  }
 
   // Typing indicator
   let typingEl=null;
