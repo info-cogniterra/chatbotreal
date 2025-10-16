@@ -10,6 +10,16 @@
   const CFG_URL=(THIS && THIS.getAttribute('data-config')) || (window.CGTR && window.CGTR.configUrl);
   if(!CFG_URL){ console.error('[Cogniterra] Missing data-config'); return; }
 
+  // preload price maps into window for estimator
+  fetch(CFG_URL.replace(/widget_config\.json$/, 'prices_byty.v1.json')).then(r=>r.json()).then(j=>{ window.PRICES_BYTY = j.map || j.map || j; });
+  fetch(CFG_URL.replace(/widget_config\.json$/, 'prices_domy.v1.json')).then(r=>r.json()).then(j=>{ window.PRICES_DOMY = j.map || j.map || j; });
+  fetch(CFG_URL.replace(/widget_config\.json$/, 'prices_pozemky.v1.json')).then(r=>r.json()).then(j=>{ window.PRICES_POZ = j.map || j.map || j; });
+
+
+  
+  // Load estimator module
+  (function(){ var sc=document.createElement('script'); sc.src=(window.CGTR && window.CGTR.widgetUrl? window.CGTR.widgetUrl.replace(/[^\/]+$/, 'estimator.v1.js') : 'estimator.v1.js'); document.head.appendChild(sc); })();
+
   const U={
     el:(t,a={},c=[])=>{const e=document.createElement(t);
       for(const k in a){ if(k==='style'&&typeof a[k]==='object')Object.assign(e.style,a[k]);
@@ -212,6 +222,150 @@
     }catch(e){ addAI('Něco se pokazilo při odesílání kontaktu. Zkuste to prosím znovu.'); }
   }
 
+  
+  // --- Start screen & pricing flow (v1) ---
+  function renderStart(){
+    shadow.querySelector('.messages').innerHTML='';
+    const box=U.el('div',{class:'cg-start'},[
+      U.el('div',{class:'cg-cards'},[
+        U.el('div',{class:'cg-card',onclick:()=>startPricing()},[U.el('h3',{},['Nacenit nemovitost']),U.el('p',{},['Rychlý odhad ceny z tržních dat.'])]),
+        U.el('div',{class:'cg-card',onclick:()=>startHelp()},[U.el('h3',{},['Potřebuji pomoct']),U.el('p',{},['Chat s naším asistentem (ISNS, územní plán, dotazy).'])])
+      ])
+    ]);
+    addAI('Vyberte, s čím mohu pomoci:', box);
+  }
+  function startHelp(){ addAI('Jsem připraven. Napište, s čím potřebujete pomoci.'); }
+  function startPricing(){
+    S.flow='pricing';
+    stepChooseType();
+  }
+  function stepChooseType(){
+    const sel=U.el('select',{class:'cg-select',id:'cgType'},[U.el('option',{value:'Byt'},['Byt']),U.el('option',{value:'Dům'},['Dům']),U.el('option',{value:'Pozemek'},['Pozemek'])]);
+    const box=U.el('div',{class:'cg-step'},[ U.el('label',{},['Vyberte typ nemovitosti']), sel, U.el('div',{class:'cg-cta'},[ U.el('button',{class:'cg-btn',onclick:()=>stepLocation(sel.value)},['Pokračovat']) ]) ]);
+    addAI('Nacenění – krok 1/3', box);
+  }
+  function stepLocation(typ){
+    // location inputs: Byt/Dům -> ulice, obec; Pozemek -> obec
+    const street = typ==='Pozemek'? null : U.el('input',{class:'cg-input',id:'cgStreet',placeholder:'Ulice (volitelné)'});
+    const town = U.el('input',{class:'cg-input',id:'cgTown',placeholder:'Obec'});
+    const body=[U.el('label',{},['Lokalita']), street?street:null, town, U.el('div',{class:'cg-note'},['Lokalitu můžete začít psát – nabídneme shody.'])].filter(Boolean);
+    const box=U.el('div',{class:'cg-step'}, body.concat([
+      U.el('div',{class:'cg-cta'},[ U.el('button',{class:'cg-btn',onclick:()=>stepParams(typ, street?street.value:'', town.value)},['Pokračovat']) ])
+    ]));
+    addAI('Nacenění – krok 2/3', box);
+
+      // Mapy.cz Suggest on inputs
+    attachSuggest(street); attachSuggest(town);
+  }
+  function stepParams(typ, street, town){
+    if(!town){ addAI('Zadejte prosím obec.'); return; }
+    if(typ==='Byt') return stepParamsByt(town);
+    if(typ==='Dům') return stepParamsDum(town);
+    return stepParamsPoz(town);
+  }
+  function fmt(num){ return (num||0).toLocaleString('cs-CZ'); }
+  const PRICES={ byty: (window.PRICES_BYTY||{}), domy:(window.PRICES_DOMY||{}), pozemky:(window.PRICES_POZ||{}) };
+
+  function stepParamsByt(obec){
+    const disp=U.el('select',{class:'cg-select',id:'cgDisp'},['1+kk','1+1','2+kk','2+1','3+kk','3+1','4+kk','4+1'].map(x=>U.el('option',{value:x},[x])));
+    const stav=U.el('select',{class:'cg-select',id:'cgStav'},['Novostavba','Po rekonstrukci','Dobrý','Špatný'].map(x=>U.el('option',{value:x},[x])));
+    const vlast=U.el('select',{class:'cg-select',id:'cgOwn'},['osobní','družstevní'].map(x=>U.el('option',{value:x},[x])));
+    const area=U.el('input',{class:'cg-input',id:'cgArea',type:'number',placeholder:'Výměra (m²)'});
+    const box=U.el('div',{class:'cg-step'},[U.el('label',{},['Parametry bytu – ',obec]),disp,stav,vlast,area,U.el('div',{class:'cg-cta'},[U.el('button',{class:'cg-btn',onclick:()=>{
+      const params={obec, dispozice:disp.value, stav:stav.value, vlastnictvi:vlast.value, vymera:parseFloat(area.value||0)};
+      const res=window.CG_Estimator.estimateByt(PRICES.byty, params);
+      renderEstimate(res,'Byt');
+    }},['Spočítat'])])]);
+    addAI('Nacenění – krok 3/3', box);
+  }
+
+  function stepParamsDum(obec){
+    const typ=U.el('select',{class:'cg-select',id:'cgTyp'}, Object.keys(PRICES.domy[obec]||{'Cihlová':{}}).map(x=>U.el('option',{value:x},[x])));
+    const stav=U.el('select',{class:'cg-select',id:'cgStav'},['Novostavba','Po rekonstrukci','Dobrý','Špatný'].map(x=>U.el('option',{value:x},[x])));
+    const area=U.el('input',{class:'cg-input',id:'cgArea',type:'number',placeholder:'Výměra (m²)'});
+    const box=U.el('div',{class:'cg-step'},[U.el('label',{},['Parametry domu – ',obec]),typ,stav,area,U.el('div',{class:'cg-cta'},[U.el('button',{class:'cg-btn',onclick:()=>{
+      const params={obec, typ_stavby:typ.value, stav:stav.value, vymera:parseFloat(area.value||0)};
+      const res=window.CG_Estimator.estimateDum(PRICES.domy, params);
+      renderEstimate(res,'Dům');
+    }},['Spočítat'])])]);
+    addAI('Nacenění – krok 3/3', box);
+  }
+
+  function stepParamsPoz(obec){
+    const kat=U.el('select',{class:'cg-select',id:'cgKat'}, Object.keys(PRICES.pozemky[obec]||{'Bydlení':{}}).map(x=>U.el('option',{value:x},[x])));
+    const area=U.el('input',{class:'cg-input',id:'cgArea',type:'number',placeholder:'Výměra (m²)'});
+    const box=U.el('div',{class:'cg-step'},[U.el('label',{},['Parametry pozemku – ',obec]),kat,area,U.el('div',{class:'cg-cta'},[U.el('button',{class:'cg-btn',onclick:()=>{
+      const params={obec, kategorie:kat.value, vymera:parseFloat(area.value||0)};
+      const res=window.CG_Estimator.estimatePozemek(PRICES.pozemky, params);
+      renderEstimate(res,'Pozemek');
+    }},['Spočítat'])])]);
+    addAI('Nacenění – krok 3/3', box);
+  }
+
+  
+  function renderLeadBoxPricing(params){
+    S.tempPricing = params;
+    const consentId = 'cgConsent_'+(Math.random().toString(36).slice(2));
+    const box=U.el('div',{class:'leadbox'},[
+      U.el('div',{},['Pro ověření, že nejste robot, prosíme o zadání vašich kontaktů.']),
+      U.el('input',{id:'lead_name',placeholder:'Jméno'}),
+      U.el('input',{id:'lead_email',type:'email',placeholder:'E-mail'}),
+      U.el('input',{id:'lead_phone',placeholder:'Telefon (+420...)'}),
+      U.el('label',{},[ U.el('input',{id:consentId,type:'checkbox'}), ' Odesláním souhlasím se zásadami zpracování osobních údajů.' ]),
+      U.el('button',{class:'btn',onclick:()=>saveLeadPricing(consentId)},['Odeslat a zobrazit odhad'])
+    ]);
+    addAI('Kontakt pro zobrazení odhadu', box);
+  }
+
+  async function saveLeadPricing(consentId){
+    try{
+      const btn=shadow.querySelector('.leadbox .btn'); if(btn){ btn.disabled=true; btn.innerHTML = 'Odesílám…'; }
+      const name=(shadow.getElementById('lead_name')||{value:''}).value.trim();
+      const email=(shadow.getElementById('lead_email')||{value:''}).value.trim();
+      const phone=(shadow.getElementById('lead_phone')||{value:''}).value.trim();
+      const consent = (shadow.getElementById(consentId)||{}).checked;
+      if(!name || !U.emailOk(email) || !U.phoneOk(phone) || !consent){ addAI('Zkontrolujte prosím kontaktní údaje a potvrďte souhlas.'); if(btn){btn.disabled=false;btn.innerHTML='Odeslat a zobrazit odhad';} return; }
+
+      const payload={secret:S.cfg.secret,branch:'chat',session_id:S.session,jmeno:name,email,telefon:phone,
+        message:'Žádost o odhad z chatbota', source:'chat_widget_pricing',timestamp:new Date().toISOString(), path:'/lead',
+        pricing_params: JSON.stringify(S.tempPricing||{}) };
+
+      fetch(S.cfg.lead_url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(Object.entries(payload)).toString()}).catch(()=>{});
+      try{
+        const r=await fetch(S.cfg.lead_url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(Object.entries(payload)).toString()});
+        // ignore response; proceed to compute
+      }catch(_){}
+
+      if(btn){ btn.disabled=false; btn.innerHTML = 'Odesláno'; }
+      // After lead saved, compute estimate and show
+      const P=S.tempPricing||{};
+      let res=null, typ=P.typ||'Byt';
+      if(typ==='Byt') res = window.CG_Estimator.estimateByt(PRICES.byty, P);
+      else if(typ==='Dům') res = window.CG_Estimator.estimateDum(PRICES.domy, P);
+      else res = window.CG_Estimator.estimatePozemek(PRICES.pozemky, P);
+      renderEstimate(res, typ);
+    }catch(e){
+      addAI('Něco se pokazilo při odesílání kontaktu. Zkuste to prosím znovu.');
+    }
+  }
+
+  function renderEstimate(res, typ){
+    if(!res.ok){ addAI('Odhad se nepodařilo spočítat: '+(res.reason||'')); return; }
+    const box=U.el('div',{class:'cg-result'},[
+      U.el('h4',{},[typ+': předběžný odhad']),
+      U.el('div',{},['Odhad: ', fmt(res.low),' – ', fmt(res.high),' Kč (střed: ',fmt(res.mid),' Kč)']),
+      U.el('div',{},['Orientační cena za m²: ', fmt(res.m2),' Kč/m²']),
+      U.el('div',{class:'cg-note'},['Důvěra: ',res.confidence,'; ',res.notes]),
+      U.el('div',{class:'cg-cta'},[
+        U.el('button',{class:'cg-btn',onclick:()=>renderLeadBox()},['Odhad ceny zdarma']),
+        U.el('button',{class:'cg-btn secondary',onclick:()=>renderStart()},['Zpět na úvod'])
+      ])
+    ]);
+    addAI('Výsledek odhadu', box);
+  }
+
+  loadMapy('EreCyrH41se5wkNErc5JEWX2eMLqnpja5BUVxsvpqzM');
+  renderStart();
   send.addEventListener('click',()=>{ const q=ta.value; ta.value=''; ask(q); });
   ta.addEventListener('keydown',(e)=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); const q=ta.value; ta.value=''; ask(q); }});
 })();
