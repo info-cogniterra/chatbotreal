@@ -1,32 +1,29 @@
-// cogniterra-widget-safe.v6.js  — FIXED FINAL
-// Build: v6.130.3  (intro bubble + 2 cards panel; contact -> price; Mapy.cz Suggest; no stray commas)
+// cogniterra-widget-safe.v6.js — BUBBLE-ONLY, SINGLE INSTANCE
+// Build v6.bubble.1  — intro + 2 cards; pricing via contact; Mapy.cz suggest; no auto-create
 
-// -----------------------------
-// Minimal widget bootstrap
-// -----------------------------
 (function () {
   "use strict";
 
-  // Guard to avoid double-init
+  // ==== single-instance guard ====
   if (window.__CG_WIDGET_INIT__) return;
   window.__CG_WIDGET_INIT__ = true;
 
-  // -----------------------------
-  // State + Config
-  // -----------------------------
+  // ==== mount only if host exists (bubble creates it); do NOTHING otherwise ====
+  const host = document.querySelector("[data-cogniterra-widget]");
+  if (!host) return; // bubble not opened yet / or embed missing
+
+  // ==== state/config ====
   const S = {
     session: Math.random().toString(36).slice(2),
     flow: null,
-    cfg: null,         // will be loaded from data-config (JSON) if present
+    cfg: null,
     data: {},
     tempPricing: null,
   };
 
-  // -----------------------------
-  // Utilities
-  // -----------------------------
+  // ==== utils ====
   const U = {
-    el(tag, props, children) {
+    el(tag, props, kids) {
       const n = document.createElement(tag);
       if (props) for (const k in props) {
         if (k === "class") n.className = props[k];
@@ -34,48 +31,33 @@
         else if (k.startsWith("on")) n[k] = props[k];
         else n.setAttribute(k, props[k]);
       }
-      (children || []).forEach((c) => {
+      (kids || []).forEach((c) => {
         if (typeof c === "string") n.appendChild(document.createTextNode(c));
         else if (c) n.appendChild(c);
       });
       return n;
     },
     input(name, placeholder, type = "text") {
-      return U.el("input", { name, id: name, placeholder, type, class: "cg-input" });
+      return U.el("input", { id: name, name, placeholder, type, class: "cg-input" });
     },
     select(name, options) {
-      const s = U.el("select", { name, id: name, class: "cg-select" });
+      const s = U.el("select", { id: name, name, class: "cg-select" });
       options.forEach((o) => s.appendChild(U.el("option", { value: o }, [o])));
       return s;
     },
-    emailOk(v) {
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v || "");
-    },
-    phoneOk(v) {
-      return /^\+?\d[\d\s\-]{7,}$/.test(v || "");
-    },
-    norm(v) {
-      return (v || "").normalize("NFKD").toLowerCase();
-    },
-    fetchJson(url) {
-      return fetch(url, { credentials: "omit" }).then((r) => r.json());
-    },
+    emailOk(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v || ""); },
+    phoneOk(v) { return /^\+?[0-9\s\-()]{7,}$/.test(v || ""); },
+    norm(v) { return (v || "").normalize("NFKD").toLowerCase(); },
+    fetchJson(url) { return fetch(url, { credentials: "omit" }).then(r => r.json()); },
   };
 
-  // -----------------------------
-  // Shadow DOM + basic layout
-  // -----------------------------
-  const host = document.querySelector("[data-cogniterra-widget]") || (function () {
-    const h = document.createElement("div");
-    h.setAttribute("data-cogniterra-widget", "1");
-    document.body.appendChild(h);
-    return h;
-  })();
+  // ==== shadow root & UI skeleton ====
   const shadow = host.attachShadow({ mode: "open" });
 
   const style = document.createElement("style");
   style.textContent = `
-  .wrap{font:14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial; color:#fff}
+  :host{all:initial}
+  .wrap{font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#fff}
   .chat{background:#121417;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.35); width:360px; max-width:100vw; height:560px; display:flex; flex-direction:column; overflow:hidden}
   .header{padding:10px 12px; background:#0b0d10; border-bottom:1px solid rgba(255,255,255,.08); font-weight:700}
   .messages{flex:1; padding:12px; overflow:auto}
@@ -94,7 +76,7 @@
   .cg-card p{ margin:0; font-size:13px; opacity:.9 }
   .cg-step label{display:block; margin:6px 0 8px; opacity:.9}
   .cg-input,.cg-select{width:100%; margin:6px 0 8px; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:#12161b; color:#fff}
-  .cg-cta{margin-top:8px}
+  .cg-cta{margin-top:8px; display:flex; gap:8px; flex-wrap:wrap}
   .cg-btn{border:0; background:#0a7d5a; color:#fff; padding:10px 14px; border-radius:10px; font-weight:700; cursor:pointer}
   .leadbox input{width:100%; margin:6px 0 8px; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:#12161b; color:#fff}
   .hint{opacity:.7; font-size:12px; margin-top:4px}
@@ -109,17 +91,11 @@
   const ta = document.createElement("textarea");
   const send = document.createElement("button");
   send.textContent = "Odeslat";
-  input.appendChild(ta);
-  input.appendChild(send);
-  chat.appendChild(header);
-  chat.appendChild(messages);
-  chat.appendChild(input);
-  wrap.appendChild(chat);
-  shadow.appendChild(wrap);
+  input.appendChild(ta); input.appendChild(send);
+  chat.appendChild(header); chat.appendChild(messages); chat.appendChild(input);
+  wrap.appendChild(chat); shadow.appendChild(wrap);
 
-  // -----------------------------
-  // Messaging helpers
-  // -----------------------------
+  // ==== message helpers ====
   function addAI(t, extra) {
     const b = U.el("div", { class: "msg ai" }, [t]);
     if (extra) b.appendChild(extra);
@@ -132,15 +108,13 @@
     messages.scrollTop = messages.scrollHeight;
   }
   function addPanel(el) {
-    const wrap = U.el("div", { class: "panel" }, []);
-    wrap.appendChild(el);
-    messages.appendChild(wrap);
+    const w = U.el("div", { class: "panel" }, []);
+    w.appendChild(el);
+    messages.appendChild(w);
     messages.scrollTop = messages.scrollHeight;
   }
 
-  // -----------------------------
-  // Mapy.cz Suggest (promise loader)
-  // -----------------------------
+  // ==== Mapy.cz Suggest ====
   let MAPY_PROMISE = null;
   function loadMapy(apiKey) {
     if (MAPY_PROMISE) return MAPY_PROMISE;
@@ -164,35 +138,33 @@
   function attachSuggest(inputEl) {
     if (!inputEl) return;
     const key = (S.cfg && S.cfg.mapy_key) || "EreCyrH41se5wkNErc5JEWX2eMLqnpja5BUVxsvpqzM";
-    loadMapy(key).then(() => {
+    loadMapy(key).then((ok) => {
+      if (!ok) {
+        inputEl.setAttribute("placeholder", (inputEl.placeholder || "") + " (našeptávač nedostupný)");
+        return;
+      }
       try { if (window.SMap && SMap.Suggest) new SMap.Suggest(inputEl); } catch (_) {}
     });
   }
 
-  // -----------------------------
-  // Estimator (placeholder – výpočty máš zvlášť; zde jen volání)
-  // -----------------------------
+  // ==== Estimator stubs (nahraď svými výpočty) ====
   window.CG_Estimator = window.CG_Estimator || {
     estimateByt(m, p)   { return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; },
     estimateDum(m, p)   { return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; },
     estimatePozemek(m,p){ return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; }
   };
 
-  // -----------------------------
-  // Start screen (YOUR SPEC)
-  // -----------------------------
+  // ==== START SCREEN ====
   function renderStart() {
-    // 1) Úvodní bublina
     addAI("Dobrý den 👋 Jsem virtuální asistent Cogniterry. Jak mohu pomoci?");
 
-    // 2) Dvě klikací karty (panel mimo bublinu)
     const cards = U.el("div", { class: "cg-start" }, [
       U.el("div", { class: "cg-cards" }, [
-        U.el("button", { class: "cg-card", type: "button", onclick: () => startPricing() }, [
+        U.el("button", { class: "cg-card", type: "button", onclick: () => startPricing(), "aria-label":"Nacenit nemovitost" }, [
           U.el("h3", {}, ["Nacenit nemovitost"]),
           U.el("p", {}, ["Rychlý odhad ceny z tržních dat."])
         ]),
-        U.el("button", { class: "cg-card", type: "button", onclick: () => startHelp() }, [
+        U.el("button", { class: "cg-card", type: "button", onclick: () => startHelp(), "aria-label":"Potřebuji pomoct" }, [
           U.el("h3", {}, ["Potřebuji pomoct"]),
           U.el("p", {}, ["Chat s naším asistentem (problém s nemovitostí, Vaše dotazy)"])
         ])
@@ -203,7 +175,7 @@
   }
 
   function startHelp() {
-    addAI("Jsem připraven. Napište, s čím potřebujete pomoct.");
+    addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod.");
   }
 
   function startPricing() {
@@ -211,9 +183,7 @@
     stepChooseType();
   }
 
-  // -----------------------------
-  // Pricing flow
-  // -----------------------------
+  // ==== Pricing flow ====
   function stepChooseType() {
     const byt = U.el("button", { class: "cg-btn", type: "button", onclick: () => stepLocation("Byt") }, ["Byt"]);
     const dum = U.el("button", { class: "cg-btn", type: "button", onclick: () => stepLocation("Dům") }, ["Dům"]);
@@ -231,7 +201,7 @@
     const hint = U.el("div", { class: "hint" }, ["Začněte psát – nabídneme shody (Mapy.cz Suggest)."]);
     const nxt = U.el("button", { class: "cg-btn", type: "button", onclick: () => {
       const obec = (town.value || "").trim();
-      if (!obec) { addAI("Zadejte prosím obec."); return; }
+      if (!obec) { addAI("Zadejte prosím obec."); town.focus(); return; }
       if (typ === "Byt") return stepParamsByt(obec);
       if (typ === "Dům") return stepParamsDum(obec);
       return stepParamsPozemek(obec);
@@ -242,26 +212,18 @@
     const box = U.el("div", { class: "cg-step" }, inner);
 
     addAI("Nacenění – krok 2/3", box);
-    // Mapy.cz Suggest hookup
     if (street) attachSuggest(street);
     attachSuggest(town);
   }
 
   function stepParamsByt(obec) {
     const disp  = U.input("dispozice", "Dispozice (např. 2+kk)");
-    const stav  = U.select("stav", ["Novostavba", "Po rekonstrukci", "Dobrý", "Špatný"]);
-    const vlast = U.select("vlastnictvi", ["Osobní", "Družstevní"]);
+    const stav  = U.select("stav", ["Novostavba","Po rekonstrukci","Dobrý","Špatný"]);
+    const vlast = U.select("vlastnictvi", ["Osobní","Družstevní"]);
     const area  = U.input("vymera", "Výměra (m²)", "number");
 
     const go = U.el("button", { class: "cg-btn", type: "button", onclick: () => {
-      const params = {
-        typ: "Byt",
-        obec,
-        dispozice: disp.value,
-        stav: stav.value,
-        vlastnictvi: vlast.value,
-        vymera: parseFloat(area.value || 0),
-      };
+      const params = { typ:"Byt", obec, dispozice:disp.value, stav:stav.value, vlastnictvi:vlast.value, vymera:parseFloat(area.value||0) };
       renderLeadBoxPricing(params);
     }}, ["Pokračovat k odhadu"]);
 
@@ -274,18 +236,12 @@
   }
 
   function stepParamsDum(obec) {
-    const typS  = U.input("typ_stavby", "Typ stavby");
-    const stav  = U.select("stav", ["Novostavba", "Po rekonstrukci", "Dobrý", "Špatný"]);
-    const area  = U.input("vymera", "Výměra (m²)", "number");
+    const typS = U.input("typ_stavby", "Typ stavby");
+    const stav = U.select("stav", ["Novostavba","Po rekonstrukci","Dobrý","Špatný"]);
+    const area = U.input("vymera", "Výměra (m²)", "number");
 
     const go = U.el("button", { class: "cg-btn", type: "button", onclick: () => {
-      const params = {
-        typ: "Dům",
-        obec,
-        typ_stavby: typS.value,
-        stav: stav.value,
-        vymera: parseFloat(area.value || 0),
-      };
+      const params = { typ:"Dům", obec, typ_stavby:typS.value, stav:stav.value, vymera:parseFloat(area.value||0) };
       renderLeadBoxPricing(params);
     }}, ["Pokračovat k odhadu"]);
 
@@ -302,12 +258,7 @@
     const area = U.input("vymera", "Výměra (m²)", "number");
 
     const go = U.el("button", { class: "cg-btn", type: "button", onclick: () => {
-      const params = {
-        typ: "Pozemek",
-        obec,
-        kategorie: kat.value,
-        vymera: parseFloat(area.value || 0),
-      };
+      const params = { typ:"Pozemek", obec, kategorie:kat.value, vymera:parseFloat(area.value||0) };
       renderLeadBoxPricing(params);
     }}, ["Pokračovat k odhadu"]);
 
@@ -319,25 +270,23 @@
     addAI("Nacenění – krok 3/3", box);
   }
 
-  // -----------------------------
-  // Lead-first gate -> then compute estimate
-  // -----------------------------
+  // ==== Kontakt → ulož → potom odhad ====
   function renderLeadBoxPricing(params) {
     S.tempPricing = params;
     const consentId = "cgConsent_" + Math.random().toString(36).slice(2);
 
     const box = U.el("div", { class: "leadbox" }, [
       U.el("div", {}, ["Pro ověření, že nejste robot, prosíme o zadání vašich kontaktů."]),
-      U.el("input", { id: "lead_name", name: "name", placeholder: "Jméno" }),
-      U.el("input", { id: "lead_email", name: "email", type: "email", placeholder: "E-mail" }),
-      U.el("input", { id: "lead_phone", name: "phone", placeholder: "Telefon (+420…)" }),
+      U.el("input", { id: "lead_name",  name:"name",  placeholder:"Jméno" }),
+      U.el("input", { id: "lead_email", name:"email", type:"email", placeholder:"E-mail" }),
+      U.el("input", { id: "lead_phone", name:"phone", placeholder:"Telefon (+420…)" }),
       U.el("label", {}, [
-        U.el("input", { id: consentId, type: "checkbox" }),
+        U.el("input", { id: consentId, type:"checkbox" }),
         " Odesláním souhlasím se zásadami zpracování osobních údajů."
       ]),
       U.el("div", { class: "cg-cta" }, [
-        U.el("button", { class: "cg-btn", type: "button", onclick: () => saveLeadPricing(consentId) }, ["Odeslat a zobrazit odhad"]),
-      ]),
+        U.el("button", { class: "cg-btn", type: "button", onclick: () => saveLeadPricing(consentId) }, ["Odeslat a zobrazit odhad"])
+      ])
     ]);
     addAI("Kontaktní ověření", box);
   }
@@ -346,10 +295,14 @@
     const btn = shadow.querySelector(".leadbox .cg-btn");
     if (btn) { btn.disabled = true; btn.textContent = "Odesílám…"; }
 
-    const name  = (shadow.getElementById("lead_name")  || { value: "" }).value.trim();
-    const email = (shadow.getElementById("lead_email") || { value: "" }).value.trim();
-    const phone = (shadow.getElementById("lead_phone") || { value: "" }).value.trim();
-    const consent = (shadow.getElementById(consentId) || { checked: false }).checked;
+    const nameEl  = shadow.querySelector("#lead_name");
+    const emailEl = shadow.querySelector("#lead_email");
+    const phoneEl = shadow.querySelector("#lead_phone");
+    const name  = (nameEl  && nameEl.value)  ? nameEl.value.trim() : "";
+    const email = (emailEl && emailEl.value) ? emailEl.value.trim() : "";
+    const phone = (phoneEl && phoneEl.value) ? phoneEl.value.trim() : "";
+    const consentEl = shadow.querySelector("#" + consentId);
+    const consent = !!(consentEl && consentEl.checked);
 
     if (!name || !U.emailOk(email) || !U.phoneOk(phone) || !consent) {
       addAI("Zkontrolujte prosím kontaktní údaje a potvrďte souhlas.");
@@ -371,16 +324,23 @@
       pricing_params: JSON.stringify(S.tempPricing || {}),
     };
 
+    // send
     try {
-      // Send to Apps Script / your endpoint
       if (S.cfg && S.cfg.lead_url) {
         const body = new URLSearchParams(Object.entries(payload)).toString();
-        // fire-and-forget
-        fetch(S.cfg.lead_url, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body }).catch(()=>{});
-        // attempt proper POST too
+        let ok = false;
         try {
-          await fetch(S.cfg.lead_url, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body });
-        } catch (_) {}
+          const resp = await fetch(S.cfg.lead_url, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body
+          });
+          ok = !!resp.ok;
+        } catch (_) { ok = false; }
+        if (!ok) {
+          // fallback fire-and-forget
+          fetch(S.cfg.lead_url, { method:"POST", mode:"no-cors", headers:{ "Content-Type":"application/x-www-form-urlencoded"}, body }).catch(()=>{});
+        }
       }
     } catch (e) {
       addAI("Nepodařilo se uložit kontakt. Zkuste to prosím znovu.");
@@ -390,20 +350,20 @@
 
     if (btn) { btn.disabled = false; btn.textContent = "Odesláno"; }
 
-    // After lead saved → compute and show estimate
+    // compute after lead saved
     const P = S.tempPricing || {};
     let res = null;
     if (P.typ === "Byt")       res = window.CG_Estimator.estimateByt(window.PRICES ? window.PRICES.byty : null, P);
     else if (P.typ === "Dům")  res = window.CG_Estimator.estimateDum(window.PRICES ? window.PRICES.domy : null, P);
     else                       res = window.CG_Estimator.estimatePozemek(window.PRICES ? window.PRICES.pozemky : null, P);
 
-    renderEstimate(res, P.typ || "Nemovitost");
+    renderEstimate(res || {low:"-",high:"-",per_m2:"-",note:""}, P.typ || "Nemovitost");
   }
 
   function renderEstimate(res, typ) {
     const box = U.el("div", { class: "cg-step" }, [
       U.el("label", {}, [`${typ}: předběžný odhad`]),
-      U.el("div", {}, [`Rozpětí: ${res.low?.toLocaleString?.("cs-CZ") || "-"} – ${res.high?.toLocaleString?.("cs-CZ") || "-" } Kč`]),
+      U.el("div", {}, [`Rozpětí: ${res.low?.toLocaleString?.("cs-CZ") || res.low || "-"} – ${res.high?.toLocaleString?.("cs-CZ") || res.high || "-" } Kč`]),
       U.el("div", {}, [`Orientační cena za m²: ${res.per_m2 || "-"} Kč/m²`]),
       U.el("div", { class: "hint" }, [res.note || "Odhad je orientační."]),
       U.el("div", { class: "cg-cta" }, [
@@ -413,28 +373,19 @@
     addAI("Výsledek odhadu", box);
   }
 
-  // -----------------------------
-  // Intent routing (text → pricing)
-  // -----------------------------
+  // ==== Intent routing ====
   function needPricing(q) {
     const s = U.norm(q);
-    return /(nacenit|naceněn|ocenit|oceněn|odhad(\s*ceny)?|cena\s+nemovitosti|spočítat\s*cenu|kolik\s+to\s*stojí)/i.test(s);
+    return /(nacenit|naceněn|ocenit|odhad(\s*ceny)?|cena\s+nemovitosti|spočítat\s*cenu|kolik\s+to\s*stojí)/i.test(s);
   }
-
-  async function ask(q) {
+  function ask(q) {
     if (!q) return;
     addME(q);
-
-    // 0) Pricing intent
     if (needPricing(q)) { startPricing(); return; }
-
-    // fallback – your assistant
     addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod.");
   }
 
-  // -----------------------------
-  // Data/Config preload (optional)
-  // -----------------------------
+  // ==== Config / data preload (optional) ====
   (async () => {
     try {
       const scriptEl = document.currentScript || document.querySelector('script[data-config]');
@@ -444,7 +395,6 @@
       } else {
         S.cfg = S.cfg || {};
       }
-      // Preload prices if URLs exist (optional)
       if (S.cfg && S.cfg.data_urls) {
         const d = S.cfg.data_urls;
         const [byty, domy, pozemky] = await Promise.all([
@@ -459,9 +409,7 @@
     }
   })();
 
-  // -----------------------------
-  // Init (safe-start + Mapy loader)
-  // -----------------------------
+  // ==== Init (only when host exists) ====
   function cgSafeStart() {
     try {
       if (!messages) return setTimeout(cgSafeStart, 40);
@@ -470,20 +418,11 @@
       setTimeout(cgSafeStart, 40);
     }
   }
-  // Load Mapy early (does nothing if key missing)
-  loadMapy((S.cfg && S.cfg.mapy_key) || "EreCyrH41se5wkNErc5JEWX2eMLqnpja5BUVxsvpqzM");
+  // kick it
   cgSafeStart();
 
-  // Input handlers
-  send.addEventListener("click", () => {
-    const q = ta.value.trim();
-    ta.value = "";
-    ask(q);
-  });
-  ta.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      send.click();
-    }
-  });
+  // input handlers
+  send.addEventListener("click", () => { const q = ta.value.trim(); ta.value = ""; ask(q); });
+  ta.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send.click(); } });
+
 })();
