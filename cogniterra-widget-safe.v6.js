@@ -129,11 +129,11 @@
     if(needVerify(q)){
       const ku = extractKU(q);
       if(!ku){
-        addAI('Rád prověřím. Napište prosím **katastrální území (KÚ)**, abych mohl přidat odkaz na aktuální územní plán. Zároveň můžete využít náš systém **ISNS** pro kompletní prověření (LITE / PREMIUM / ULTRA). Otevřít ISNS: https://cogniterra.cz/isns/');
+        addAI('Rád prověřím. Napište prosím katastrální území (KÚ), abych mohl přidat odkaz na aktuální územní plán. Zároveň můžete využít náš systém ISNS pro kompletní prověření (LITE / PREMIUM / ULTRA). Otevřít ISNS: https://cogniterra.cz/isns/');
       }else{
         const ctx = makeContext(q);
         const link = ctx.upLink || 'Přímý odkaz se mi nepodařilo najít. Mrkněte na ISNS: https://cogniterra.cz/isns/';
-        addAI('Rád prověřím. Zde je odkaz na aktuální **ÚP** pro zadané KÚ: ' + link + '\n\nPro kompletní prověření doporučuji **ISNS** (LITE / PREMIUM / ULTRA): https://cogniterra.cz/isns/');
+        addAI('Rád prověřím. Zde je odkaz na aktuální ÚP pro zadané KÚ: ' + link + '\n\nPro kompletní prověření doporučuji ISNS (LITE / PREMIUM / ULTRA): https://cogniterra.cz/isns/');
       }
       return;
     }
@@ -184,11 +184,11 @@
 
   async function saveLead(){
     try{
-      const btn=shadow.querySelector('.leadbox .btn'); if(btn){ btn.disabled=true; btn.textContent='Odesílám…'; }
+      const btn=shadow.querySelector('.leadbox .btn'); if(btn){ btn.disabled=true; btn.innerHTML = 'Odesílám…'; }
       const name=(shadow.getElementById('lead_name')||{value:''}).value.trim();
       const email=(shadow.getElementById('lead_email')||{value:''}).value.trim();
       const phone=(shadow.getElementById('lead_phone')||{value:''}).value.trim();
-      if(!name || !U.emailOk(email) || !U.phoneOk(phone)){ addAI('Zkontrolujte prosím jméno, e-mail a telefon (formát +420…).'); if(btn){btn.disabled=false;btn.textContent='Odeslat kontakt';} return; }
+      if(!name || !U.emailOk(email) || !U.phoneOk(phone)){ addAI('Zkontrolujte prosím jméno, e-mail a telefon (formát +420…).'); if(btn){btn.disabled=false;btn.innerHTML = 'Odeslat kontakt';} return; }
 
       const payload={secret:S.cfg.secret,branch:'chat',session_id:S.session,jmeno:name,email,telefon:phone,
         message:(S.history.find(h=>h.role==='user')||{}).content||'',source:'chat_widget',timestamp:new Date().toISOString(), path:'/lead'};
@@ -208,7 +208,7 @@
         if(r.ok && success) ok(); else addAI('Kontakt se nepodařilo odeslat. Zkuste to prosím znovu.'+(detail?(' ['+detail+']'):''));
       }catch(err){}
 
-      if(btn){ btn.disabled=false; btn.textContent='Odeslat kontakt'; }
+      if(btn){ btn.disabled=false; btn.innerHTML = 'Odeslat kontakt'; }
     }catch(e){ addAI('Něco se pokazilo při odesílání kontaktu. Zkuste to prosím znovu.'); }
   }
 

@@ -1,1 +1,14 @@
 body{background:#0B0F14;color:#EAF2FF;font:16px/1.6 Inter,system-ui;margin:24px}
+
+
+/* --- Added by fix: clickable links in chat --- */
+.chat-message a, .message a {
+  color: #006B4F;
+  text-decoration: none;
+  font-weight: 600;
+}
+.chat-message a:hover, .message a:hover {
+  color: #D4AF37;
+  text-decoration: underline;
+}
+
