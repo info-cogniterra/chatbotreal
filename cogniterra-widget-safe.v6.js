@@ -210,6 +210,18 @@
     padding: 14px 16px;
     align-self: flex-end;
   }
+
+  /* Odkazy v AI zprávách */
+  .chat-msg.ai a {
+    color: #2c5282;
+    text-decoration: underline;
+    font-weight: 500;
+  }
+
+  .chat-msg.ai a:hover {
+    color: #1a365d;
+    text-decoration: underline;
+  }
   
   /* Panel pro další obsah */
   .chat-panel {
@@ -475,7 +487,8 @@
   // ==== message helpers ====
   function addAI(t, extra) {
     // render assistant bubble
-    const b = U.el("div", { class: "chat-msg ai" }, [t]);
+    const b = U.el("div", { class: "chat-msg ai" });
+    b.innerHTML = t; // Použijeme innerHTML místo textContent, aby se vyrenderovaly odkazy
     if (extra) b.appendChild(extra);
     chatMessages.appendChild(b);
     chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -555,6 +568,65 @@
     estimateDum(m, p)   { return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; },
     estimatePozemek(m,p){ return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; }
   };
+
+  // ==== Funkce pro nalezení územního plánu podle lokality ====
+  function findUzemniPlan(location) {
+    if (!S.data || !S.data.up || !S.data.up.map) return null;
+    
+    // Normalizace lokality pro porovnání
+    const normalizedLocation = U.norm(location);
+    
+    // Hledání přesné shody v obci nebo katastrálním území
+    const exactMatch = S.data.up.map.find(entry => 
+      U.norm(entry.obec) === normalizedLocation || 
+      U.norm(entry.ku) === normalizedLocation
+    );
+    
+    if (exactMatch) return exactMatch;
+    
+    // Hledání částečné shody v obci nebo katastrálním území
+    const partialMatch = S.data.up.map.find(entry => 
+      U.norm(entry.obec).includes(normalizedLocation) || 
+      U.norm(entry.ku).includes(normalizedLocation)
+    );
+    
+    return partialMatch || null;
+  }
+
+  // ==== Zpracování odpovědi s přidáním odkazu na územní plán ====
+  function processResponse(userQuery, aiResponse) {
+    // Původní odpověď AI
+    let processedResponse = aiResponse;
+    
+    // Detekce dotazu o pozemcích nebo územním plánu
+    const isLandQuery = /(pozemek|pozemky|parcela|parcely|územní plán|uzemni plan)/i.test(userQuery);
+    
+    if (isLandQuery) {
+      // Extrakce potenciálních lokalit z dotazu uživatele
+      // Jednoduchá heuristika: hledáme slova po předložkách "v", "ve", "na", atd.
+      const locationMatches = userQuery.match(/\b(v|ve|na|pro|o|k|obec|obce|město|vesnice|lokalita)\s+([A-Za-zÀ-ž]+(?:\s+[A-Za-zÀ-ž]+){0,2})/gi);
+      
+      if (locationMatches && locationMatches.length > 0) {
+        for (const match of locationMatches) {
+          // Extrahujeme lokalitu bez předložky
+          const location = match.replace(/\b(v|ve|na|pro|o|k|obec|obce|město|vesnice|lokalita)\s+/i, '').trim();
+          if (location.length < 3) continue; // Příliš krátké slovo
+          
+          // Hledáme územní plán pro tuto lokalitu
+          const planInfo = findUzemniPlan(location);
+          
+          if (planInfo && planInfo.url) {
+            // Přidání odkazu na územní plán do odpovědi
+            const appendText = `\n\nPro lokalitu ${planInfo.obec} (${planInfo.ku}) můžete najít územní plán zde: <a href="${planInfo.url}" target="_blank">Územní plán ${planInfo.obec}</a>`;
+            processedResponse += appendText;
+            break; // Stačí jeden odkaz
+          }
+        }
+      }
+    }
+    
+    return processedResponse;
+  }
 
   // ==== START SCREEN ====
   function renderStart() { try{chatTextarea.focus();}catch(e){}
@@ -935,7 +1007,11 @@
         }
         
         txt = (txt && String(txt).trim()) || "Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod.";
-        addAI(txt);
+        
+        // Zpracování odpovědi a přidání odkazů na územní plán
+        const enhancedResponse = processResponse(q, txt);
+        
+        addAI(enhancedResponse);
       } catch (e) { 
         addAI("Omlouvám se, došlo k chybě při komunikaci s AI. Zkuste to prosím znovu."); 
         console.error("AI chat error:", e); 
@@ -955,12 +1031,14 @@
       }
       if (S.cfg && S.cfg.data_urls) {
         const d = S.cfg.data_urls;
-        const [byty, domy, pozemky] = await Promise.all([
+        const [byty, domy, pozemky, up] = await Promise.all([
           d.byty ? U.fetchJson(d.byty) : null,
           d.domy ? U.fetchJson(d.domy) : null,
-          d.pozemky ? U.fetchJson(d.pozemky) : null
+          d.pozemky ? U.fetchJson(d.pozemky) : null,
+          d.up ? U.fetchJson(d.up) : null
         ]);
         window.PRICES = { byty, domy, pozemky };
+        S.data.up = up; // Uložíme data územních plánů
       }
     } catch (e) {
       addAI("Chyba načítání konfigurace/dat: " + String(e));
