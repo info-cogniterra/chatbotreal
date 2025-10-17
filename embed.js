@@ -46,3 +46,100 @@
   } catch(e){}
 })();
 
+
+
+//== CG Inject: responsive overrides & body lock ==
+(function() {
+  try {
+    var style = document.createElement('style');
+    style.id = 'cg-responsive-override';
+    style.textContent = `
+/* === CG: Lock background scroll when chat open === */
+html.cg-open, body.cg-open {
+  overflow: hidden !important;
+  touch-action: none !important;
+  overscroll-behavior: contain !important;
+}
+\n
+/* === CG: Responsive overrides for launcher & panel === */
+.cg-launcher {
+  -webkit-tap-highlight-color: transparent;
+}
+@media (min-width: 768px) {
+  .cg-panel {
+    width: clamp(360px, 34vw, 420px) !important;
+    height: clamp(520px, 72vh, 650px) !important;
+    right: 20px !important;
+    bottom: 90px !important;
+    left: auto !important;
+    border-radius: 18px !important;
+    max-height: 92vh !important;
+    overflow: hidden !important;
+  }
+}
+@media (max-width: 767.98px) {
+  .cg-panel {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    top: auto !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border-radius: 16px 16px 0 0 !important;
+    padding-bottom: env(safe-area-inset-bottom) !important;
+    padding-top: env(safe-area-inset-top) !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    transform: translateY(0);
+    transition: transform 0.2s ease-out;
+  }
+}
+`;
+    document.head.appendChild(style);
+  } catch(e) { console.warn('CG: style inject failed', e); }
+})();
+
+
+//== CG Inject: observe panel visibility to lock background ==
+(function(){
+  try {
+    var panel = document.querySelector('.cg-panel');
+    if (!panel) return;
+    var on = function(){ document.documentElement.classList.add('cg-open'); document.body.classList.add('cg-open'); };
+    var off = function(){ document.documentElement.classList.remove('cg-open'); document.body.classList.remove('cg-open'); };
+    var lastDisplay = getComputedStyle(panel).display;
+    var obs = new MutationObserver(function(){
+      var d = getComputedStyle(panel).display;
+      if (d !== lastDisplay) {
+        lastDisplay = d;
+        if (d !== 'none') on(); else off();
+      }
+    });
+    obs.observe(panel, { attributes: true, attributeFilter: ['style', 'class'] });
+    // initialize
+    if (getComputedStyle(panel).display !== 'none') on(); else off();
+  } catch(e){ console.warn('CG: observer failed', e); }
+})();
+
+
+//== CG Inject: visualViewport height sync on mobile ==
+(function(){
+  try {
+    var panel = document.querySelector('.cg-panel');
+    if (!panel || !window.visualViewport) return;
+    var isMobile = function(){ return Math.max(window.innerWidth, window.innerHeight) < 768; };
+    var apply = function(){
+      if (!isMobile()) { panel.style.removeProperty('height'); return; }
+      var vh = Math.round(window.visualViewport.height);
+      if (getComputedStyle(panel).display !== 'none') {
+        panel.style.height = vh + 'px';
+      }
+    };
+    window.visualViewport.addEventListener('resize', apply);
+    window.addEventListener('orientationchange', apply);
+    apply();
+  } catch(e){ console.warn('CG: viewport sync failed', e); }
+})();
+
