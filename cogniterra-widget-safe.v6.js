@@ -94,30 +94,34 @@
   input.appendChild(ta); input.appendChild(send);
   chat.appendChild(header); chat.appendChild(messages); chat.appendChild(input);
   input.style.display = "none";
-  S.chat = S.chat || {messages:[]}; S.intent = S.intent || {};
+  S.chat = S.chat || {messages:[]}; S.intent = S.intent || {}; S.intent = S.intent || {};
   wrap.appendChild(chat); shadow.appendChild(wrap);
 
   // ==== message helpers ====
   function addAI(t, extra) {
-    const b = U.el("div", { class: "msg ai" 
+  // render assistant bubble
+  const b = U.el("div", { class: "msg ai" }, [t]);
+  if (extra) b.appendChild(extra);
+  messages.appendChild(b);
+  messages.scrollTop = messages.scrollHeight;
 
-    // Heuristic: if assistant text offers to open the contact form, arm a one-turn confirmation
-    try {
-      const tt = String(t).toLowerCase();
-      const offerPhrases = /(mohu|můžu|máme|rád|ráda)\s+(vám\s+)?(ote[vw]ř[ií]t|zobrazit|spustit)\s+(kontaktn[íi]\s+formul[aá][řr])|chcete\s+(ote[vw]ř[ií]t|zobrazit|spustit)\s+(formul[aá][řr])/i;
-      if (offerPhrases.test(tt)) {
-        S.intent = S.intent || {};
-        S.intent.contactOffer = true;
-      }
-    } catch(_) {}
-}, [t]);
-    if (extra) b.appendChild(extra);
-    messages.appendChild(b);
-    messages.scrollTop = messages.scrollHeight;
-    try { S.chat = S.chat || {messages:[]}; S.intent = S.intent || {}; S.chat.messages.push({ role:"assistant", content: String(t) }); } catch(_){}
-  }
-  function addME(t) {
-    try { S.chat = S.chat || {messages:[]}; S.intent = S.intent || {}; S.chat.messages.push({ role:"user", content: String(t) }); } catch(_){}
+  // record to conversation
+  try { 
+    S.chat = S.chat || { messages: [] }; 
+    S.intent = S.intent || {}; 
+    S.chat.messages.push({ role: "assistant", content: String(t) }); 
+  } catch (e) {}
+
+  // detect assistant's offer to open the contact form (arms a one-turn confirmation)
+  try {
+    const tt = String(t).toLowerCase();
+    const offer1 = /(mohu|můžu|rád|ráda)\s+(vám\s+)?(ote[vw]ř[ií]t|zobrazit|spustit)\s+(kontaktn[íi]\s+formul[aá][řr])/i.test(tt);
+    const offer2 = /chcete\s+(ote[vw]ř[ií]t|zobrazit|spustit)\s+(formul[aá][řr])/i.test(tt);
+    if (offer1 || offer2) { S.intent = S.intent || {}; S.intent.contactOffer = true; }
+  } catch (e) {}
+}
+function addME(t) {
+    try { S.chat = S.chat || {messages:[]}; S.intent = S.intent || {}; S.intent = S.intent || {}; S.chat.messages.push({ role:"user", content: String(t) }); } catch(_){}
 const b = U.el("div", { class: "msg me" }, [t]);
     messages.appendChild(b);
     messages.scrollTop = messages.scrollHeight;
