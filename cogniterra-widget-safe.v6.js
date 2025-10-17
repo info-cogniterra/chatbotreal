@@ -839,7 +839,13 @@
   }
 
   // ==== START SCREEN ====
-  function renderStart() { try{chatTextarea.focus();}catch(e){}
+  function renderStart() { 
+    try {
+      chatTextarea.focus();
+    } catch(e) {
+      console.error("[Cogniterra] Error focusing textarea:", e);
+    }
+    
     console.log("[Cogniterra] Rendering start screen");
     addAI("Dobrý den, rád vám pomohu s vaší nemovitostí. Vyberte, co potřebujete.");
 
@@ -859,8 +865,14 @@
     addPanel(cards);
   }
 
-  function startHelp() { chatInputArea.style.display='flex'; try{chatTextarea.focus();}catch(e){}
-    chatInputArea.style.display = "flex";
+  function startHelp() { 
+    chatInputArea.style.display = 'flex'; 
+    try {
+      chatTextarea.focus();
+    } catch(e) {
+      console.error("[Cogniterra] Error focusing textarea:", e);
+    }
+    
     addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod.");
   }
 
@@ -1279,52 +1291,7 @@
       const CFG_URL = scriptEl ? scriptEl.getAttribute("data-config") : null;
       if (CFG_URL) {
         S.cfg = await U.fetchJson(CFG_URL);
+        console.log("[Cogniterra] Loaded config from:", CFG_URL);
       } else {
         S.cfg = S.cfg || {};
-      }
-      if (S.cfg && S.cfg.data_urls) {
-        const d = S.cfg.data_urls;
-        const [byty, domy, pozemky, up] = await Promise.all([
-          d.byty ? U.fetchJson(d.byty) : null,
-          d.domy ? U.fetchJson(d.domy) : null,
-          d.pozemky ? U.fetchJson(d.pozemky) : null,
-          d.up ? U.fetchJson(d.up) : null
-        ]);
-        window.PRICES = { byty, domy, pozemky };
-        S.data.up = up; // Uložíme data územních plánů
-        console.log("Data územních plánů načtena:", S.data.up ? S.data.up.map.length : 0, "záznamů");
-      }
-    } catch (e) {
-      console.error("Chyba načítání konfigurace/dat:", e);
-      addAI("Chyba načítání konfigurace/dat: " + String(e));
-    }
-  })();
-
-  // ==== Init (only when host exists) ====
-  function cgSafeStart() {
-    try {
-      if (!chatMessages) return setTimeout(cgSafeStart, 40);
-      renderStart();
-    } catch (e) {
-      setTimeout(cgSafeStart, 40);
-    }
-  }
-
-  // kick it
-  cgSafeStart();
-
-  // input handlers
-  chatSendBtn.addEventListener("click", () => { 
-    const q = chatTextarea.value.trim(); 
-    chatTextarea.value = ""; 
-    ask(q); 
-  });
-  
-  chatTextarea.addEventListener("keydown", (e) => { 
-    if (e.key === "Enter" && !e.shiftKey) { 
-      e.preventDefault(); 
-      chatSendBtn.click(); 
-    } 
-  });
-
-})();
+        console.warn
