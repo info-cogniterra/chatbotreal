@@ -15,7 +15,19 @@
   "use strict";
 
   // ==== single-instance guard ====
-  if (window.__CG_WIDGET_INIT__) return;
+  if (window.__CG_WIDGET_INIT__) {
+    // Pokud již existuje, vyčistíme starou instanci
+    try {
+      const existingHost = document.querySelector("[data-cogniterra-widget]");
+      if (existingHost && existingHost.shadowRoot) {
+        while (existingHost.shadowRoot.firstChild) {
+          existingHost.shadowRoot.removeChild(existingHost.shadowRoot.firstChild);
+        }
+      }
+    } catch (e) {
+      console.error("Chyba při čištění staré instance widgetu:", e);
+    }
+  }
   window.__CG_WIDGET_INIT__ = true;
 
   // ==== mount only if host exists (bubble creates it); do NOTHING otherwise ====
@@ -61,153 +73,444 @@
     fetchJson(url) { return fetch(url, { credentials: "omit" }).then(r => r.json()); },
   };
 
-  // ==== Zajištění, že shadowRoot je vyčištěný před přidáním nových prvků ====
-  if (host.shadowRoot) {
-    // Pokud již existuje shadowRoot, vyčistíme ho
-    while (host.shadowRoot.firstChild) {
-      host.shadowRoot.removeChild(host.shadowRoot.firstChild);
-    }
+  // Odstraníme všechny existující elementy s třídou .cg-close v document
+  try {
+    const oldCloseButtons = document.querySelectorAll('.cg-close');
+    oldCloseButtons.forEach(btn => btn.remove());
+  } catch(e) {}
+
+  // ==== shadow root & UI skeleton ====
+  // Odstraníme všechny potomky z host elementu
+  while (host.firstChild) {
+    host.removeChild(host.firstChild);
   }
   
-  // Vytvoříme nový shadowRoot, pokud ještě neexistuje
+  // Odstraníme jakýkoliv existující shadowRoot
+  if (host.shadowRoot) {
+    try {
+      // Pokusíme se odstranit shadowRoot
+      host.attachShadow({ mode: "open" });
+    } catch(e) {
+      // Pokud nelze přímo odstranit, alespoň vyčistíme obsah
+      while (host.shadowRoot.firstChild) {
+        host.shadowRoot.removeChild(host.shadowRoot.firstChild);
+      }
+    }
+  }
+
+  // Vytvoříme nový shadowRoot
   const shadow = host.shadowRoot || host.attachShadow({ mode: "open" });
 
-  // === Inject consistent styling for both desktop and mobile ===
+  // === Kompletně nový styl s důrazem na izolaci ===
   const style = document.createElement("style");
   style.textContent = `
-  :host{all:initial}
-  *, *::before, *::after { box-sizing: border-box; }
-  .wrap{font:15px/1.5 'Source Sans Pro', Helvetica, Arial, sans-serif; color:#2d3748}
-  .chat{background:#fff; border-radius:12px; box-shadow:0 15px 35px rgba(50,50,93,.1), 0 5px 15px rgba(0,0,0,.07); width:360px; max-width:100vw; height:560px; display:flex; flex-direction:column; overflow:hidden}
-  .header{background:#2c5282; color:#fff; padding:16px; font-weight:700; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,.1)}
-  .header .title{flex:1}
-  .header .close{background:transparent; border:none; color:#fff; cursor:pointer; font-size:16px; opacity:0.8}
-  .header .close:hover{opacity:1}
-  .messages{flex:1; padding:16px; overflow:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; background:#f8fafc; display:flex; flex-direction:column}
-  .msg{max-width:86%; margin:10px 0; word-wrap:break-word; overflow-wrap:break-word; white-space:pre-wrap; box-shadow:0 2px 5px rgba(0,0,0,.06)}
-  .msg.ai{background:#fff; border-left:4px solid #2c5282; border-radius:0 8px 8px 0; padding:14px 16px; align-self:flex-start; color:#2d3748}
-  .msg.me{background:#2c5282; color:#fff; border-radius:8px 0 0 8px; border-right:4px solid #1a365d; padding:14px 16px; align-self:flex-end}
-  .panel{background:transparent; padding:0; margin:12px 0; width:100%}
-  .input{display:flex; gap:10px; padding:14px 16px; background:#fff; border-top:1px solid #e2e8f0}
-  .input textarea{flex:1; resize:none; height:46px; border-radius:4px; border:1px solid #cbd5e0; background:#fff; color:#2d3748; padding:12px; font-family:inherit}
-  .input textarea:focus{outline:none; border-color:#2c5282; box-shadow:0 0 0 2px rgba(44,82,130,.2)}
-  .input button{border:0; background:#2c5282; color:#fff; padding:0 18px; border-radius:4px; font-weight:600; cursor:pointer; transition:background 0.2s}
-  .input button:hover{background:#1a365d}
-  .cg-start{display:flex; flex-direction:column; gap:16px; width:100%}
-  .cg-cards{display:grid; grid-template-columns:1fr; gap:16px; width:100%}
-  .cg-card{width:100%; text-align:left; background:#fff; border:1px solid #e2e8f0; border-left:4px solid #2c5282; border-radius:0 8px 8px 0; padding:16px; cursor:pointer; color:#2d3748; font-family:inherit; transition:all 0.2s ease}
-  .cg-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.08); border-left-color:#1a365d}
-  .cg-card h3{margin:0 0 6px; font-weight:700; font-size:16px; color:#2d3748}
-  .cg-card p{margin:0; font-size:14px; color:#4a5568}
-  .cg-step{background:#fff; border-radius:8px; padding:16px; box-shadow:0 2px 5px rgba(0,0,0,.05)}
-  .cg-step label{display:block; margin:8px 0 6px; color:#4a5568; font-weight:600}
-  .cg-input,.cg-select{width:100%; margin:6px 0 12px; padding:12px 14px; border-radius:4px; border:1px solid #cbd5e0; background:#fff; color:#2d3748; font-family:inherit}
-  .cg-input:focus,.cg-select:focus{outline:none; border-color:#2c5282; box-shadow:0 0 0 2px rgba(44,82,130,.2)}
-  .cg-cta{margin-top:16px; display:flex; gap:12px; flex-wrap:wrap}
-  .cg-btn{border:0; background:#2c5282; color:#fff; padding:12px 18px; border-radius:4px; font-weight:600; cursor:pointer; transition:background 0.2s}
-  .cg-btn:hover{background:#1a365d}
-  .leadbox{border:1px solid #e2e8f0; padding:16px; border-radius:8px; background:#fff}
-  .leadbox input{width:100%; margin:6px 0 12px; padding:12px 14px; border-radius:4px; border:1px solid #cbd5e0; background:#fff; color:#2d3748; font-family:inherit}
-  .leadbox input:focus{outline:none; border-color:#2c5282; box-shadow:0 0 0 2px rgba(44,82,130,.2)}
-  .leadbox input[type="checkbox"]{width:auto; margin-right:8px}
-  .hint{color:#718096; font-size:13px; margin-top:6px}
+  /* Základní reset a izolace */
+  :host {
+    all: initial;
+    display: block;
+    width: auto;
+    height: auto;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+  }
   
-  /* Mobile styles */
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Widget kontejner - bez černého pozadí */
+  .chat-container {
+    font: 15px/1.5 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    color: #2d3748;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 15px 35px rgba(50,50,93,.1), 0 5px 15px rgba(0,0,0,.07);
+    width: 360px;
+    max-width: 100vw;
+    height: 560px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  
+  /* Header */
+  .chat-header {
+    background: #2c5282;
+    color: #fff;
+    padding: 16px;
+    font-weight: 700;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+  }
+  
+  .chat-header-title {
+    flex: 1;
+  }
+  
+  .chat-close-btn {
+    background: transparent;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    font-size: 16px;
+    opacity: 0.8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+  }
+  
+  .chat-close-btn:hover {
+    opacity: 1;
+  }
+  
+  /* Oblast zpráv */
+  .chat-messages {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Zprávy */
+  .chat-msg {
+    max-width: 86%;
+    margin: 10px 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    box-shadow: 0 2px 5px rgba(0,0,0,.06);
+  }
+  
+  .chat-msg.ai {
+    background: #fff;
+    border-left: 4px solid #2c5282;
+    border-radius: 0 8px 8px 0;
+    padding: 14px 16px;
+    align-self: flex-start;
+    color: #2d3748;
+  }
+  
+  .chat-msg.me {
+    background: #2c5282;
+    color: #fff;
+    border-radius: 8px 0 0 8px;
+    border-right: 4px solid #1a365d;
+    padding: 14px 16px;
+    align-self: flex-end;
+  }
+  
+  /* Panel pro další obsah */
+  .chat-panel {
+    background: transparent;
+    padding: 0;
+    margin: 12px 0;
+    width: 100%;
+  }
+  
+  /* Oblast vstupu */
+  .chat-input-area {
+    display: flex;
+    gap: 10px;
+    padding: 14px 16px;
+    background: #fff;
+    border-top: 1px solid #e2e8f0;
+  }
+  
+  .chat-input-area textarea {
+    flex: 1;
+    resize: none;
+    height: 46px;
+    border-radius: 4px;
+    border: 1px solid #cbd5e0;
+    background: #fff;
+    color: #2d3748;
+    padding: 12px;
+    font-family: inherit;
+  }
+  
+  .chat-input-area textarea:focus {
+    outline: none;
+    border-color: #2c5282;
+    box-shadow: 0 0 0 2px rgba(44,82,130,.2);
+  }
+  
+  .chat-input-area button {
+    border: 0;
+    background: #2c5282;
+    color: #fff;
+    padding: 0 18px;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  
+  .chat-input-area button:hover {
+    background: #1a365d;
+  }
+  
+  /* Karty úvodní obrazovky */
+  .cg-start {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+  }
+  
+  .cg-cards {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    width: 100%;
+  }
+  
+  .cg-card {
+    width: 100%;
+    text-align: left;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #2c5282;
+    border-radius: 0 8px 8px 0;
+    padding: 16px;
+    cursor: pointer;
+    color: #2d3748;
+    font-family: inherit;
+    transition: all 0.2s ease;
+  }
+  
+  .cg-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,.08);
+    border-left-color: #1a365d;
+  }
+  
+  .cg-card h3 {
+    margin: 0 0 6px;
+    font-weight: 700;
+    font-size: 16px;
+    color: #2d3748;
+  }
+  
+  .cg-card p {
+    margin: 0;
+    font-size: 14px;
+    color: #4a5568;
+  }
+  
+  /* Formulář */
+  .cg-step {
+    background: #fff;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 2px 5px rgba(0,0,0,.05);
+  }
+  
+  .cg-step label {
+    display: block;
+    margin: 8px 0 6px;
+    color: #4a5568;
+    font-weight: 600;
+  }
+  
+  .cg-input, .cg-select {
+    width: 100%;
+    margin: 6px 0 12px;
+    padding: 12px 14px;
+    border-radius: 4px;
+    border: 1px solid #cbd5e0;
+    background: #fff;
+    color: #2d3748;
+    font-family: inherit;
+  }
+  
+  .cg-input:focus, .cg-select:focus {
+    outline: none;
+    border-color: #2c5282;
+    box-shadow: 0 0 0 2px rgba(44,82,130,.2);
+  }
+  
+  .cg-cta {
+    margin-top: 16px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  
+  .cg-btn {
+    border: 0;
+    background: #2c5282;
+    color: #fff;
+    padding: 12px 18px;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  
+  .cg-btn:hover {
+    background: #1a365d;
+  }
+  
+  .leadbox {
+    border: 1px solid #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    background: #fff;
+  }
+  
+  .leadbox input {
+    width: 100%;
+    margin: 6px 0 12px;
+    padding: 12px 14px;
+    border-radius: 4px;
+    border: 1px solid #cbd5e0;
+    background: #fff;
+    color: #2d3748;
+    font-family: inherit;
+  }
+  
+  .leadbox input:focus {
+    outline: none;
+    border-color: #2c5282;
+    box-shadow: 0 0 0 2px rgba(44,82,130,.2);
+  }
+  
+  .leadbox input[type="checkbox"] {
+    width: auto;
+    margin-right: 8px;
+  }
+  
+  .hint {
+    color: #718096;
+    font-size: 13px;
+    margin-top: 6px;
+  }
+  
+  /* Mobilní styly */
   @media (max-width: 480px) {
-    .wrap, .chat {
+    .chat-container {
       width: 100%;
       height: 100%;
       max-width: 100%;
       border-radius: 0;
     }
-    .input textarea {
-      font-size: 16px; /* Prevent iOS zoom */
+    
+    .chat-input-area textarea {
+      font-size: 16px;
     }
   }
   `;
   shadow.appendChild(style);
 
-  const wrap = U.el("div", { class: "wrap" }, []);
-  const chat = U.el("div", { class: "chat" }, []);
-  const header = U.el("div", { class: "header" }, []);
-  const headerTitle = U.el("div", { class: "title" }, ["Asistent Cogniterra"]);
-  const closeBtn = U.el("button", { 
-    class: "close", 
-    onclick: () => { 
-      // Zjednodušená funkce zavření - bez hledání vnějších prvků
-      if(window.parent) {
+  // Vytvořit zcela novou strukturu widgetu s novými názvy tříd
+  const chatContainer = U.el("div", { class: "chat-container" });
+  
+  // Záhlaví
+  const chatHeader = U.el("div", { class: "chat-header" });
+  const chatTitle = U.el("div", { class: "chat-header-title" }, ["Asistent Cogniterra"]);
+  const chatCloseBtn = U.el("button", { 
+    class: "chat-close-btn",
+    type: "button",
+    "aria-label": "Zavřít chat",
+    onclick: () => {
+      if (window.parent) {
         try {
+          // Najít nadřazené tlačítko zavřít, ale v rodičovském okně
           const parentClose = window.parent.document.querySelector('.cg-close');
-          if(parentClose) parentClose.click();
+          if (parentClose) {
+            parentClose.click();
+          } else {
+            // Pokud nenajdeme rodičovské tlačítko, alespoň skryjeme tento element
+            host.style.display = 'none';
+          }
         } catch(e) {
-          // Fallback pro případy, kdy není možné komunikovat s rodičem
-          console.log('Nelze zavřít widget přes rodičovské okno');
+          // Fallback pro případ, kdy nemáme přístup k rodičovskému oknu
+          host.style.display = 'none';
         }
+      } else {
+        // Pokud není v iframe, alespoň skryjeme tento element
+        host.style.display = 'none';
       }
     }
   }, ["✕"]);
   
-  header.appendChild(headerTitle);
-  header.appendChild(closeBtn);
+  chatHeader.appendChild(chatTitle);
+  chatHeader.appendChild(chatCloseBtn);
+  chatContainer.appendChild(chatHeader);
   
-  const messages = U.el("div", { class: "messages" }, []);
-  const input = U.el("div", { class: "input" }, []);
-  const ta = document.createElement("textarea");
-  ta.placeholder = "Napište zprávu…";
+  // Oblast zpráv
+  const chatMessages = U.el("div", { class: "chat-messages" });
+  chatContainer.appendChild(chatMessages);
   
-  const send = document.createElement("button"); 
-  send.className = "send";
-  send.textContent = "Odeslat";
+  // Oblast vstupu
+  const chatInputArea = U.el("div", { class: "chat-input-area" });
+  const chatTextarea = document.createElement("textarea");
+  chatTextarea.placeholder = "Napište zprávu…";
   
-  input.appendChild(ta); 
-  input.appendChild(send);
+  const chatSendBtn = document.createElement("button");
+  chatSendBtn.textContent = "Odeslat";
   
-  chat.appendChild(header); 
-  chat.appendChild(messages); 
-  chat.appendChild(input);
+  chatInputArea.appendChild(chatTextarea);
+  chatInputArea.appendChild(chatSendBtn);
+  chatContainer.appendChild(chatInputArea);
   
-  input.style.display = "flex";
+  // Přidáme celou strukturu do shadow DOM
+  shadow.appendChild(chatContainer);
   
-  S.chat = S.chat || {messages:[]}; 
+  // Inicializace stavu
+  S.chat = S.chat || {messages:[]};
   S.intent = S.intent || {};
-  
-  wrap.appendChild(chat); 
-  shadow.appendChild(wrap);
 
   // ==== message helpers ====
   function addAI(t, extra) {
-  // render assistant bubble
-  const b = U.el("div", { class: "msg ai" }, [t]);
-  if (extra) b.appendChild(extra);
-  messages.appendChild(b);
-  messages.scrollTop = messages.scrollHeight;
+    // render assistant bubble
+    const b = U.el("div", { class: "chat-msg ai" }, [t]);
+    if (extra) b.appendChild(extra);
+    chatMessages.appendChild(b);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 
-  // record to conversation
-  try { 
-    S.chat = S.chat || { messages: [] }; 
-    S.intent = S.intent || {}; 
-    S.chat.messages.push({ role: "assistant", content: String(t) }); 
-  } catch (e) {}
+    // record to conversation
+    try { 
+      S.chat = S.chat || { messages: [] }; 
+      S.intent = S.intent || {}; 
+      S.chat.messages.push({ role: "assistant", content: String(t) }); 
+    } catch (e) {}
 
-  // detect assistant's offer to open the contact form (arms a one-turn confirmation)
-  try {
-    const tt = String(t).toLowerCase();
-    const offer1 = /(mohu|můžu|rád|ráda)\s+(vám\s+)?(ote[vw]ř[ií]t|zobrazit|spustit)\s+(kontaktn[íi]\s+formul[aá][řr])/i.test(tt);
-    const offer2 = /chcete\s+(ote[vw]ř[ií]t|zobrazit|spustit)\s+(formul[aá][řr])/i.test(tt);
-    if (offer1 || offer2) { S.intent = S.intent || {}; S.intent.contactOffer = true; }
-  } catch (e) {}
-}
-function addME(t) {
-    try { S.chat = S.chat || {messages:[]}; S.intent = S.intent || {}; S.chat.messages.push({ role:"user", content: String(t) }); } catch(_){}
-const b = U.el("div", { class: "msg me" }, [t]);
-    messages.appendChild(b);
-    messages.scrollTop = messages.scrollHeight;
+    // detect assistant's offer to open the contact form (arms a one-turn confirmation)
+    try {
+      const tt = String(t).toLowerCase();
+      const offer1 = /(mohu|můžu|rád|ráda)\s+(vám\s+)?(ote[vw]ř[ií]t|zobrazit|spustit)\s+(kontaktn[íi]\s+formul[aá][řr])/i.test(tt);
+      const offer2 = /chcete\s+(ote[vw]ř[ií]t|zobrazit|spustit)\s+(formul[aá][řr])/i.test(tt);
+      if (offer1 || offer2) { S.intent = S.intent || {}; S.intent.contactOffer = true; }
+    } catch (e) {}
   }
+
+  function addME(t) {
+    try { 
+      S.chat = S.chat || {messages:[]}; 
+      S.intent = S.intent || {}; 
+      S.chat.messages.push({ role:"user", content: String(t) }); 
+    } catch(_){}
+    
+    const b = U.el("div", { class: "chat-msg me" }, [t]);
+    chatMessages.appendChild(b);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+  
   function addPanel(el) {
-    const w = U.el("div", { class: "panel" }, []);
+    const w = U.el("div", { class: "chat-panel" }, []);
     w.appendChild(el);
-    messages.appendChild(w);
-    messages.scrollTop = messages.scrollHeight;
+    chatMessages.appendChild(w);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
   // ==== Mapy.cz Suggest ====
@@ -231,6 +534,7 @@ const b = U.el("div", { class: "msg me" }, [t]);
     });
     return MAPY_PROMISE;
   }
+  
   function attachSuggest(inputEl) {
     if (!inputEl) return;
     const key = (S.cfg && S.cfg.mapy_key) || "EreCyrH41se5wkNErc5JEWX2eMLqnpja5BUVxsvpqzM";
@@ -251,7 +555,7 @@ const b = U.el("div", { class: "msg me" }, [t]);
   };
 
   // ==== START SCREEN ====
-  function renderStart() { try{ta.focus();}catch(e){}
+  function renderStart() { try{chatTextarea.focus();}catch(e){}
     addAI("Dobrý den, rád vám pomohu s vaší nemovitostí. Vyberte, co potřebujete.");
 
     const cards = U.el("div", { class: "cg-start" }, [
@@ -270,8 +574,8 @@ const b = U.el("div", { class: "msg me" }, [t]);
     addPanel(cards);
   }
 
-  function startHelp() { input.style.display='flex'; try{ta.focus();}catch(e){}
-    input.style.display = "flex";
+  function startHelp() { chatInputArea.style.display='flex'; try{chatTextarea.focus();}catch(e){}
+    chatInputArea.style.display = "flex";
     addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod.");
   }
 
@@ -539,61 +843,103 @@ const b = U.el("div", { class: "msg me" }, [t]);
     return /(nacenit|naceněn|ocenit|odhad(\s*ceny)?|cena\s+nemovitosti|spočítat\s*cenu|kolik\s+to\s*stojí)/i.test(s);
   }
   
-function ask(q) {
-  // Intercept confirmation if assistant just offered to open contact form
-  try {
-    if (S.intent && S.intent.contactOffer) {
-      const yesRe = /^(ano|jo|ok|okej|jasn[eě]|pros[íi]m|dob[rř]e|spus[tť]it|ote[vw][řr][ií]t|zobraz(it)?|m[oů]žete|ur[cč]it[ěe])(\b|!|\.)/i;
-      const noRe  = /^(ne|rad[ěe]ji\s+ne|pozd[eě]ji|te[dď]\s+ne|nen[ií])(\b|!|\.)/i;
-      if (yesRe.test(q.trim())) {
-        // consume message locally, open contact form, clear flag
-        addME(q);
-        stepContactVerify();
-        S.intent.contactOffer = false;
-        return;
-      } else if (noRe.test(q.trim())) {
-        // user declined; clear flag and continue to backend
-        S.intent.contactOffer = false;
+  function ask(q) {
+    // Intercept confirmation if assistant just offered to open contact form
+    try {
+      if (S.intent && S.intent.contactOffer) {
+        const yesRe = /^(ano|jo|ok|okej|jasn[eě]|pros[íi]m|dob[rř]e|spus[tť]it|ote[vw][řr][ií]t|zobraz(it)?|m[oů]žete|ur[cč]it[ěe])(\b|!|\.)/i;
+        const noRe  = /^(ne|rad[ěe]ji\s+ne|pozd[eě]ji|te[dď]\s+ne|nen[ií])(\b|!|\.)/i;
+        if (yesRe.test(q.trim())) {
+          // consume message locally, open contact form, clear flag
+          addME(q);
+          stepContactVerify();
+          S.intent.contactOffer = false;
+          return;
+        } else if (noRe.test(q.trim())) {
+          // user declined; clear flag and continue to backend
+          S.intent.contactOffer = false;
+        }
       }
-    }
-  } catch(_) {}
+    } catch(_) {}
 
-  if (!q) return;
-  addME(q);
-  if (needPricing(q)) { startPricing(); return; }
-  S.chat = S.chat || { messages: [] };
-  const url = (S && S.cfg && (S.cfg.proxy_url || S.cfg.chat_url)) || null;
-  if (!url) { addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod."); return; }
+    if (!q) return;
+    addME(q);
+    if (needPricing(q)) { startPricing(); return; }
+    S.chat = S.chat || { messages: [] };
+    const url = (S && S.cfg && (S.cfg.proxy_url || S.cfg.chat_url)) || null;
+    if (!url) { addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod."); return; }
 
     // Contact intent (CZ variants) -> open lead form immediately
     const wantContact = /(^|\b)(chci ?být ?kontaktov[aá]n|kontaktuj(te)? m[ěe]|zavolejte|napi[sš]te|nechte kontakt|ozv[eu] se|m[ůu]žete m[ěě] kontaktovat)/i.test(q);
     if (wantContact) { stepContactVerify(); return; }
-  (async () => {
-    try {
-      const typing = U.el("div", { class: "msg ai" }, ["· · ·"]);
-      messages.appendChild(typing); messages.scrollTop = messages.scrollHeight;
-      const form = new URLSearchParams();
-      if (S.cfg && S.cfg.secret) form.set("secret", S.cfg.secret);
+    
+    (async () => {
       try {
-        const msgs = (S.chat && S.chat.messages) ? S.chat.messages.slice(-12) : [{role:"user", content:q}];
-        form.set("messages", JSON.stringify(msgs));
-      } catch(_) {
-        form.set("messages", JSON.stringify([{role:"user", content:q}]));
+        const typing = U.el("div", { class: "chat-msg ai" }, ["· · ·"]);
+        chatMessages.appendChild(typing); 
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        
+        const form = new URLSearchParams();
+        if (S.cfg && S.cfg.secret) form.set("secret", S.cfg.secret);
+        
+        try {
+          const msgs = (S.chat && S.chat.messages) ? S.chat.messages.slice(-12) : [{role:"user", content:q}];
+          form.set("messages", JSON.stringify(msgs));
+        } catch(_) {
+          form.set("messages", JSON.stringify([{role:"user", content:q}]));
+        }
+        
+        let resp = null;
+        try { resp = await fetch(url, { method: "POST", body: form }); } catch(_) { resp = null; }
+        
+        typing.remove();
+        
+        if (!resp || !resp.ok) {
+          try { 
+            const u = new URL(url); 
+            if (S.cfg && S.cfg.secret) u.searchParams.set("secret", S.cfg.secret); 
+            try { 
+              const msgs=(S.chat&&S.chat.messages)?S.chat.messages.slice(-12):[{role:"user",content:q}]; 
+              u.searchParams.set("messages", JSON.stringify(msgs)); 
+            } catch { 
+              u.searchParams.set("messages", JSON.stringify([{role:"user", content:q}])); 
+            } 
+            try { 
+              resp = await fetch(u.toString(), { method: "GET" }); 
+            } catch { 
+              resp = null; 
+            } 
+          } catch { 
+            resp = null; 
+          }
+          
+          if (!resp || !resp.ok) { 
+            addAI("Omlouvám se, teď se mi nedaří získat odpověď od AI. Zkuste to prosím za chvíli."); 
+            return; 
+          }
+        }
+        
+        const ct = (resp.headers.get("content-type")||"").toLowerCase();
+        let txt = ""; 
+        if (ct.includes("application/json")) { 
+          try { 
+            const j = await resp.json(); 
+            txt = j.message || j.reply || j.text || j.answer || JSON.stringify(j); 
+          } catch { 
+            txt = await resp.text(); 
+          } 
+        } else { 
+          txt = await resp.text(); 
+        }
+        
+        txt = (txt && String(txt).trim()) || "Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod.";
+        addAI(txt);
+      } catch (e) { 
+        addAI("Omlouvám se, došlo k chybě při komunikaci s AI. Zkuste to prosím znovu."); 
+        console.error("AI chat error:", e); 
       }
-      let resp = null;
-      try { resp = await fetch(url, { method: "POST", body: form }); } catch(_) { resp = null; }
-      typing.remove();
-      if (!resp || !resp.ok) {
-        try { const u = new URL(url); if (S.cfg && S.cfg.secret) u.searchParams.set("secret", S.cfg.secret); try { const msgs=(S.chat&&S.chat.messages)?S.chat.messages.slice(-12):[{role:"user",content:q}]; u.searchParams.set("messages", JSON.stringify(msgs)); } catch { u.searchParams.set("messages", JSON.stringify([{role:"user", content:q}])); } try { resp = await fetch(u.toString(), { method: "GET" }); } catch { resp = null; } } catch { resp = null; }
-        if (!resp || !resp.ok) { addAI("Omlouvám se, teď se mi nedaří získat odpověď od AI. Zkuste to prosím za chvíli."); return; }
-      }
-      const ct = (resp.headers.get("content-type")||"").toLowerCase();
-      let txt = ""; if (ct.includes("application/json")) { try { const j = await resp.json(); txt = j.message || j.reply || j.text || j.answer || JSON.stringify(j); } catch { txt = await resp.text(); } } else { txt = await resp.text(); }
-      txt = (txt && String(txt).trim()) || "Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod.";
-      addAI(txt);
-    } catch (e) { addAI("Omlouvám se, došlo k chybě při komunikaci s AI. Zkuste to prosím znovu."); console.error("AI chat error:", e); }
-  })();
-}
+    })();
+  }
 
   // ==== Config / data preload (optional) ====
   (async () => {
@@ -622,7 +968,7 @@ function ask(q) {
   // ==== Init (only when host exists) ====
   function cgSafeStart() {
     try {
-      if (!messages) return setTimeout(cgSafeStart, 40);
+      if (!chatMessages) return setTimeout(cgSafeStart, 40);
       renderStart();
     } catch (e) {
       setTimeout(cgSafeStart, 40);
@@ -633,7 +979,17 @@ function ask(q) {
   cgSafeStart();
 
   // input handlers
-  send.addEventListener("click", () => { const q = ta.value.trim(); ta.value = ""; ask(q); });
-  ta.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send.click(); } });
+  chatSendBtn.addEventListener("click", () => { 
+    const q = chatTextarea.value.trim(); 
+    chatTextarea.value = ""; 
+    ask(q); 
+  });
+  
+  chatTextarea.addEventListener("keydown", (e) => { 
+    if (e.key === "Enter" && !e.shiftKey) { 
+      e.preventDefault(); 
+      chatSendBtn.click(); 
+    } 
+  });
 
 })();
