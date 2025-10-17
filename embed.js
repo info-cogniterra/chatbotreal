@@ -1,4 +1,4 @@
-// Cogniterra embed loader (v6 - simplified)
+// Cogniterra embed loader (v7 - fixed)
 (function(){
   console.log("[Cogniterra] Initializing embed loader");
   const tag = document.currentScript;
@@ -72,7 +72,7 @@
     position: absolute !important;
     right: 8px !important;
     top: 8px !important;
-    z-index: 2 !important;
+    z-index: 2147483100 !important;
     background: rgba(0,0,0,.35) !important;
     color: #EAF2FF !important;
     border: 1px solid rgba(255,255,255,.12) !important;
@@ -103,6 +103,46 @@
     background: white !important;
     visibility: visible !important;
     opacity: 1 !important;
+  }
+  
+  /* Specifické styly pro zajištění viditelnosti chatbotu */
+  [data-cogniterra-widget] {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: white !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: block !important;
+    z-index: 2147483010 !important;
+  }
+  
+  .chat-container {
+    background: white !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 2147483020 !important;
+    display: flex !important;
+  }
+  
+  .chat-header {
+    background: #2c5282 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 2147483030 !important;
+  }
+  
+  .chat-messages {
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 2147483030 !important;
+  }
+  
+  .chat-input-area {
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 2147483030 !important;
   }`;
   
   // Vytvoření a vložení stylu
@@ -141,6 +181,7 @@
   container.style.width = '100%';
   container.style.height = '100%';
   container.style.background = '#ffffff';
+  container.style.zIndex = '2147483040';
   panel.appendChild(container);
   
   // Přidání panelu do dokumentu
@@ -154,6 +195,7 @@
   host.style.background = '#ffffff';
   host.style.position = 'absolute';
   host.style.inset = '0';
+  host.style.zIndex = '2147483050';
   container.appendChild(host);
   
   // Globální stav
@@ -196,6 +238,21 @@
     script.onload = function() {
       scriptLoaded = true;
       console.log("[Cogniterra] Widget script loaded successfully");
+      
+      // Přidání pomocného kódu pro zajištění viditelnosti po načtení
+      setTimeout(function() {
+        try {
+          const chatContainer = document.querySelector('[data-cogniterra-widget] .chat-container');
+          if (chatContainer) {
+            chatContainer.style.visibility = 'visible';
+            chatContainer.style.opacity = '1';
+            chatContainer.style.display = 'flex';
+          }
+          console.log("[Cogniterra] Forcing visibility of chat container");
+        } catch(e) {
+          console.error("[Cogniterra] Error forcing visibility:", e);
+        }
+      }, 500);
     };
     script.onerror = function(error) {
       console.error("[Cogniterra] Failed to load widget script:", error);
