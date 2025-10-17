@@ -571,56 +571,115 @@
 
   // ==== Funkce pro nalezení územního plánu podle lokality ====
   function findUzemniPlan(location) {
-    if (!S.data || !S.data.up || !S.data.up.map) return null;
+    // Kontrola, že máme data
+    if (!S.data || !S.data.up || !S.data.up.map) {
+      console.log("Chybí data územních plánů:", S.data);
+      return null;
+    }
     
-    // Normalizace lokality pro porovnání
     const normalizedLocation = U.norm(location);
+    console.log("Hledám lokalitu:", normalizedLocation);
     
-    // Hledání přesné shody v obci nebo katastrálním území
+    // Hledání přesné shody (obec)
     const exactMatch = S.data.up.map.find(entry => 
-      U.norm(entry.obec) === normalizedLocation || 
+      U.norm(entry.obec) === normalizedLocation
+    );
+    
+    if (exactMatch) {
+      console.log("Nalezena přesná shoda (obec):", exactMatch);
+      return exactMatch;
+    }
+    
+    // Hledání přesné shody (ku)
+    const exactMatchKU = S.data.up.map.find(entry =>
       U.norm(entry.ku) === normalizedLocation
     );
     
-    if (exactMatch) return exactMatch;
+    if (exactMatchKU) {
+      console.log("Nalezena přesná shoda (ku):", exactMatchKU);
+      return exactMatchKU;
+    }
     
-    // Hledání částečné shody v obci nebo katastrálním území
+    // Hledání částečné shody (obec začíná na)
     const partialMatch = S.data.up.map.find(entry => 
+      U.norm(entry.obec).startsWith(normalizedLocation) ||
+      normalizedLocation.startsWith(U.norm(entry.obec))
+    );
+    
+    if (partialMatch) {
+      console.log("Nalezena částečná shoda:", partialMatch);
+      return partialMatch;
+    }
+    
+    // Hledání částečné shody (obsahuje)
+    const anyMatch = S.data.up.map.find(entry => 
       U.norm(entry.obec).includes(normalizedLocation) || 
       U.norm(entry.ku).includes(normalizedLocation)
     );
     
-    return partialMatch || null;
+    if (anyMatch) {
+      console.log("Nalezena částečná shoda (obsahuje):", anyMatch);
+      return anyMatch;
+    }
+    
+    console.log("Žádná shoda nenalezena pro:", normalizedLocation);
+    return null;
   }
 
   // ==== Zpracování odpovědi s přidáním odkazu na územní plán ====
   function processResponse(userQuery, aiResponse) {
-    // Původní odpověď AI
     let processedResponse = aiResponse;
     
     // Detekce dotazu o pozemcích nebo územním plánu
     const isLandQuery = /(pozemek|pozemky|parcela|parcely|územní plán|uzemni plan)/i.test(userQuery);
     
     if (isLandQuery) {
-      // Extrakce potenciálních lokalit z dotazu uživatele
-      // Jednoduchá heuristika: hledáme slova po předložkách "v", "ve", "na", atd.
-      const locationMatches = userQuery.match(/\b(v|ve|na|pro|o|k|obec|obce|město|vesnice|lokalita)\s+([A-Za-zÀ-ž]+(?:\s+[A-Za-zÀ-ž]+){0,2})/gi);
+      console.log("Detekován dotaz o územním plánu:", userQuery);
       
-      if (locationMatches && locationMatches.length > 0) {
+      // Extrakce potenciálních lokalit z dotazu
+      const words = userQuery.split(/\s+/);
+      const locations = [];
+      
+      // Heuristika 1: Extrakce po předložkách
+      const locationMatches = userQuery.match(/\b(v|ve|na|pro|o|k|obec|obce|město|vesnice|lokalita)\s+([A-Za-zÀ-ž]+(?:\s+[A-Za-zÀ-ž]+){0,2})/gi);
+      if (locationMatches) {
         for (const match of locationMatches) {
-          // Extrahujeme lokalitu bez předložky
           const location = match.replace(/\b(v|ve|na|pro|o|k|obec|obce|město|vesnice|lokalita)\s+/i, '').trim();
-          if (location.length < 3) continue; // Příliš krátké slovo
-          
-          // Hledáme územní plán pro tuto lokalitu
-          const planInfo = findUzemniPlan(location);
-          
-          if (planInfo && planInfo.url) {
-            // Přidání odkazu na územní plán do odpovědi
-            const appendText = `\n\nPro lokalitu ${planInfo.obec} (${planInfo.ku}) můžete najít územní plán zde: <a href="${planInfo.url}" target="_blank">Územní plán ${planInfo.obec}</a>`;
-            processedResponse += appendText;
-            break; // Stačí jeden odkaz
+          if (location.length >= 3) {
+            locations.push(location);
           }
+        }
+      }
+      
+      // Heuristika 2: Všechna slova s velkým písmenem uprostřed věty
+      for (const word of words) {
+        const trimmed = word.replace(/[,.;:?!]/g, '').trim();
+        if (trimmed.length >= 3 && /^[A-ZČŠŽŇÁÉÍÓÚŮÝŘŤĎĚ]/.test(trimmed)) {
+          locations.push(trimmed);
+        }
+      }
+      
+      // Heuristika 3: Extrakce specifických vzorů
+      const cityPattern = userQuery.match(/\b(město|obec|vesnice|lokalita)\s+([A-Za-zÀ-ž]+(?:\s+[A-Za-zÀ-ž]+){0,2})/i);
+      if (cityPattern && cityPattern[2]) {
+        locations.push(cityPattern[2].trim());
+      }
+      
+      console.log("Nalezené potenciální lokality:", locations);
+      
+      // Odstranění duplicit
+      const uniqueLocations = [...new Set(locations)];
+      
+      for (const location of uniqueLocations) {
+        // Hledáme územní plán pro tuto lokalitu
+        const planInfo = findUzemniPlan(location);
+        
+        if (planInfo && planInfo.url) {
+          // Přidání odkazu na územní plán do odpovědi
+          const appendText = `\n\nPro lokalitu ${planInfo.obec} (${planInfo.ku}) můžete najít územní plán zde: <a href="${planInfo.url}" target="_blank">Územní plán ${planInfo.obec}</a>`;
+          processedResponse += appendText;
+          console.log("Přidán odkaz na územní plán:", planInfo);
+          break; // Stačí jeden odkaz
         }
       }
     }
@@ -1041,6 +1100,7 @@
         S.data.up = up; // Uložíme data územních plánů
       }
     } catch (e) {
+      console.error("Chyba načítání konfigurace/dat:", e);
       addAI("Chyba načítání konfigurace/dat: " + String(e));
     }
   })();
