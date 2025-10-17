@@ -61,8 +61,16 @@
     fetchJson(url) { return fetch(url, { credentials: "omit" }).then(r => r.json()); },
   };
 
-  // ==== shadow root & UI skeleton ====
-  const shadow = host.attachShadow({ mode: "open" });
+  // ==== Zajištění, že shadowRoot je vyčištěný před přidáním nových prvků ====
+  if (host.shadowRoot) {
+    // Pokud již existuje shadowRoot, vyčistíme ho
+    while (host.shadowRoot.firstChild) {
+      host.shadowRoot.removeChild(host.shadowRoot.firstChild);
+    }
+  }
+  
+  // Vytvoříme nový shadowRoot, pokud ještě neexistuje
+  const shadow = host.shadowRoot || host.attachShadow({ mode: "open" });
 
   // === Inject consistent styling for both desktop and mobile ===
   const style = document.createElement("style");
@@ -123,20 +131,48 @@
   const chat = U.el("div", { class: "chat" }, []);
   const header = U.el("div", { class: "header" }, []);
   const headerTitle = U.el("div", { class: "title" }, ["Asistent Cogniterra"]);
-  const closeBtn = U.el("button", { class: "close", onclick: () => { if(window.parent && window.parent.document.querySelector('.cg-close')) window.parent.document.querySelector('.cg-close').click(); }}, ["✕"]);
+  const closeBtn = U.el("button", { 
+    class: "close", 
+    onclick: () => { 
+      // Zjednodušená funkce zavření - bez hledání vnějších prvků
+      if(window.parent) {
+        try {
+          const parentClose = window.parent.document.querySelector('.cg-close');
+          if(parentClose) parentClose.click();
+        } catch(e) {
+          // Fallback pro případy, kdy není možné komunikovat s rodičem
+          console.log('Nelze zavřít widget přes rodičovské okno');
+        }
+      }
+    }
+  }, ["✕"]);
+  
   header.appendChild(headerTitle);
   header.appendChild(closeBtn);
   
   const messages = U.el("div", { class: "messages" }, []);
   const input = U.el("div", { class: "input" }, []);
   const ta = document.createElement("textarea");
-  const send = document.createElement("button"); send.className="send";
+  ta.placeholder = "Napište zprávu…";
+  
+  const send = document.createElement("button"); 
+  send.className = "send";
   send.textContent = "Odeslat";
-  input.appendChild(ta); input.appendChild(send);
-  chat.appendChild(header); chat.appendChild(messages); chat.appendChild(input);
-  input.style.display = "flex"; ta.placeholder="Napište zprávu…";
-  S.chat = S.chat || {messages:[]}; S.intent = S.intent || {};
-  wrap.appendChild(chat); shadow.appendChild(wrap);
+  
+  input.appendChild(ta); 
+  input.appendChild(send);
+  
+  chat.appendChild(header); 
+  chat.appendChild(messages); 
+  chat.appendChild(input);
+  
+  input.style.display = "flex";
+  
+  S.chat = S.chat || {messages:[]}; 
+  S.intent = S.intent || {};
+  
+  wrap.appendChild(chat); 
+  shadow.appendChild(wrap);
 
   // ==== message helpers ====
   function addAI(t, extra) {
