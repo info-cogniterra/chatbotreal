@@ -54,7 +54,9 @@
   // ==== shadow root & UI skeleton ====
   const shadow = host.attachShadow({ mode: "open" });
 
-  const style = document.createElement("style");
+  
+  try { var __cgMobileStyle = document.createElement("style"); __cgMobileStyle.textContent = '\n/* == Mobile-first styles injected inside Shadow DOM (v2) == */\n@media (max-width: 480px) {\n  .cg-panel {\n    width: 100% !important;\n    max-width: 100% !important;\n    height: 100dvh;\n    max-height: 100dvh;\n    position: fixed;\n    left: 0; right: 0; bottom: 0;\n    border-radius: 16px 16px 0 0;\n    background: #111;\n    box-shadow: 0 -12px 32px rgba(0,0,0,.4);\n    display: flex; flex-direction: column;\n    z-index: 2147483647;\n  }\n  .cg-header {\n    flex: 0 0 auto;\n    padding: 14px 16px calc(14px + env(safe-area-inset-top));\n    border-bottom: 1px solid rgba(255,255,255,.06);\n  }\n  .cg-messages {\n    flex: 1 1 auto;\n    min-height: 0;\n    overflow: auto;\n    -webkit-overflow-scrolling: touch;\n    padding: 12px 12px 8px;\n  }\n  .cg-input {\n    flex: 0 0 auto;\n    display: flex; gap: 8px;\n    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));\n    border-top: 1px solid rgba(255,255,255,.06);\n    background: rgba(17,17,17,.98);\n    position: sticky; bottom: 0;\n  }\n  .cg-input input[type="text"],\n  .cg-input textarea {\n    font-size: 16px; height: 44px; padding: 12px 12px;\n  }\n  .cg-input .cg-send { height: 44px; min-width: 88px; border-radius: 12px; }\n\n  .cg-card { border-radius: 14px; padding: 14px; margin: 10px 0; line-height: 1.35; cursor: pointer; }\n  .cg-card h4 { font-size: 16px; margin: 0 0 6px; }\n  .cg-card p  { font-size: 14px; opacity: .9; margin: 0; }\n  .cg-fab { display: none !important; } /* FAB skryjeme, když je otevřen panel */\n}\n.msg { border-radius: 12px; padding: 10px 12px; margin: 6px 0; }\n.msg.me { align-self: flex-end; max-width: 86%; }\n.msg.ai { align-self: flex-start; max-width: 86%; }\n'; shadow.appendChild(__cgMobileStyle); } catch(e) {}
+const style = document.createElement("style");
   style.textContent = `
   :host{all:initial}
   .wrap{font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#fff}
@@ -562,3 +564,18 @@ function ask(q) {
   ta.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send.click(); } });
 
 })();
+
+// Mobile viewport height fix: keep panel height stable with soft keyboard
+try {
+  const __cgSetVH = () => {
+    if (!shadow) return;
+    const panel = shadow.querySelector('.cg-panel');
+    if (!panel) return;
+    const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    panel.style.height = h + 'px';
+    panel.style.maxHeight = h + 'px';
+  };
+  __cgSetVH();
+  window.addEventListener('resize', __cgSetVH, { passive: true });
+} catch(e){}
+
