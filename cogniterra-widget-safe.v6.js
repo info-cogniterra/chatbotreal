@@ -1,3 +1,14 @@
+
+// === Viewport height variable ===
+(function setVH(){
+  function updateVH(){
+    const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    document.documentElement.style.setProperty('--vh', vh + 'px');
+  }
+  updateVH();
+  window.addEventListener('resize', updateVH, {passive:true});
+})();
+
 // cogniterra-widget-safe.v6.js — BUBBLE-ONLY, SINGLE INSTANCE
 // Build v6.bubble.1  — intro + 2 cards; pricing via contact; Mapy.cz suggest; no auto-create
 
@@ -60,19 +71,21 @@ try {
     const style = document.createElement('style');
     style.id = 'cg-mobile-style';
     style.textContent = `/* Mobile-first styles injected inside Shadow DOM (final) */
-/* --- Shadow DOM mobile layout & background (identical to desktop look) --- */
+/* === Full Shadow DOM layout fix (v13) === */
 :host { width:100%; height:100%; display:block; }
 .wrap { width:100%; height:100%; display:flex; background:#0f1113; }
 .chat { width:100%; height:100%; display:flex; flex-direction:column; }
-.header { background:#0f1113; padding:12px 14px calc(12px + env(safe-area-inset-top)); border-bottom:1px solid rgba(255,255,255,.06); }
-.messages { flex:1 1 auto; min-height:0; overflow:auto; -webkit-overflow-scrolling:touch; padding:12px 12px 8px; background:#0f1113; }
-.input { flex:0 0 auto; display:flex; gap:8px; padding:10px 12px calc(10px + env(safe-area-inset-bottom)); background:#0f1113; }
-/* cards / bubbles keep same glow on dark background */
-.panel { background:#0f1113; }
+.header { flex:0 0 auto; background:#0f1113; padding:12px 14px calc(12px + env(safe-area-inset-top));
+  border-bottom:1px solid rgba(255,255,255,.06); }
+.messages { flex:1 1 auto; min-height:0; overflow:auto; -webkit-overflow-scrolling:touch;
+  padding:12px 12px 8px; background:#0f1113; overscroll-behavior:contain; }
+.input { flex:0 0 auto; display:flex; gap:8px; padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+  background:#0f1113; }
 textarea { flex:1; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:#1a1d21; color:#EAF2FF; padding:12px 14px; }
 button { border-radius:12px; }
-@media (max-width: 600px) {
-  .wrap, .chat { height:100%; }
+.panel { background:#0f1113; }
+@media (max-width:600px){
+  :host, .wrap, .chat { height:100%; }
 }
 
 @media (max-width: 480px) {
