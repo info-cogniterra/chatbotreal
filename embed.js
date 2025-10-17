@@ -20,7 +20,7 @@
   const style=document.createElement('style'); style.innerHTML = css; document.head.appendChild(style);
   if(STYLES){ const link=document.createElement('link'); link.rel='stylesheet'; link.href=STYLES; document.head.appendChild(link); }
 
-  // Definujeme globální funkce pro otevírání/zavírání chatu aby byly dostupné i pro chatbota
+  // Definujeme globální funkce pro otevírání/zavírání chatu
   window.CGTR = window.CGTR || {};
   
   // Vytvoření prvků UI - launcher a panel
@@ -47,41 +47,92 @@
   panel.appendChild(cont);
   document.body.appendChild(panel);
   
-  // Ensure widget host exists for bubble-only build
-  const host=document.createElement('div'); 
-  host.setAttribute('data-cogniterra-widget',''); 
-  host.style.width='100%'; 
-  host.style.height='100%';
-  host.style.position='absolute';
-  host.style.inset='0';
-  cont.appendChild(host);
-
+  // Flag pro sledování, zda byl widget již inicializován
+  window.__CG_WIDGET_LOADED__ = false;
+  
   // Globální stav otevření/zavření
   let open=false; 
   
   // Vylepšené funkce pro otevírání/zavírání, které resetují stav
-  const show=()=>{
-    panel.style.display='block';
-    open=true;
+  const show = () => {
+    console.log("[Cogniterra] Opening chat panel");
     
-    // Načteme widget script, pokud ještě není načtený
-    if (!window.__CG_WIDGET_SCRIPT_LOADED__) {
-      const sc=document.createElement('script'); 
-      sc.src=WIDGET+'?v='+Date.now(); 
-      sc.setAttribute('data-config',CFG); 
-      document.body.appendChild(sc);
-      window.__CG_WIDGET_SCRIPT_LOADED__ = true;
-    } else {
-      // Pokud je widget již načten, jenom resetujeme stav
-      if (window.__CG_WIDGET_RESET_FN__ && typeof window.__CG_WIDGET_RESET_FN__ === 'function') {
-        window.__CG_WIDGET_RESET_FN__();
+    // Nejprve vyčistíme kontejner a připravíme ho pro novou inicializaci
+    const container = document.getElementById('chatbot-container');
+    if (container) {
+      // Vyčistit obsah kontejneru
+      while (container.firstChild) {
+        container.removeChild(container.firstChild);
       }
+      
+      // Znovu vytvořit hostitelský element pro widget
+      const host = document.createElement('div'); 
+      host.setAttribute('data-cogniterra-widget', ''); 
+      host.style.width = '100%'; 
+      host.style.height = '100%';
+      host.style.position = 'absolute';
+      host.style.inset = '0';
+      host.style.background = '#fff'; // Zajistíme, že pozadí bude viditelné
+      container.appendChild(host);
+    }
+    
+    // Zobrazíme panel
+    panel.style.display = 'block';
+    open = true;
+    
+    // Resetujeme inicializační příznak, aby se chat znovu inicializoval
+    window.__CG_WIDGET_INIT__ = false;
+    
+    // Načteme widget, pokud ještě není načtený
+    if (!window.__CG_WIDGET_LOADED__) {
+      console.log("[Cogniterra] Loading widget script for the first time");
+      const sc = document.createElement('script'); 
+      sc.src = WIDGET + '?v=' + Date.now(); 
+      sc.setAttribute('data-config', CFG); 
+      document.body.appendChild(sc);
+      window.__CG_WIDGET_LOADED__ = true;
+    } else {
+      console.log("[Cogniterra] Widget already loaded, reinitializing");
+      // Pokud je widget již načten, jenom resetujeme stav pomocí IIFE
+      (function reinitWidget() {
+        try {
+          const host = document.querySelector("[data-cogniterra-widget]");
+          if (host) {
+            // Vyčistíme shadowRoot
+            if (host.shadowRoot) {
+              while (host.shadowRoot.firstChild) {
+                host.shadowRoot.removeChild(host.shadowRoot.firstChild);
+              }
+            }
+            
+            // Znovu spustíme inicializační funkci definovanou v widget.js
+            if (typeof window.__CG_WIDGET_RESET_FN__ === 'function') {
+              window.__CG_WIDGET_RESET_FN__();
+            } else {
+              // Pokud reset funkce není dostupná, načteme skript znovu
+              console.log("[Cogniterra] Reset function not available, reloading widget");
+              const sc = document.createElement('script'); 
+              sc.src = WIDGET + '?v=' + Date.now(); 
+              sc.setAttribute('data-config', CFG); 
+              document.body.appendChild(sc);
+            }
+          }
+        } catch(e) {
+          console.error("[Cogniterra] Error during widget reinitialization:", e);
+          // Fallback: načteme skript znovu
+          const sc = document.createElement('script'); 
+          sc.src = WIDGET + '?v=' + Date.now(); 
+          sc.setAttribute('data-config', CFG); 
+          document.body.appendChild(sc);
+        }
+      })();
     }
   }; 
   
-  const hide=()=>{
-    panel.style.display='none';
-    open=false;
+  const hide = () => {
+    console.log("[Cogniterra] Hiding chat panel");
+    panel.style.display = 'none';
+    open = false;
   };
   
   // Exportujeme funkce pro globální použití
@@ -89,19 +140,14 @@
   window.CGTR.hideChat = hide;
   
   // Přidáme event listenery na tlačítka
-  btn.addEventListener('click',()=> open?hide():show()); 
-  close.addEventListener('click',hide);
-
-  // Načteme widget script při prvním kliknutí
   btn.addEventListener('click', () => {
-    if (!window.__CG_WIDGET_SCRIPT_LOADED__) {
-      const sc=document.createElement('script'); 
-      sc.src=WIDGET+'?v='+Date.now(); 
-      sc.setAttribute('data-config',CFG); 
-      document.body.appendChild(sc);
-      window.__CG_WIDGET_SCRIPT_LOADED__ = true;
+    if (open) {
+      hide();
+    } else {
+      show();
     }
-  }, { once: true });
+  }); 
+  close.addEventListener('click', hide);
 })();
 
 // === Mobile viewport helper (vh fix) ===
@@ -163,6 +209,19 @@ html.cg-open, body.cg-open {
     transform: translateY(0);
     transition: transform 0.2s ease-out;
   }
+}
+
+/* Zajišťuje, že obsah widgetu bude viditelný */
+[data-cogniterra-widget] {
+  background: #fff !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.chat-container {
+  background: #fff !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 `;
     document.head.appendChild(style);
