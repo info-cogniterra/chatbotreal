@@ -93,6 +93,8 @@
   send.textContent = "Odeslat";
   input.appendChild(ta); input.appendChild(send);
   chat.appendChild(header); chat.appendChild(messages); chat.appendChild(input);
+  input.style.display = "none";
+  S.chat = S.chat || {messages:[]};
   wrap.appendChild(chat); shadow.appendChild(wrap);
 
   // ==== message helpers ====
@@ -104,8 +106,8 @@
     try { S.chat = S.chat || {messages:[]}; S.chat.messages.push({ role:"assistant", content: String(t) }); } catch(_){}
   }
   function addME(t) {
-    try { S.chat = S.chat || {messages:[]}; S.chat.messages.push({ role:"user", content: String(q) }); } catch(_){}
-    const b = U.el("div", { class: "msg me" }, [t]);
+    try { S.chat = S.chat || {messages:[]}; S.chat.messages.push({ role:"user", content: String(t) }); } catch(_){}
+const b = U.el("div", { class: "msg me" }, [t]);
     messages.appendChild(b);
     messages.scrollTop = messages.scrollHeight;
   }
@@ -158,17 +160,17 @@
 
   // ==== START SCREEN ====
   function renderStart() {
-    addAI("Dobrý den 👋 Jsem virtuální asistent Cogniterry. Jak mohu pomoci?");
+    addAI("Dobrý den, rád vám pomohu s vaší nemovitostí. Vyberte, co potřebujete.");
 
     const cards = U.el("div", { class: "cg-start" }, [
       U.el("div", { class: "cg-cards" }, [
         U.el("button", { class: "cg-card", type: "button", onclick: () => startPricing(), "aria-label":"Nacenit nemovitost" }, [
           U.el("h3", {}, ["Nacenit nemovitost"]),
-          U.el("p", {}, ["Rychlý odhad ceny z tržních dat."])
+          U.el("p", {}, ["Rychlý odhad a krátký dotazník (1–2 min)."])
         ]),
         U.el("button", { class: "cg-card", type: "button", onclick: () => startHelp(), "aria-label":"Potřebuji pomoct" }, [
           U.el("h3", {}, ["Potřebuji pomoct"]),
-          U.el("p", {}, ["Chat s naším asistentem (problém s nemovitostí, Vaše dotazy)"])
+          U.el("p", {}, ["Zeptejte se na postup, dokumenty nebo pravidla. Odpovím hned."])
         ])
       ])
     ]);
@@ -177,6 +179,7 @@
   }
 
   function startHelp() {
+    input.style.display = "flex";
     addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod.");
   }
 
@@ -375,6 +378,69 @@
     addAI("Výsledek odhadu", box);
   }
 
+  // ==== Contact lead (from chat intent) ====
+  function stepContactVerify() {
+    const consentId = "cgConsent_" + Math.random().toString(36).slice(2);
+    const box = U.el("div", { class: "leadbox" }, [
+      U.el("div", {}, ["Zanechte na sebe kontakt, ozvu se vám co nejdříve."]),
+      U.el("input", { id: "c_name",  name:"name",  placeholder:"Jméno" }),
+      U.el("input", { id: "c_email", name:"email", type:"email", placeholder:"E-mail" }),
+      U.el("input", { id: "c_phone", name:"phone", placeholder:"Telefon (+420…)" }),
+      U.el("label", {}, [ U.el("input", { id: consentId, type:"checkbox" }), " Souhlasím se zpracováním osobních údajů." ]),
+      U.el("div", { class: "cg-cta" }, [ U.el("button", { class:"cg-btn", type:"button", onclick: () => saveLeadContact(consentId) }, ["Odeslat"]) ])
+    ]);
+    addAI("Kontaktní formulář", box);
+  }
+
+  async function saveLeadContact(consentId) {
+    const btn = shadow.querySelector(".leadbox .cg-btn");
+    if (btn) { btn.disabled = true; btn.textContent = "Odesílám…"; }
+    const name  = (shadow.querySelector("#c_name")  || {}).value || "";
+    const email = (shadow.querySelector("#c_email") || {}).value || "";
+    const phone = (shadow.querySelector("#c_phone") || {}).value || "";
+    const consentEl = shadow.querySelector("#" + consentId);
+    const consent = !!(consentEl && consentEl.checked);
+
+    if (!name.trim() || !U.emailOk(email) || !U.phoneOk(phone) || !consent) {
+      addAI("Zkontrolujte prosím kontaktní údaje a potvrďte souhlas.");
+      if (btn) { btn.disabled = false; btn.textContent = "Odeslat"; }
+      return;
+    }
+
+    const payload = {
+      secret: (S.cfg && S.cfg.secret) || "",
+      branch: "chat",
+      session_id: S.session,
+      jmeno: name.trim(),
+      email: email.trim(),
+      telefon: phone.trim(),
+      message: "Žádost o kontakt z chatbota",
+      source: "chat_widget_contact",
+      timestamp: new Date().toISOString(),
+      path: "/lead",
+      transcript: JSON.stringify((S.chat && S.chat.messages) ? S.chat.messages.slice(-12) : [])
+    };
+
+    try {
+      if (S.cfg && S.cfg.lead_url) {
+        const body = new URLSearchParams(Object.entries(payload)).toString();
+        let ok = false;
+        try {
+          const resp = await fetch(S.cfg.lead_url, { method: "POST", headers:{ "Content-Type":"application/x-www-form-urlencoded" }, body });
+          ok = !!resp.ok;
+        } catch (_) { ok = false; }
+        if (!ok) {
+          fetch(S.cfg.lead_url, { method:"POST", mode:"no-cors", headers:{ "Content-Type":"application/x-www-form-urlencoded"}, body }).catch(()=>{});
+        }
+      }
+      addAI("Děkuji, mám vše zapsané. Ozveme se vám co nejdříve.");
+    } catch (e) {
+      addAI("Nepodařilo se uložit kontakt. Zkuste to prosím znovu.");
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = "Odeslat"; }
+    }
+  }
+
   // ==== Intent routing ====
   function needPricing(q) {
     const s = U.norm(q);
@@ -396,14 +462,19 @@ function ask(q) {
     try {
       const typing = U.el("div", { class: "msg ai" }, ["· · ·"]);
       messages.appendChild(typing); messages.scrollTop = messages.scrollHeight;
-      const form = new URLSearchParams(); form.set("q", q);
+      const form = new URLSearchParams();
       if (S.cfg && S.cfg.secret) form.set("secret", S.cfg.secret);
-      form.set("context", JSON.stringify({brand:"Cogniterra", modules:["ISNS","Nacenění","UP"]}));
+      try {
+        const msgs = (S.chat && S.chat.messages) ? S.chat.messages.slice(-12) : [{role:"user", content:q}];
+        form.set("messages", JSON.stringify(msgs));
+      } catch(_) {
+        form.set("messages", JSON.stringify([{role:"user", content:q}]));
+      }
       let resp = null;
       try { resp = await fetch(url, { method: "POST", body: form }); } catch(_) { resp = null; }
       typing.remove();
       if (!resp || !resp.ok) {
-        try { const u = new URL(url); u.searchParams.set("q", q); if (S.cfg && S.cfg.secret) u.searchParams.set("secret", S.cfg.secret); u.searchParams.set("context", JSON.stringify({brand:"Cogniterra"})); resp = await fetch(u.toString(), { method: "GET" }); } catch(_e) { addAI("Omlouvám se, teď se mi nedaří získat odpověď od AI. Zkuste to prosím za chvíli."); return; }
+        try { const u = new URL(url); if (S.cfg && S.cfg.secret) u.searchParams.set("secret", S.cfg.secret); try { const msgs=(S.chat&&S.chat.messages)?S.chat.messages.slice(-12):[{role:"user",content:q}]; u.searchParams.set("messages", JSON.stringify(msgs)); } catch(_) { u.searchParams.set("messages", JSON.stringify([{role:"user",content:q}])); } resp = await fetch(u.toString(), { method: "GET" }); } catch(_e) { addAI("Omlouvám se, teď se mi nedaří získat odpověď od AI. Zkuste to prosím za chvíli."); return; }
         if (!resp.ok) { addAI("Omlouvám se, teď se mi nedaří získat odpověď od AI. Zkuste to prosím za chvíli."); return; }
       }
       const ct = (resp.headers.get("content-type")||"").toLowerCase();
@@ -417,10 +488,6 @@ function ask(q) {
 
   
 // ==== Config / data preload (optional) ====
-
-    // Contact intent (CZ variants) -> open lead form immediately
-    const wantContact = /(^|\b)(chci ?být ?kontaktov[aá]n|kontaktuj(te)? m[ěe]|zavolejte|napi[sš]te|nechte kontakt|ozv[eu] se|m[ůu]žete m[ěě] kontaktovat)/i.test(q);
-    if (wantContact) { stepContactVerify(); return; }
   (async () => {
     try {
       const scriptEl = document.currentScript || document.querySelector('script[data-config]');
