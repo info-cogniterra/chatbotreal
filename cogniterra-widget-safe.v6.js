@@ -108,8 +108,8 @@
   :host {
     all: initial;
     display: block;
-    width: auto;
-    height: auto;
+    width: 100%;
+    height: 100%;
     margin: 0;
     padding: 0;
     border: none;
@@ -129,12 +129,14 @@
     background: #fff;
     border-radius: 12px;
     box-shadow: 0 15px 35px rgba(50,50,93,.1), 0 5px 15px rgba(0,0,0,.07);
-    width: 360px;
-    max-width: 100vw;
-    height: 560px;
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    position: absolute;
+    inset: 0;
   }
   
   /* Header */
