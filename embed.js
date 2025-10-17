@@ -33,3 +33,16 @@
   let open=false; const show=()=>{panel.style.display='block';open=true}; const hide=()=>{panel.style.display='none';open=false};
   btn.addEventListener('click',()=> open?hide():show()); close.addEventListener('click',hide);
 })();
+
+// === Mobile viewport helper (vh fix) ===
+(function cgSetVH() {
+  try {
+    const set = () => {
+      const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      document.documentElement.style.setProperty('--vh', h + 'px');
+    };
+    set();
+    window.addEventListener('resize', set, { passive: true });
+  } catch(e){}
+})();
+
