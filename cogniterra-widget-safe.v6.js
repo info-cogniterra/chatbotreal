@@ -1294,4 +1294,91 @@
         console.log("[Cogniterra] Loaded config from:", CFG_URL);
       } else {
         S.cfg = S.cfg || {};
-        console.warn
+        console.warn("[Cogniterra] No config URL specified");
+      }
+
+      // Load data if URLs specified in config
+      if (S.cfg && S.cfg.data_urls) {
+        // Nahrát data územních plánů
+        if (S.cfg.data_urls.up) {
+          try {
+            console.log("[Cogniterra] Loading UP data from:", S.cfg.data_urls.up);
+            S.data.up = await U.fetchJson(S.cfg.data_urls.up);
+            if (S.data.up && S.data.up.map) {
+              console.log(`[Cogniterra] Data územních plánů načtena: ${S.data.up.map.length} záznamů`);
+            }
+          } catch(e) {
+            console.error("[Cogniterra] Error loading UP data:", e);
+          }
+        }
+
+        // Nahrát data cen nemovitostí pro estimátor
+        const pricesToLoad = ["byty", "domy", "pozemky"];
+        const prices = {};
+
+        for (const type of pricesToLoad) {
+          if (S.cfg.data_urls[type]) {
+            try {
+              console.log(`[Cogniterra] Loading ${type} price data from:`, S.cfg.data_urls[type]);
+              prices[type] = await U.fetchJson(S.cfg.data_urls[type]);
+            } catch(e) {
+              console.error(`[Cogniterra] Error loading ${type} data:`, e);
+              prices[type] = null;
+            }
+          }
+        }
+
+        if (Object.keys(prices).length > 0) {
+          window.PRICES = prices;
+          console.log("[Cogniterra] Price data loaded into global PRICES object");
+        }
+      }
+
+    } catch (e) {
+      console.error("[Cogniterra] Error during config/data loading:", e);
+    }
+
+    // === Input event handling ===
+    chatTextarea.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        const q = chatTextarea.value.trim();
+        if (q) {
+          chatTextarea.value = "";
+          ask(q);
+        }
+      }
+    });
+
+    chatSendBtn.addEventListener("click", () => {
+      const q = chatTextarea.value.trim();
+      if (q) {
+        chatTextarea.value = "";
+        ask(q);
+      }
+    });
+
+    // Skrytí vstupní oblasti na začátku, zobrazí se až po výběru
+    chatInputArea.style.display = 'none';
+
+    // Vykreslení úvodní obrazovky
+    renderStart();
+
+    console.log("[Cogniterra] Widget initialization complete");
+    window.__CG_WIDGET_LOADED__ = true;
+  })();
+
+  // Function to safely start the chat widget
+  function cgSafeStart() {
+    try {
+      if (chatMessages) {
+        renderStart();
+      } else {
+        setTimeout(cgSafeStart, 40);
+      }
+    } catch (e) {
+      console.error("[Cogniterra] Error during safe start:", e);
+      setTimeout(cgSafeStart, 40);
+    }
+  }
+})();
