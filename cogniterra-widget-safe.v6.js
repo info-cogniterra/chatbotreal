@@ -102,10 +102,6 @@
     messages.appendChild(b);
     messages.scrollTop = messages.scrollHeight;
     try { S.chat = S.chat || {messages:[]}; S.chat.messages.push({ role:"assistant", content: String(t) }); } catch(_){}
-  }, [t]);
-    if (extra) b.appendChild(extra);
-    messages.appendChild(b);
-    messages.scrollTop = messages.scrollHeight;
   }
   function addME(t) {
     try { S.chat = S.chat || {messages:[]}; S.chat.messages.push({ role:"user", content: String(q) }); } catch(_){}
