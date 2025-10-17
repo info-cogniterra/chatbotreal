@@ -13,7 +13,6 @@ body{background:#0B0F14;color:#EAF2FF;font:16px/1.6 Inter,system-ui;margin:24px}
 }
 
 
-
 /* --- Start screen cards for pricing/help --- */
 .cg-start{display:flex;flex-direction:column;gap:12px;padding:12px}
 .cg-cards{display:grid;grid-template-columns:1fr;gap:12px}
@@ -34,10 +33,41 @@ body{background:#0B0F14;color:#EAF2FF;font:16px/1.6 Inter,system-ui;margin:24px}
 .cg-note{font-size:12px;color:#555}
 
 
-
 /* panel blocks (not bubble) */
 .panel{background:transparent;padding:0;margin:8px 0}
 .panel .cg-start{margin-top:4px}
+
+
+/* === Odstranění černých okrajů - nové styly === */
+.cg-panel {
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,.35) !important;
+}
+
+[data-cogniterra-widget] {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.chat-container {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 12px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  position: absolute !important;
+  inset: 0 !important;
+}
+
+#chatbot-container {
+  position: absolute !important;
+  inset: 0 !important;
+  overflow: hidden !important;
+}
 
 
 /* === Cogniterra widget mobile tweaks (v1) === */
@@ -57,7 +87,7 @@ body{background:#0B0F14;color:#EAF2FF;font:16px/1.6 Inter,system-ui;margin:24px}
     position: fixed;
     left: 0; right: 0; bottom: 0;
     box-shadow: 0 -12px 32px rgba(0,0,0,.4);
-    background: #fff; /* Změněno z #111 na #fff pro odstranění černého okraje */
+    background: #fff;
     display: flex;
     flex-direction: column;
     z-index: 999999;
@@ -65,7 +95,7 @@ body{background:#0B0F14;color:#EAF2FF;font:16px/1.6 Inter,system-ui;margin:24px}
   .cg-widget .cg-header {
     flex: 0 0 auto;
     padding: 14px 16px calc(14px + env(safe-area-inset-top));
-    border-bottom: 1px solid rgba(0,0,0,.1); /* Upraveno pro světlé pozadí */
+    border-bottom: 1px solid rgba(0,0,0,.1);
   }
   .cg-widget .cg-messages {
     flex: 1 1 auto;
@@ -88,8 +118,8 @@ body{background:#0B0F14;color:#EAF2FF;font:16px/1.6 Inter,system-ui;margin:24px}
     display: flex;
     gap: 8px;
     padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-    border-top: 1px solid rgba(0,0,0,.1); /* Upraveno pro světlé pozadí */
-    background: #fff; /* Změněno z tmavé barvy na bílou */
+    border-top: 1px solid rgba(0,0,0,.1);
+    background: #fff;
     position: sticky;
     bottom: 0;
   }
@@ -104,7 +134,18 @@ body{background:#0B0F14;color:#EAF2FF;font:16px/1.6 Inter,system-ui;margin:24px}
     border-radius: 12px;
   }
   .cg-open .cg-fab { opacity: 0; pointer-events: none; }
+  
+  /* Mobilní zobrazení - doplnění pro odstranění černých okrajů */
+  .chat-container {
+    border-radius: 16px 16px 0 0 !important;
+  }
+  
+  .cg-panel {
+    border: none !important;
+    overflow: hidden !important;
+  }
 }
+
 .cg-open { overflow: hidden; touch-action: none; overscroll-behavior: contain; }
 .cg-widget .msg { border-radius: 12px; padding: 10px 12px; margin: 6px 0; }
 .cg-widget .msg.me { align-self: flex-end; max-width: 86%; }
