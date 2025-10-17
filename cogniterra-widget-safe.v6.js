@@ -4,16 +4,13 @@
 (function () {
   "use strict";
 
-  // ==== safe single-instance + host wait ====
-(function ensureHostInit(){
+  // ==== single-instance guard ====
   if (window.__CG_WIDGET_INIT__) return;
-  const h = document.querySelector("[data-cogniterra-widget]");
-  if (!h) { return setTimeout(ensureHostInit, 50); }
   window.__CG_WIDGET_INIT__ = true;
-})();
 
-// after guard, host is guaranteed to exist
-const host = document.querySelector("[data-cogniterra-widget]");
+  // ==== mount only if host exists (bubble creates it); do NOTHING otherwise ====
+  const host = document.querySelector("[data-cogniterra-widget]");
+  if (!host) return; // bubble not opened yet / or embed missing
 
   // ==== state/config ====
   const S = {
