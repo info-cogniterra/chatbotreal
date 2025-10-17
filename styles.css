@@ -57,7 +57,7 @@ body{background:#0B0F14;color:#EAF2FF;font:16px/1.6 Inter,system-ui;margin:24px}
     position: fixed;
     left: 0; right: 0; bottom: 0;
     box-shadow: 0 -12px 32px rgba(0,0,0,.4);
-    background: #111;
+    background: #fff;
     display: flex;
     flex-direction: column;
     z-index: 999999;
