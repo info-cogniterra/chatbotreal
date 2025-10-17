@@ -18,8 +18,6 @@
   .cg-close{position:absolute;right:8px;top:8px;z-index:2;background:rgba(0,0,0,.35);color:#EAF2FF;border:1px solid rgba(255,255,255,.12);
     border-radius:10px;padding:4px 8px;cursor:pointer;font:500 12px Inter,system-ui}`;
   const style=document.createElement('style'); style.innerHTML = css; document.head.appendChild(style);
-(function(){try{var s2=document.createElement('style'); s2.id='cg-lock'; s2.innerHTML='body.cg-open{overflow:hidden;touch-action:none;}'; document.head.appendChild(s2);}catch(e){}})();
-(function(){try{var s=document.createElement('style');s.id='cg-mobile-hard'; s.innerHTML='\n/* === Mobile hard override (v10) === */\n@media (max-width: 600px) {\n  .cg-panel {\n    position: fixed !important;\n    left: 0 !important; right: 0 !important; bottom: 0 !important; top: auto !important;\n    width: 100% !important; max-width: 100% !important;\n    height: 100dvh !important; max-height: 100dvh !important;\n    border-radius: 16px 16px 0 0 !important;\n    background: #111 !important;\n    overflow: hidden !important;\n  }\n  .cg-launcher { right: 16px !important; bottom: 16px !important; }\n}\n'; document.head.appendChild(s);}catch(e){}})();
   if(STYLES){ const link=document.createElement('link'); link.rel='stylesheet'; link.href=STYLES; document.head.appendChild(link); }
 
   const btn=document.createElement('div'); btn.className='cg-launcher'; btn.title='Otevřít chat'; btn.innerHTML = '💬'; document.body.appendChild(btn);
@@ -32,7 +30,7 @@
 
   const sc=document.createElement('script'); sc.src=WIDGET+'?v='+Date.now(); sc.setAttribute('data-config',CFG); document.body.appendChild(sc);
 
-  let open=false; const show=()=>{document.body.classList.add('cg-open');panel.style.display='block';open=true}; const hide=()=>{document.body.classList.remove('cg-open');panel.style.display='none';open=false};
+  let open=false; const show=()=>{panel.style.display='block';open=true}; const hide=()=>{panel.style.display='none';open=false};
   btn.addEventListener('click',()=> open?hide():show()); close.addEventListener('click',hide);
 })();
 

@@ -101,7 +101,13 @@ try {
 }
 .msg { border-radius: 12px; padding: 10px 12px; margin: 6px 0; }
 .msg.me { align-self: flex-end; max-width: 86%; }
-.msg.ai { align-self: flex-start; max-width: 86%; }`;
+.msg.ai { align-self: flex-start; max-width: 86%; }
+.wrap { background:#111; height:100%; display:flex; }
+.chat { display:flex; flex-direction:column; width:100%; height:100%; }
+.header { background:#111; }
+.messages { background:#111; }
+.input { background:#111; }
+`;
     shadow.appendChild(style);
   }
 } catch (e) {}
@@ -149,7 +155,7 @@ const style = document.createElement("style");
   send.textContent = "Odeslat";
   input.appendChild(ta); input.appendChild(send);
   chat.appendChild(header); chat.appendChild(messages); chat.appendChild(input);
-  input.style.display = "none";
+  input.style.display = "flex"; ta.placeholder="Napište zprávu…";
   S.chat = S.chat || {messages:[]}; S.intent = S.intent || {}; S.intent = S.intent || {};
   wrap.appendChild(chat); shadow.appendChild(wrap);
 
@@ -230,7 +236,7 @@ const b = U.el("div", { class: "msg me" }, [t]);
   };
 
   // ==== START SCREEN ====
-  function renderStart() {
+  function renderStart() { try{ta.focus();}catch(e){}
     addAI("Dobrý den, rád vám pomohu s vaší nemovitostí. Vyberte, co potřebujete.");
 
     const cards = U.el("div", { class: "cg-start" }, [
@@ -249,7 +255,7 @@ const b = U.el("div", { class: "msg me" }, [t]);
     addPanel(cards);
   }
 
-  function startHelp() {
+  function startHelp() { input.style.display='flex'; try{ta.focus();}catch(e){}
     input.style.display = "flex";
     addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod.");
   }
