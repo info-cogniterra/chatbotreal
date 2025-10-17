@@ -64,300 +64,54 @@
   // ==== shadow root & UI skeleton ====
   const shadow = host.attachShadow({ mode: "open" });
 
-  // === Inject completely new styling for both desktop and mobile ===
+  // === Inject consistent styling for both desktop and mobile ===
   const style = document.createElement("style");
   style.textContent = `
-  /* Reset everything */
-  :host { all: initial; }
-  *, *::before, *::after { 
-    box-sizing: border-box; 
-    margin: 0;
-    padding: 0;
-  }
+  :host{all:initial}
+  *, *::before, *::after { box-sizing: border-box; }
+  .wrap{font:15px/1.5 'Source Sans Pro', Helvetica, Arial, sans-serif; color:#2d3748}
+  .chat{background:#fff; border-radius:12px; box-shadow:0 15px 35px rgba(50,50,93,.1), 0 5px 15px rgba(0,0,0,.07); width:360px; max-width:100vw; height:560px; display:flex; flex-direction:column; overflow:hidden}
+  .header{background:#2c5282; color:#fff; padding:16px; font-weight:700; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,.1)}
+  .header .title{flex:1}
+  .header .close{background:transparent; border:none; color:#fff; cursor:pointer; font-size:16px; opacity:0.8}
+  .header .close:hover{opacity:1}
+  .messages{flex:1; padding:16px; overflow:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; background:#f8fafc; display:flex; flex-direction:column}
+  .msg{max-width:86%; margin:10px 0; word-wrap:break-word; overflow-wrap:break-word; white-space:pre-wrap; box-shadow:0 2px 5px rgba(0,0,0,.06)}
+  .msg.ai{background:#fff; border-left:4px solid #2c5282; border-radius:0 8px 8px 0; padding:14px 16px; align-self:flex-start; color:#2d3748}
+  .msg.me{background:#2c5282; color:#fff; border-radius:8px 0 0 8px; border-right:4px solid #1a365d; padding:14px 16px; align-self:flex-end}
+  .panel{background:transparent; padding:0; margin:12px 0; width:100%}
+  .input{display:flex; gap:10px; padding:14px 16px; background:#fff; border-top:1px solid #e2e8f0}
+  .input textarea{flex:1; resize:none; height:46px; border-radius:4px; border:1px solid #cbd5e0; background:#fff; color:#2d3748; padding:12px; font-family:inherit}
+  .input textarea:focus{outline:none; border-color:#2c5282; box-shadow:0 0 0 2px rgba(44,82,130,.2)}
+  .input button{border:0; background:#2c5282; color:#fff; padding:0 18px; border-radius:4px; font-weight:600; cursor:pointer; transition:background 0.2s}
+  .input button:hover{background:#1a365d}
+  .cg-start{display:flex; flex-direction:column; gap:16px; width:100%}
+  .cg-cards{display:grid; grid-template-columns:1fr; gap:16px; width:100%}
+  .cg-card{width:100%; text-align:left; background:#fff; border:1px solid #e2e8f0; border-left:4px solid #2c5282; border-radius:0 8px 8px 0; padding:16px; cursor:pointer; color:#2d3748; font-family:inherit; transition:all 0.2s ease}
+  .cg-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.08); border-left-color:#1a365d}
+  .cg-card h3{margin:0 0 6px; font-weight:700; font-size:16px; color:#2d3748}
+  .cg-card p{margin:0; font-size:14px; color:#4a5568}
+  .cg-step{background:#fff; border-radius:8px; padding:16px; box-shadow:0 2px 5px rgba(0,0,0,.05)}
+  .cg-step label{display:block; margin:8px 0 6px; color:#4a5568; font-weight:600}
+  .cg-input,.cg-select{width:100%; margin:6px 0 12px; padding:12px 14px; border-radius:4px; border:1px solid #cbd5e0; background:#fff; color:#2d3748; font-family:inherit}
+  .cg-input:focus,.cg-select:focus{outline:none; border-color:#2c5282; box-shadow:0 0 0 2px rgba(44,82,130,.2)}
+  .cg-cta{margin-top:16px; display:flex; gap:12px; flex-wrap:wrap}
+  .cg-btn{border:0; background:#2c5282; color:#fff; padding:12px 18px; border-radius:4px; font-weight:600; cursor:pointer; transition:background 0.2s}
+  .cg-btn:hover{background:#1a365d}
+  .leadbox{border:1px solid #e2e8f0; padding:16px; border-radius:8px; background:#fff}
+  .leadbox input{width:100%; margin:6px 0 12px; padding:12px 14px; border-radius:4px; border:1px solid #cbd5e0; background:#fff; color:#2d3748; font-family:inherit}
+  .leadbox input:focus{outline:none; border-color:#2c5282; box-shadow:0 0 0 2px rgba(44,82,130,.2)}
+  .leadbox input[type="checkbox"]{width:auto; margin-right:8px}
+  .hint{color:#718096; font-size:13px; margin-top:6px}
   
-  /* Base styles */
-  .wrap {
-    font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    font-size: 15px;
-    line-height: 1.5;
-    color: #2d3748;
-    -webkit-font-smoothing: antialiased;
-  }
-  
-  /* Chat container */
-  .chat {
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(50, 50, 93, 0.1), 0 5px 15px rgba(0, 0, 0, 0.07);
-    width: 360px;
-    max-width: 100vw;
-    height: 560px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-  
-  /* Header */
-  .header {
-    background: #2c5282;
-    color: #fff;
-    padding: 16px;
-    font-weight: 600;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  .header .title {
-    flex: 1;
-  }
-  .header .close {
-    background: transparent;
-    border: none;
-    color: #fff;
-    cursor: pointer;
-    font-size: 16px;
-    opacity: 0.8;
-    padding: 0;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .header .close:hover {
-    opacity: 1;
-  }
-  
-  /* Messages area */
-  .messages {
-    flex: 1;
-    padding: 16px;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-    background-color: #f8fafc;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  /* Message bubbles */
-  .msg {
-    max-width: 86%;
-    margin: 10px 0;
-    display: block;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    white-space: pre-wrap;
-  }
-  .msg.ai {
-    background: #fff;
-    border-left: 4px solid #2c5282;
-    border-radius: 0 8px 8px 0;
-    padding: 14px 16px;
-    align-self: flex-start;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-  }
-  .msg.me {
-    background: #2c5282;
-    color: #fff;
-    border-radius: 8px 0 0 8px;
-    border-right: 4px solid #1a365d;
-    padding: 14px 16px;
-    align-self: flex-end;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-  }
-  
-  /* Panels (for cards, forms) */
-  .panel {
-    width: 100%;
-    margin: 10px 0;
-    background: transparent;
-  }
-  
-  /* Input area */
-  .input {
-    display: flex;
-    gap: 10px;
-    padding: 14px 16px;
-    background: #fff;
-    border-top: 1px solid #e2e8f0;
-    position: relative;
-  }
-  .input textarea {
-    flex: 1;
-    resize: none;
-    height: 46px;
-    border-radius: 4px;
-    border: 1px solid #cbd5e0;
-    background: #fff;
-    color: #2d3748;
-    padding: 12px;
-    font-family: inherit;
-    font-size: 15px;
-  }
-  .input textarea:focus {
-    outline: none;
-    border-color: #2c5282;
-    box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.2);
-  }
-  .input button {
-    background: #2c5282;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    padding: 0 18px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-  .input button:hover {
-    background: #1a365d;
-  }
-  
-  /* Start screen elements */
-  .cg-start {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    gap: 16px;
-  }
-  .cg-cards {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 16px;
-    width: 100%;
-  }
-  .cg-card {
-    width: 100%;
-    text-align: left;
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    border-left: 4px solid #2c5282;
-    border-radius: 0 8px 8px 0;
-    padding: 16px;
-    cursor: pointer;
-    color: #2d3748;
-    transition: all 0.2s ease;
-    font-family: inherit;
-  }
-  .cg-card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    border-left-color: #1a365d;
-  }
-  .cg-card h3 {
-    margin: 0 0 6px;
-    font-weight: 600;
-    font-size: 16px;
-    color: #2d3748;
-  }
-  .cg-card p {
-    margin: 0;
-    font-size: 14px;
-    color: #4a5568;
-  }
-  
-  /* Form elements */
-  .cg-step {
-    background: #fff;
-    border-radius: 8px;
-    padding: 16px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-  }
-  .cg-step label {
-    display: block;
-    margin: 8px 0 6px;
-    color: #4a5568;
-    font-weight: 600;
-  }
-  .cg-input, .cg-select {
-    width: 100%;
-    margin: 6px 0 12px;
-    padding: 12px 14px;
-    border-radius: 4px;
-    border: 1px solid #cbd5e0;
-    background: #fff;
-    color: #2d3748;
-    font-family: inherit;
-    font-size: 15px;
-  }
-  .cg-input:focus, .cg-select:focus {
-    outline: none;
-    border-color: #2c5282;
-    box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.2);
-  }
-  .cg-cta {
-    margin-top: 16px;
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-  .cg-btn {
-    background: #2c5282;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    padding: 12px 18px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-  .cg-btn:hover {
-    background: #1a365d;
-  }
-  
-  /* Lead form box */
-  .leadbox {
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 16px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-  }
-  .leadbox input {
-    width: 100%;
-    margin: 6px 0 12px;
-    padding: 12px 14px;
-    border-radius: 4px;
-    border: 1px solid #cbd5e0;
-    background: #fff;
-    color: #2d3748;
-    font-family: inherit;
-    font-size: 15px;
-  }
-  .leadbox input:focus {
-    outline: none;
-    border-color: #2c5282;
-    box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.2);
-  }
-  .leadbox input[type="checkbox"] {
-    width: auto;
-    margin-right: 8px;
-  }
-  .leadbox label {
-    display: flex;
-    align-items: center;
-    font-size: 14px;
-  }
-  
-  /* Hint text */
-  .hint {
-    color: #718096;
-    font-size: 13px;
-    margin-top: 6px;
-    opacity: 0.8;
-  }
-  
-  /* Mobile-specific styles */
+  /* Mobile styles */
   @media (max-width: 480px) {
     .wrap, .chat {
       width: 100%;
       height: 100%;
       max-width: 100%;
       border-radius: 0;
-      box-shadow: none;
     }
-    
     .input textarea {
       font-size: 16px; /* Prevent iOS zoom */
     }
@@ -381,7 +135,7 @@
   input.appendChild(ta); input.appendChild(send);
   chat.appendChild(header); chat.appendChild(messages); chat.appendChild(input);
   input.style.display = "flex"; ta.placeholder="Napište zprávu…";
-  S.chat = S.chat || {messages:[]}; S.intent = S.intent || {}; S.intent = S.intent || {};
+  S.chat = S.chat || {messages:[]}; S.intent = S.intent || {};
   wrap.appendChild(chat); shadow.appendChild(wrap);
 
   // ==== message helpers ====
@@ -408,7 +162,7 @@
   } catch (e) {}
 }
 function addME(t) {
-    try { S.chat = S.chat || {messages:[]}; S.intent = S.intent || {}; S.intent = S.intent || {}; S.chat.messages.push({ role:"user", content: String(t) }); } catch(_){}
+    try { S.chat = S.chat || {messages:[]}; S.intent = S.intent || {}; S.chat.messages.push({ role:"user", content: String(t) }); } catch(_){}
 const b = U.el("div", { class: "msg me" }, [t]);
     messages.appendChild(b);
     messages.scrollTop = messages.scrollHeight;
@@ -795,7 +549,7 @@ function ask(q) {
       typing.remove();
       if (!resp || !resp.ok) {
         try { const u = new URL(url); if (S.cfg && S.cfg.secret) u.searchParams.set("secret", S.cfg.secret); try { const msgs=(S.chat&&S.chat.messages)?S.chat.messages.slice(-12):[{role:"user",content:q}]; u.searchParams.set("messages", JSON.stringify(msgs)); } catch { u.searchParams.set("messages", JSON.stringify([{role:"user", content:q}])); } try { resp = await fetch(u.toString(), { method: "GET" }); } catch { resp = null; } } catch { resp = null; }
-        if (!resp.ok) { addAI("Omlouvám se, teď se mi nedaří získat odpověď od AI. Zkuste to prosím za chvíli."); return; }
+        if (!resp || !resp.ok) { addAI("Omlouvám se, teď se mi nedaří získat odpověď od AI. Zkuste to prosím za chvíli."); return; }
       }
       const ct = (resp.headers.get("content-type")||"").toLowerCase();
       let txt = ""; if (ct.includes("application/json")) { try { const j = await resp.json(); txt = j.message || j.reply || j.text || j.answer || JSON.stringify(j); } catch { txt = await resp.text(); } } else { txt = await resp.text(); }
