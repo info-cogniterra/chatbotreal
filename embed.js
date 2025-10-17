@@ -20,9 +20,24 @@
   const style=document.createElement('style'); style.innerHTML = css; document.head.appendChild(style);
   if(STYLES){ const link=document.createElement('link'); link.rel='stylesheet'; link.href=STYLES; document.head.appendChild(link); }
 
-  const btn=document.createElement('div'); btn.className='cg-launcher'; btn.title='Otevřít chat'; btn.innerHTML = '💬'; document.body.appendChild(btn);
-  const panel=document.createElement('div'); panel.className='cg-panel';
-  const close=document.createElement('button'); close.className='cg-close'; close.innerHTML = 'Zavřít'; panel.appendChild(close);
+  // Definujeme globální funkce pro otevírání/zavírání chatu aby byly dostupné i pro chatbota
+  window.CGTR = window.CGTR || {};
+  
+  // Vytvoření prvků UI - launcher a panel
+  const btn=document.createElement('div'); 
+  btn.className='cg-launcher'; 
+  btn.title='Otevřít chat'; 
+  btn.innerHTML = '💬'; 
+  document.body.appendChild(btn);
+  
+  const panel=document.createElement('div'); 
+  panel.className='cg-panel';
+  
+  const close=document.createElement('button'); 
+  close.className='cg-close'; 
+  close.innerHTML = 'Zavřít'; 
+  panel.appendChild(close);
+  
   const cont=document.createElement('div'); 
   cont.id='chatbot-container'; 
   cont.style.width='100%'; 
@@ -31,6 +46,7 @@
   cont.style.inset='0';
   panel.appendChild(cont);
   document.body.appendChild(panel);
+  
   // Ensure widget host exists for bubble-only build
   const host=document.createElement('div'); 
   host.setAttribute('data-cogniterra-widget',''); 
@@ -40,10 +56,52 @@
   host.style.inset='0';
   cont.appendChild(host);
 
-  const sc=document.createElement('script'); sc.src=WIDGET+'?v='+Date.now(); sc.setAttribute('data-config',CFG); document.body.appendChild(sc);
+  // Globální stav otevření/zavření
+  let open=false; 
+  
+  // Vylepšené funkce pro otevírání/zavírání, které resetují stav
+  const show=()=>{
+    panel.style.display='block';
+    open=true;
+    
+    // Načteme widget script, pokud ještě není načtený
+    if (!window.__CG_WIDGET_SCRIPT_LOADED__) {
+      const sc=document.createElement('script'); 
+      sc.src=WIDGET+'?v='+Date.now(); 
+      sc.setAttribute('data-config',CFG); 
+      document.body.appendChild(sc);
+      window.__CG_WIDGET_SCRIPT_LOADED__ = true;
+    } else {
+      // Pokud je widget již načten, jenom resetujeme stav
+      if (window.__CG_WIDGET_RESET_FN__ && typeof window.__CG_WIDGET_RESET_FN__ === 'function') {
+        window.__CG_WIDGET_RESET_FN__();
+      }
+    }
+  }; 
+  
+  const hide=()=>{
+    panel.style.display='none';
+    open=false;
+  };
+  
+  // Exportujeme funkce pro globální použití
+  window.CGTR.showChat = show;
+  window.CGTR.hideChat = hide;
+  
+  // Přidáme event listenery na tlačítka
+  btn.addEventListener('click',()=> open?hide():show()); 
+  close.addEventListener('click',hide);
 
-  let open=false; const show=()=>{panel.style.display='block';open=true}; const hide=()=>{panel.style.display='none';open=false};
-  btn.addEventListener('click',()=> open?hide():show()); close.addEventListener('click',hide);
+  // Načteme widget script při prvním kliknutí
+  btn.addEventListener('click', () => {
+    if (!window.__CG_WIDGET_SCRIPT_LOADED__) {
+      const sc=document.createElement('script'); 
+      sc.src=WIDGET+'?v='+Date.now(); 
+      sc.setAttribute('data-config',CFG); 
+      document.body.appendChild(sc);
+      window.__CG_WIDGET_SCRIPT_LOADED__ = true;
+    }
+  }, { once: true });
 })();
 
 // === Mobile viewport helper (vh fix) ===
