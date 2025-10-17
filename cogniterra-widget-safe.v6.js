@@ -13,9 +13,11 @@
 
 (function () {
   "use strict";
+  console.log("[Cogniterra] Widget initialization starting");
 
   // ==== single-instance guard ====
   if (window.__CG_WIDGET_INIT__) {
+    console.log("[Cogniterra] Widget already initialized, cleaning up old instance");
     // Pokud již existuje, vyčistíme starou instanci
     try {
       const existingHost = document.querySelector("[data-cogniterra-widget]");
@@ -25,40 +27,53 @@
         }
       }
     } catch (e) {
-      console.error("Chyba při čištění staré instance widgetu:", e);
+      console.error("[Cogniterra] Error cleaning up old widget instance:", e);
     }
   }
   window.__CG_WIDGET_INIT__ = true;
   
   // Definujeme funkci pro reset widgetu
   window.__CG_WIDGET_RESET_FN__ = function() {
+    console.log("[Cogniterra] Widget reset function called");
     try {
       // Resetujeme stav widgetu
       const existingHost = document.querySelector("[data-cogniterra-widget]");
       if (existingHost) {
+        console.log("[Cogniterra] Found widget host, cleaning up");
         // Znovu inicializujeme chat
         if (existingHost.shadowRoot) {
           while (existingHost.shadowRoot.firstChild) {
             existingHost.shadowRoot.removeChild(existingHost.shadowRoot.firstChild);
           }
         }
+        
+        // Resetujeme inicializační příznak
+        window.__CG_WIDGET_INIT__ = true;
+        
         // Znovu vykreslíme úvodní obrazovku
         setTimeout(() => {
           try {
+            console.log("[Cogniterra] Restarting widget");
             cgSafeStart();
           } catch(e) {
-            console.error("Chyba při resetu widgetu:", e);
+            console.error("[Cogniterra] Error during widget restart:", e);
           }
         }, 50);
+      } else {
+        console.warn("[Cogniterra] Widget host not found");
       }
     } catch(e) {
-      console.error("Chyba při resetu chatbota:", e);
+      console.error("[Cogniterra] Error during widget reset:", e);
     }
   };
 
   // ==== mount only if host exists (bubble creates it); do NOTHING otherwise ====
   const host = document.querySelector("[data-cogniterra-widget]");
-  if (!host) return; // bubble not opened yet / or embed missing
+  if (!host) {
+    console.warn("[Cogniterra] Widget host element not found, aborting initialization");
+    return; // bubble not opened yet / or embed missing
+  }
+  console.log("[Cogniterra] Found widget host element, continuing initialization");
 
   // ==== state/config ====
   const S = {
@@ -166,6 +181,7 @@
       // Pokusíme se odstranit shadowRoot
       host.attachShadow({ mode: "open" });
     } catch(e) {
+      console.warn("[Cogniterra] Cannot recreate shadowRoot, cleaning existing one");
       // Pokud nelze přímo odstranit, alespoň vyčistíme obsah
       while (host.shadowRoot.firstChild) {
         host.shadowRoot.removeChild(host.shadowRoot.firstChild);
@@ -175,6 +191,7 @@
 
   // Vytvoříme nový shadowRoot
   const shadow = host.shadowRoot || host.attachShadow({ mode: "open" });
+  console.log("[Cogniterra] Created/accessed shadowRoot");
 
   // === Kompletně nový styl s důrazem na izolaci ===
   const style = document.createElement("style");
@@ -188,7 +205,7 @@
     margin: 0;
     padding: 0;
     border: none;
-    background: transparent;
+    background: #fff;
   }
   
   * {
@@ -212,6 +229,8 @@
     overflow: hidden;
     position: absolute;
     inset: 0;
+    visibility: visible;
+    opacity: 1;
   }
   
   /* Header */
@@ -499,6 +518,7 @@
   }
   `;
   shadow.appendChild(style);
+  console.log("[Cogniterra] Added styles to shadowRoot");
 
   // Vytvořit zcela novou strukturu widgetu s novými názvy tříd
   const chatContainer = U.el("div", { class: "chat-container" });
@@ -509,25 +529,32 @@
   
   // Upravená funkce pro zavírání chatu
   function closeChat() {
+    console.log("[Cogniterra] Close button clicked");
     if (window.CGTR && typeof window.CGTR.hideChat === 'function') {
+      console.log("[Cogniterra] Using global hideChat function");
       window.CGTR.hideChat();
     } else {
+      console.log("[Cogniterra] Using fallback close method");
       if (window.parent) {
         try {
           // Najít nadřazené tlačítko zavřít, ale v rodičovském okně
           const parentClose = window.parent.document.querySelector('.cg-close');
           if (parentClose) {
+            console.log("[Cogniterra] Using parent close button");
             parentClose.click();
           } else {
             // Pokud nenajdeme rodičovské tlačítko, alespoň skryjeme tento element
+            console.log("[Cogniterra] Parent close button not found, hiding host");
             host.style.display = 'none';
           }
         } catch(e) {
+          console.error("[Cogniterra] Error accessing parent document:", e);
           // Fallback pro případ, kdy nemáme přístup k rodičovskému oknu
           host.style.display = 'none';
         }
       } else {
         // Pokud není v iframe, alespoň skryjeme tento element
+        console.log("[Cogniterra] No parent window, hiding host");
         host.style.display = 'none';
       }
     }
@@ -562,6 +589,7 @@
   
   // Přidáme celou strukturu do shadow DOM
   shadow.appendChild(chatContainer);
+  console.log("[Cogniterra] Added UI structure to shadowRoot");
   
   // Inicializace stavu
   S.chat = S.chat || {messages:[]};
@@ -711,12 +739,12 @@
   function findUzemniPlan(location) {
     // Kontrola, že máme data
     if (!S.data || !S.data.up || !S.data.up.map) {
-      console.log("Chybí data územních plánů:", S.data);
+      console.log("[Cogniterra] Chybí data územních plánů:", S.data);
       return null;
     }
     
     const normalizedLocation = U.normalizeLocation(location);
-    console.log("Hledám lokalitu:", normalizedLocation, "z původní:", location);
+    console.log("[Cogniterra] Hledám lokalitu:", normalizedLocation, "z původní:", location);
     
     // Přesná shoda (obec nebo katastrální území)
     const exactMatch = S.data.up.map.find(entry => 
@@ -725,7 +753,7 @@
     );
     
     if (exactMatch) {
-      console.log("Nalezena přesná shoda:", exactMatch);
+      console.log("[Cogniterra] Nalezena přesná shoda:", exactMatch);
       return exactMatch;
     }
     
@@ -737,7 +765,7 @@
     );
     
     if (partialMatch) {
-      console.log("Nalezena částečná shoda:", partialMatch);
+      console.log("[Cogniterra] Nalezena částečná shoda:", partialMatch);
       return partialMatch;
     }
     
@@ -761,11 +789,11 @@
     }
     
     if (bestMatch) {
-      console.log(`Nalezena fuzzy shoda (skóre ${bestScore.toFixed(2)}):`, bestMatch);
+      console.log(`[Cogniterra] Nalezena fuzzy shoda (skóre ${bestScore.toFixed(2)}):`, bestMatch);
       return bestMatch;
     }
     
-    console.log("Žádná shoda nenalezena pro:", normalizedLocation);
+    console.log("[Cogniterra] Žádná shoda nenalezena pro:", normalizedLocation);
     return null;
   }
 
@@ -780,11 +808,11 @@
     S.intent.lastLandQuery = isLandQuery;
     
     if (isLandQuery || U.containsLandPlanLinkRequest(userQuery)) {
-      console.log("Detekován dotaz o územním plánu nebo žádost o odkaz:", userQuery);
+      console.log("[Cogniterra] Detekován dotaz o územním plánu nebo žádost o odkaz:", userQuery);
       
       // Extrakce potenciálních lokalit z dotazu
       const locations = extractLocations(userQuery);
-      console.log("Nalezené potenciální lokality:", locations);
+      console.log("[Cogniterra] Nalezené potenciální lokality:", locations);
       
       if (locations.length > 0) {
         S.pendingLocationQuery = locations[0];
@@ -800,7 +828,7 @@
             // Přidání odkazu na územní plán do odpovědi
             const appendText = `\n\nPro lokalitu ${planInfo.obec}${planInfo.ku !== planInfo.obec ? ` (${planInfo.ku})` : ''} můžete najít územní plán zde: <a href="${planInfo.url}" target="_blank">Územní plán ${planInfo.obec}</a>`;
             processedResponse += appendText;
-            console.log("Přidán odkaz na územní plán:", planInfo);
+            console.log("[Cogniterra] Přidán odkaz na územní plán:", planInfo);
             break; // Stačí jeden odkaz
           }
         }
@@ -812,6 +840,7 @@
 
   // ==== START SCREEN ====
   function renderStart() { try{chatTextarea.focus();}catch(e){}
+    console.log("[Cogniterra] Rendering start screen");
     addAI("Dobrý den, rád vám pomohu s vaší nemovitostí. Vyberte, co potřebujete.");
 
     const cards = U.el("div", { class: "cg-start" }, [
@@ -1033,269 +1062,4 @@
   function renderEstimate(res, typ) {
     const box = U.el("div", { class: "cg-step" }, [
       U.el("label", {}, [`${typ}: předběžný odhad`]),
-      U.el("div", {}, [`Rozpětí: ${res.low?.toLocaleString?.("cs-CZ") || res.low || "-"} – ${res.high?.toLocaleString?.("cs-CZ") || res.high || "-" } Kč`]),
-      U.el("div", {}, [`Orientační cena za m²: ${res.per_m2 || "-"} Kč/m²`]),
-      U.el("div", { class: "hint" }, [res.note || "Odhad je orientační."]),
-      U.el("div", { class: "cg-cta" }, [
-        U.el("button", { class: "cg-btn", type: "button", onclick: () => addAI("Děkujeme, kolegové se vám ozvou s přesným odhadem.") }, ["Přesný odhad zdarma"]),
-      ]),
-    ]);
-    addAI("Výsledek odhadu", box);
-  }
-
-  // ==== Contact lead (from chat intent) ====
-  function stepContactVerify() {
-    const consentId = "cgConsent_" + Math.random().toString(36).slice(2);
-    const box = U.el("div", { class: "leadbox" }, [
-      U.el("div", {}, ["Zanechte na sebe kontakt, ozvu se vám co nejdříve."]),
-      U.el("input", { id: "c_name",  name:"name",  placeholder:"Jméno" }),
-      U.el("input", { id: "c_email", name:"email", type:"email", placeholder:"E-mail" }),
-      U.el("input", { id: "c_phone", name:"phone", placeholder:"Telefon (+420…)" }),
-      U.el("label", {}, [ U.el("input", { id: consentId, type:"checkbox" }), " Souhlasím se zpracováním osobních údajů." ]),
-      U.el("div", { class: "cg-cta" }, [ U.el("button", { class:"cg-btn", type:"button", onclick: () => saveLeadContact(consentId) }, ["Odeslat"]) ])
-    ]);
-    addAI("Kontaktní formulář", box);
-  }
-
-  async function saveLeadContact(consentId) {
-    const btn = shadow.querySelector(".leadbox .cg-btn");
-    if (btn) { btn.disabled = true; btn.textContent = "Odesílám…"; }
-    const name  = (shadow.querySelector("#c_name")  || {}).value || "";
-    const email = (shadow.querySelector("#c_email") || {}).value || "";
-    const phone = (shadow.querySelector("#c_phone") || {}).value || "";
-    const consentEl = shadow.querySelector("#" + consentId);
-    const consent = !!(consentEl && consentEl.checked);
-
-    if (!name.trim() || !U.emailOk(email) || !U.phoneOk(phone) || !consent) {
-      addAI("Zkontrolujte prosím kontaktní údaje a potvrďte souhlas.");
-      if (btn) { btn.disabled = false; btn.textContent = "Odeslat"; }
-      return;
-    }
-
-    const payload = {
-      secret: (S.cfg && S.cfg.secret) || "",
-      branch: "chat",
-      session_id: S.session,
-      jmeno: name.trim(),
-      email: email.trim(),
-      telefon: phone.trim(),
-      message: "Žádost o kontakt z chatbota",
-      source: "chat_widget_contact",
-      timestamp: new Date().toISOString(),
-      path: "/lead",
-      transcript: JSON.stringify((S.chat && S.chat.messages) ? S.chat.messages.slice(-12) : [])
-    };
-
-    try {
-      if (S.cfg && S.cfg.lead_url) {
-        const body = new URLSearchParams(Object.entries(payload)).toString();
-        let ok = false;
-        try {
-          const resp = await fetch(S.cfg.lead_url, { method: "POST", headers:{ "Content-Type":"application/x-www-form-urlencoded" }, body });
-          ok = !!resp.ok;
-        } catch (_) { ok = false; }
-        if (!ok) {
-          fetch(S.cfg.lead_url, { method:"POST", mode:"no-cors", headers:{ "Content-Type":"application/x-www-form-urlencoded"}, body }).catch(()=>{});
-        }
-      }
-      addAI("Děkuji, mám vše zapsané. Ozveme se vám co nejdříve.");
-    } catch (e) {
-      addAI("Nepodařilo se uložit kontakt. Zkuste to prosím znovu.");
-    } finally {
-      if (btn) { btn.disabled = false; btn.textContent = "Odeslat"; }
-    }
-  }
-
-  // ==== Intent routing ====
-  function needPricing(q) {
-    const s = U.norm(q);
-    return /(nacenit|naceněn|ocenit|odhad(\s*ceny)?|cena\s+nemovitosti|spočítat\s*cenu|kolik\s+to\s*stojí)/i.test(s);
-  }
-  
-  function ask(q) {
-    // Intercept confirmation if assistant just offered to open contact form
-    try {
-      if (S.intent && S.intent.contactOffer) {
-        const yesRe = /^(ano|jo|ok|okej|jasn[eě]|pros[íi]m|dob[rř]e|spus[tť]it|ote[vw][řr][ií]t|zobraz(it)?|m[oů]žete|ur[cč]it[ěe])(\b|!|\.)/i;
-        const noRe  = /^(ne|rad[ěe]ji\s+ne|pozd[eě]ji|te[dď]\s+ne|nen[ií])(\b|!|\.)/i;
-        if (yesRe.test(q.trim())) {
-          // consume message locally, open contact form, clear flag
-          addME(q);
-          stepContactVerify();
-          S.intent.contactOffer = false;
-          return;
-        } else if (noRe.test(q.trim())) {
-          // user declined; clear flag and continue to backend
-          S.intent.contactOffer = false;
-        }
-      }
-    } catch(_) {}
-    
-    // Zachytit odpověď, pokud asistent nabízel zaslání odkazu na územní plán
-    try {
-      if (S.intent && S.intent.upOffer && S.lastMatchedLocation) {
-        if (U.isAffirmativeResponse(q)) {
-          // Uživatel potvrdil, že chce poslat odkaz na územní plán
-          addME(q);
-          addLandPlanLink(S.lastMatchedLocation.obec);
-          // Resetujeme příznak
-          S.intent.upOffer = false;
-          return;
-        } else {
-          // Uživatel odmítl odkaz, pokračujeme normálně
-          S.intent.upOffer = false;
-        }
-      }
-    } catch(_) {}
-    
-    // Zachytit přímou žádost o zaslání odkazu na územní plán
-    try {
-      if (S.pendingLocationQuery && U.containsLandPlanLinkRequest(q)) {
-        addME(q);
-        const success = addLandPlanLink(S.pendingLocationQuery);
-        if (!success) {
-          addAI("Omlouvám se, ale nemohu poskytnout přímé odkazy. Doporučuji navštívit oficiální webové stránky města " + S.pendingLocationQuery + ", kde byste měli najít sekci věnovanou územnímu plánování. Tam by měly být k dispozici aktuální dokumenty a informace o územním plánu.");
-        }
-        return;
-      }
-    } catch(_) {}
-
-    if (!q) return;
-    addME(q);
-    if (needPricing(q)) { startPricing(); return; }
-    S.chat = S.chat || { messages: [] };
-    const url = (S && S.cfg && (S.cfg.proxy_url || S.cfg.chat_url)) || null;
-    if (!url) { addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod."); return; }
-
-    // Contact intent (CZ variants) -> open lead form immediately
-    const wantContact = /(^|\b)(chci ?být ?kontaktov[aá]n|kontaktuj(te)? m[ěe]|zavolejte|napi[sš]te|nechte kontakt|ozv[eu] se|m[ůu]žete m[ěě] kontaktovat)/i.test(q);
-    if (wantContact) { stepContactVerify(); return; }
-    
-    (async () => {
-      try {
-        const typing = U.el("div", { class: "chat-msg ai" }, ["· · ·"]);
-        chatMessages.appendChild(typing); 
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-        
-        const form = new URLSearchParams();
-        if (S.cfg && S.cfg.secret) form.set("secret", S.cfg.secret);
-        
-        try {
-          const msgs = (S.chat && S.chat.messages) ? S.chat.messages.slice(-12) : [{role:"user", content:q}];
-          form.set("messages", JSON.stringify(msgs));
-        } catch(_) {
-          form.set("messages", JSON.stringify([{role:"user", content:q}]));
-        }
-        
-        let resp = null;
-        try { resp = await fetch(url, { method: "POST", body: form }); } catch(_) { resp = null; }
-        
-        typing.remove();
-        
-        if (!resp || !resp.ok) {
-          try { 
-            const u = new URL(url); 
-            if (S.cfg && S.cfg.secret) u.searchParams.set("secret", S.cfg.secret); 
-            try { 
-              const msgs=(S.chat&&S.chat.messages)?S.chat.messages.slice(-12):[{role:"user",content:q}]; 
-              u.searchParams.set("messages", JSON.stringify(msgs)); 
-            } catch { 
-              u.searchParams.set("messages", JSON.stringify([{role:"user", content:q}])); 
-            } 
-            try { 
-              resp = await fetch(u.toString(), { method: "GET" }); 
-            } catch { 
-              resp = null; 
-            } 
-          } catch { 
-            resp = null; 
-          }
-          
-          if (!resp || !resp.ok) { 
-            addAI("Omlouvám se, teď se mi nedaří získat odpověď od AI. Zkuste to prosím za chvíli."); 
-            return; 
-          }
-        }
-        
-        const ct = (resp.headers.get("content-type")||"").toLowerCase();
-        let txt = ""; 
-        if (ct.includes("application/json")) { 
-          try { 
-            const j = await resp.json(); 
-            txt = j.message || j.reply || j.text || j.answer || JSON.stringify(j); 
-          } catch { 
-            txt = await resp.text(); 
-          } 
-        } else { 
-          txt = await resp.text(); 
-        }
-        
-        txt = (txt && String(txt).trim()) || "Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod.";
-        
-        // Zpracování odpovědi a přidání odkazů na územní plán
-        const enhancedResponse = processResponse(q, txt);
-        
-        addAI(enhancedResponse);
-      } catch (e) { 
-        addAI("Omlouvám se, došlo k chybě při komunikaci s AI. Zkuste to prosím znovu."); 
-        console.error("AI chat error:", e); 
-      }
-    })();
-  }
-
-  // ==== Config / data preload (optional) ====
-  (async () => {
-    try {
-      const scriptEl = document.currentScript || document.querySelector('script[data-config]');
-      const CFG_URL = scriptEl ? scriptEl.getAttribute("data-config") : null;
-      if (CFG_URL) {
-        S.cfg = await U.fetchJson(CFG_URL);
-      } else {
-        S.cfg = S.cfg || {};
-      }
-      if (S.cfg && S.cfg.data_urls) {
-        const d = S.cfg.data_urls;
-        const [byty, domy, pozemky, up] = await Promise.all([
-          d.byty ? U.fetchJson(d.byty) : null,
-          d.domy ? U.fetchJson(d.domy) : null,
-          d.pozemky ? U.fetchJson(d.pozemky) : null,
-          d.up ? U.fetchJson(d.up) : null
-        ]);
-        window.PRICES = { byty, domy, pozemky };
-        S.data.up = up; // Uložíme data územních plánů
-        console.log("Data územních plánů načtena:", S.data.up ? S.data.up.map.length : 0, "záznamů");
-      }
-    } catch (e) {
-      console.error("Chyba načítání konfigurace/dat:", e);
-      addAI("Chyba načítání konfigurace/dat: " + String(e));
-    }
-  })();
-
-  // ==== Init (only when host exists) ====
-  function cgSafeStart() {
-    try {
-      if (!chatMessages) return setTimeout(cgSafeStart, 40);
-      renderStart();
-    } catch (e) {
-      setTimeout(cgSafeStart, 40);
-    }
-  }
-
-  // kick it
-  cgSafeStart();
-
-  // input handlers
-  chatSendBtn.addEventListener("click", () => { 
-    const q = chatTextarea.value.trim(); 
-    chatTextarea.value = ""; 
-    ask(q); 
-  });
-  
-  chatTextarea.addEventListener("keydown", (e) => { 
-    if (e.key === "Enter" && !e.shiftKey) { 
-      e.preventDefault(); 
-      chatSendBtn.click(); 
-    } 
-  });
-
-})();
+      U.el("div", {}, [`Rozpětí: ${res.low?.toLocaleString?.("cs-CZ") || res.low || "-"} – ${res.high?.toLocaleString?.("cs-CZ") || res.
