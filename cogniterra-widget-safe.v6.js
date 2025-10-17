@@ -94,19 +94,30 @@
   input.appendChild(ta); input.appendChild(send);
   chat.appendChild(header); chat.appendChild(messages); chat.appendChild(input);
   input.style.display = "none";
-  S.chat = S.chat || {messages:[]};
+  S.chat = S.chat || {messages:[]}; S.intent = S.intent || {};
   wrap.appendChild(chat); shadow.appendChild(wrap);
 
   // ==== message helpers ====
   function addAI(t, extra) {
-    const b = U.el("div", { class: "msg ai" }, [t]);
+    const b = U.el("div", { class: "msg ai" 
+
+    // Heuristic: if assistant text offers to open the contact form, arm a one-turn confirmation
+    try {
+      const tt = String(t).toLowerCase();
+      const offerPhrases = /(mohu|můžu|máme|rád|ráda)\s+(vám\s+)?(ote[vw]ř[ií]t|zobrazit|spustit)\s+(kontaktn[íi]\s+formul[aá][řr])|chcete\s+(ote[vw]ř[ií]t|zobrazit|spustit)\s+(formul[aá][řr])/i;
+      if (offerPhrases.test(tt)) {
+        S.intent = S.intent || {};
+        S.intent.contactOffer = true;
+      }
+    } catch(_) {}
+}, [t]);
     if (extra) b.appendChild(extra);
     messages.appendChild(b);
     messages.scrollTop = messages.scrollHeight;
-    try { S.chat = S.chat || {messages:[]}; S.chat.messages.push({ role:"assistant", content: String(t) }); } catch(_){}
+    try { S.chat = S.chat || {messages:[]}; S.intent = S.intent || {}; S.chat.messages.push({ role:"assistant", content: String(t) }); } catch(_){}
   }
   function addME(t) {
-    try { S.chat = S.chat || {messages:[]}; S.chat.messages.push({ role:"user", content: String(t) }); } catch(_){}
+    try { S.chat = S.chat || {messages:[]}; S.intent = S.intent || {}; S.chat.messages.push({ role:"user", content: String(t) }); } catch(_){}
 const b = U.el("div", { class: "msg me" }, [t]);
     messages.appendChild(b);
     messages.scrollTop = messages.scrollHeight;
@@ -448,6 +459,24 @@ const b = U.el("div", { class: "msg me" }, [t]);
   }
   
 function ask(q) {
+  // Intercept confirmation if assistant just offered to open contact form
+  try {
+    if (S.intent && S.intent.contactOffer) {
+      const yesRe = /^(ano|jo|ok|okej|jasn[eě]|pros[íi]m|dob[rř]e|spus[tť]it|ote[vw][řr][ií]t|zobraz(it)?|m[oů]žete|ur[cč]it[ěe])(\b|!|\.)/i;
+      const noRe  = /^(ne|rad[ěe]ji\s+ne|pozd[eě]ji|te[dď]\s+ne|nen[ií])(\b|!|\.)/i;
+      if (yesRe.test(q.trim())) {
+        // consume message locally, open contact form, clear flag
+        addME(q);
+        stepContactVerify();
+        S.intent.contactOffer = false;
+        return;
+      } else if (noRe.test(q.trim())) {
+        // user declined; clear flag and continue to backend
+        S.intent.contactOffer = false;
+      }
+    }
+  } catch(_) {}
+
   if (!q) return;
   addME(q);
   if (needPricing(q)) { startPricing(); return; }
