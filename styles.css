@@ -155,3 +155,37 @@ body{background:#0B0F14;color:#EAF2FF;font:16px/1.6 Inter,system-ui;margin:24px}
 @supports not (height: 100dvh) {
   .cg-widget .cg-panel { height: var(--vh); max-height: var(--vh); }
 }
+/* Zajištění konzistentní viditelnosti prvků chatbotu */
+.cg-launcher {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: flex !important;
+  z-index: 2147483000 !important;
+}
+
+.cg-panel.cg-visible {
+  display: block !important;
+}
+
+[data-cogniterra-widget],
+#chatbot-container,
+.chat-container,
+.chat-header,
+.chat-messages,
+.chat-input-area {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.chat-container {
+  display: flex !important;
+}
+
+/* Mobile fix - posílení viditelnosti a odstranění černého pozadí */
+@media (max-width: 480px) {
+  .cg-panel.cg-visible {
+    background: #fff !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+}
