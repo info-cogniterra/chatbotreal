@@ -69,32 +69,39 @@
   style.textContent = `
   :host{all:initial}
   *, *::before, *::after { box-sizing: border-box; }
-  .wrap{font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#fff}
-  .chat{background:#121417;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.35); width:360px; max-width:100vw; height:560px; display:flex; flex-direction:column; overflow:hidden}
-  .header{padding:10px 12px; background:#0b0d10; border-bottom:1px solid rgba(255,255,255,.08); font-weight:700; display: flex; justify-content: space-between; align-items: center;}
-  .header .title { flex: 1; }
-  .header .close { background: transparent; border: none; color: #fff; cursor: pointer; font-size: 14px; opacity: 0.8; }
-  .messages{flex:1; padding:12px; overflow:auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;}
-  .msg{max-width:86%; margin:8px 0; display:block; word-wrap:break-word; overflow-wrap:break-word; white-space:pre-wrap}
-  .msg.ai{background:#1a1f25; border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:10px 12px; align-self:flex-start}
-  .msg.me{align-self:flex-end; background:#0a7d5a; border-radius:12px; padding:10px 12px}
-  .panel{background:transparent; padding:0; margin:8px 0 4px}
-  .input{display:flex; gap:8px; padding:12px; position:sticky; bottom:0; background: rgba(17,17,17,.98); border-top:1px solid rgba(255,255,255,.06)}
-  .input textarea{flex:1; resize:none; height:40px; border-radius:10px; border:1px solid rgba(255,255,255,.1); background:#12161b; color:#fff; padding:8px}
-  .input button{border:0; background:#00a67e; color:#fff; padding:0 14px; border-radius:10px; font-weight:700; cursor:pointer}
-  .cg-start{display:flex; flex-direction:column; gap:12px; width: 100%;}
-  .cg-cards{display:grid; grid-template-columns:1fr; gap:12px; width: 100%;}
-  .cg-card{width: 100%; text-align:left; background:#1a1f25; border:none; border-radius:14px; padding:14px 16px; cursor:pointer; color: #fff; font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial;}
-  .cg-card h3{margin:0 0 4px; font-weight:700; font-size:16px; color: #fff;}
-  .cg-card p{margin:0; font-size:13px; opacity:.9; color: #fff;}
-  .cg-step label{display:block; margin:6px 0 8px; opacity:.9}
-  .cg-input,.cg-select{width:100%; margin:6px 0 8px; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:#12161b; color:#fff}
-  .cg-cta{margin-top:8px; display:flex; gap:8px; flex-wrap:wrap}
-  .cg-btn{border:0; background:#00a67e; color:#fff; padding:10px 14px; border-radius:10px; font-weight:700; cursor:pointer}
-  .leadbox input{width:100%; margin:6px 0 8px; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:#12161b; color:#fff}
-  .hint{opacity:.7; font-size:12px; margin-top:4px}
-  
-  /* Ensure mobile looks like desktop with consistent styles */
+  .wrap{font:15px/1.5 'Source Sans Pro', Helvetica, Arial, sans-serif; color:#2c3e50}
+  .chat{background:#fff; border-radius:12px; box-shadow:0 15px 35px rgba(50,50,93,.1), 0 5px 15px rgba(0,0,0,.07); width:360px; max-width:100vw; height:560px; display:flex; flex-direction:column; overflow:hidden}
+  .header{padding:16px; background:#2c5282; color:#fff; border-bottom:1px solid rgba(255,255,255,.1); font-weight:700; display:flex; justify-content:space-between; align-items:center}
+  .header .title { flex:1; }
+  .header .close { background:transparent; border:none; color:#fff; cursor:pointer; font-size:16px; opacity:0.85; }
+  .header .close:hover { opacity:1; }
+  .messages{flex:1; padding:16px; overflow:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; background:#f7fafc}
+  .msg{max-width:86%; margin:12px 0; display:block; word-wrap:break-word; overflow-wrap:break-word; white-space:pre-wrap; box-shadow:0 2px 6px rgba(0,0,0,0.06)}
+  .msg.ai{background:#fff; border-left:4px solid #2c5282; border-radius:0 8px 8px 0; padding:14px 16px; align-self:flex-start; color:#2d3748}
+  .msg.me{align-self:flex-end; background:#2c5282; border-radius:8px 0 0 8px; border-right:4px solid #1a365d; padding:14px 16px; color:#fff}
+  .panel{background:transparent; padding:0; margin:16px 0 8px}
+  .input{display:flex; gap:10px; padding:14px 16px; position:sticky; bottom:0; background:#fff; border-top:1px solid #e2e8f0}
+  .input textarea{flex:1; resize:none; height:48px; border-radius:4px; border:1px solid #cbd5e0; background:#fff; color:#2d3748; padding:12px; font-family:inherit}
+  .input textarea:focus{outline:none; border-color:#2c5282; box-shadow:0 0 0 2px rgba(44,82,130,0.2)}
+  .input button{border:0; background:#2c5282; color:#fff; padding:0 18px; border-radius:4px; font-weight:600; cursor:pointer; transition:background 0.2s}
+  .input button:hover{background:#1a365d}
+  .cg-start{display:flex; flex-direction:column; gap:16px; width:100%}
+  .cg-cards{display:grid; grid-template-columns:1fr; gap:16px; width:100%}
+  .cg-card{width:100%; text-align:left; background:#fff; border:1px solid #e2e8f0; border-left:4px solid #2c5282; border-radius:0 8px 8px 0; padding:18px; cursor:pointer; color:#2d3748; font-family:inherit; transition:all 0.2s ease}
+  .cg-card:hover{box-shadow:0 4px 12px rgba(0,0,0,0.08); border-left-color:#1a365d}
+  .cg-card h3{margin:0 0 8px; font-weight:700; font-size:16px; color:#2d3748}
+  .cg-card p{margin:0; font-size:14px; color:#4a5568}
+  .cg-step label{display:block; margin:8px 0 6px; color:#4a5568; font-weight:600}
+  .cg-input,.cg-select{width:100%; margin:6px 0 14px; padding:12px 14px; border-radius:4px; border:1px solid #cbd5e0; background:#fff; color:#2d3748; font-family:inherit}
+  .cg-input:focus,.cg-select:focus{outline:none; border-color:#2c5282; box-shadow:0 0 0 2px rgba(44,82,130,0.2)}
+  .cg-cta{margin-top:16px; display:flex; gap:12px; flex-wrap:wrap}
+  .cg-btn{border:0; background:#2c5282; color:#fff; padding:12px 18px; border-radius:4px; font-weight:600; cursor:pointer; transition:background 0.2s}
+  .cg-btn:hover{background:#1a365d}
+  .leadbox{border:1px solid #e2e8f0; padding:16px; border-radius:8px; background:#fff}
+  .leadbox input{width:100%; margin:6px 0 14px; padding:12px 14px; border-radius:4px; border:1px solid #cbd5e0; background:#fff; color:#2d3748; font-family:inherit}
+  .leadbox input:focus{outline:none; border-color:#2c5282; box-shadow:0 0 0 2px rgba(44,82,130,0.2)}
+  .hint{opacity:.7; font-size:13px; margin-top:6px; color:#718096}
+
   @media (max-width: 480px) {
     .wrap, .chat {
       width: 100%;
@@ -103,46 +110,16 @@
       border-radius: 0;
     }
     
-    .header {
-      padding: 14px 16px;
-      height: auto;
-    }
-    
-    .messages {
-      flex: 1;
-      overflow-y: auto;
-    }
-    
-    .input {
-      border-top: 1px solid rgba(255,255,255,.06);
-      padding: 12px;
-    }
-    
     .input textarea {
-      min-height: 44px;
-      font-size: 16px; /* Prevent iOS zoom */
-      padding: 10px 12px;
+      font-size: 16px;
     }
     
-    .input button {
-      min-width: 90px;
-      height: 44px;
-      background: #00a67e;
-      border-radius: 10px;
-      font-size: 14px;
+    .header {
+      padding: 16px;
     }
     
     .cg-card {
-      border-radius: 14px;
-      padding: 14px;
-      margin: 0;
-      background: #1a1f25;
-    }
-    
-    .msg {
-      word-wrap: break-word;
-      overflow-wrap: break-word;
-      white-space: pre-wrap;
+      border-radius: 0 6px 6px 0;
     }
   }
   `;
@@ -152,7 +129,7 @@
   const chat = U.el("div", { class: "chat" }, []);
   const header = U.el("div", { class: "header" }, []);
   const headerTitle = U.el("div", { class: "title" }, ["Asistent Cogniterra"]);
-  const closeBtn = U.el("button", { class: "close", onclick: () => { if(window.parent && window.parent.document.querySelector('.cg-close')) window.parent.document.querySelector('.cg-close').click(); } }, ["Zavřít"]);
+  const closeBtn = U.el("button", { class: "close", onclick: () => { if(window.parent && window.parent.document.querySelector('.cg-close')) window.parent.document.querySelector('.cg-close').click(); }}, ["✕"]);
   header.appendChild(headerTitle);
   header.appendChild(closeBtn);
   
@@ -577,7 +554,7 @@ function ask(q) {
       try { resp = await fetch(url, { method: "POST", body: form }); } catch(_) { resp = null; }
       typing.remove();
       if (!resp || !resp.ok) {
-        try { const u = new URL(url); if (S.cfg && S.cfg.secret) u.searchParams.set("secret", S.cfg.secret); try { const msgs=(S.chat&&S.chat.messages)?S.chat.messages.slice(-12):[{role:"user",content:q}]; u.searchParams.set("messages", JSON.stringify(msgs)); } catch(_) { u.searchParams.set("messages", JSON.stringify([{role:"user",content:q}])); } resp = await fetch(u.toString(), { method: "GET" }); } catch(_e) { addAI("Omlouvám se, teď se mi nedaří získat odpověď od AI. Zkuste to prosím za chvíli."); return; }
+        try { const u = new URL(url); if (S.cfg && S.cfg.secret) u.searchParams.set("secret", S.cfg.secret); try { const msgs=(S.chat&&S.chat.messages)?S.chat.messages.slice(-12):[{role:"user",content:q}]; u.searchParams.set("messages", JSON.stringify(msgs)); } catch { u.searchParams.set("messages", JSON.stringify([{role:"user", content:q}])); } try { resp = await fetch(u.toString(), { method: "GET" }); } catch { resp = null; } } catch { resp = null; }
         if (!resp.ok) { addAI("Omlouvám se, teď se mi nedaří získat odpověď od AI. Zkuste to prosím za chvíli."); return; }
       }
       const ct = (resp.headers.get("content-type")||"").toLowerCase();
