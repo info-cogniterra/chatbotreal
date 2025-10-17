@@ -29,6 +29,32 @@
     }
   }
   window.__CG_WIDGET_INIT__ = true;
+  
+  // Definujeme funkci pro reset widgetu
+  window.__CG_WIDGET_RESET_FN__ = function() {
+    try {
+      // Resetujeme stav widgetu
+      const existingHost = document.querySelector("[data-cogniterra-widget]");
+      if (existingHost) {
+        // Znovu inicializujeme chat
+        if (existingHost.shadowRoot) {
+          while (existingHost.shadowRoot.firstChild) {
+            existingHost.shadowRoot.removeChild(existingHost.shadowRoot.firstChild);
+          }
+        }
+        // Znovu vykreslíme úvodní obrazovku
+        setTimeout(() => {
+          try {
+            cgSafeStart();
+          } catch(e) {
+            console.error("Chyba při resetu widgetu:", e);
+          }
+        }, 50);
+      }
+    } catch(e) {
+      console.error("Chyba při resetu chatbota:", e);
+    }
+  };
 
   // ==== mount only if host exists (bubble creates it); do NOTHING otherwise ====
   const host = document.querySelector("[data-cogniterra-widget]");
@@ -480,11 +506,12 @@
   // Záhlaví
   const chatHeader = U.el("div", { class: "chat-header" });
   const chatTitle = U.el("div", { class: "chat-header-title" }, ["Asistent Cogniterra"]);
-  const chatCloseBtn = U.el("button", { 
-    class: "chat-close-btn",
-    type: "button",
-    "aria-label": "Zavřít chat",
-    onclick: () => {
+  
+  // Upravená funkce pro zavírání chatu
+  function closeChat() {
+    if (window.CGTR && typeof window.CGTR.hideChat === 'function') {
+      window.CGTR.hideChat();
+    } else {
       if (window.parent) {
         try {
           // Najít nadřazené tlačítko zavřít, ale v rodičovském okně
@@ -504,6 +531,13 @@
         host.style.display = 'none';
       }
     }
+  }
+  
+  const chatCloseBtn = U.el("button", { 
+    class: "chat-close-btn",
+    type: "button",
+    "aria-label": "Zavřít chat",
+    onclick: closeChat
   }, ["✕"]);
   
   chatHeader.appendChild(chatTitle);
