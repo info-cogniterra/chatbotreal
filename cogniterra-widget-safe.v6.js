@@ -55,7 +55,55 @@
   const shadow = host.attachShadow({ mode: "open" });
 
   
-  try { var __cgMobileStyle = document.createElement("style"); __cgMobileStyle.textContent = '\n/* == Mobile-first styles injected inside Shadow DOM (v2) == */\n@media (max-width: 480px) {\n  .cg-panel {\n    width: 100% !important;\n    max-width: 100% !important;\n    height: 100dvh;\n    max-height: 100dvh;\n    position: fixed;\n    left: 0; right: 0; bottom: 0;\n    border-radius: 16px 16px 0 0;\n    background: #111;\n    box-shadow: 0 -12px 32px rgba(0,0,0,.4);\n    display: flex; flex-direction: column;\n    z-index: 2147483647;\n  }\n  .cg-header {\n    flex: 0 0 auto;\n    padding: 14px 16px calc(14px + env(safe-area-inset-top));\n    border-bottom: 1px solid rgba(255,255,255,.06);\n  }\n  .cg-messages {\n    flex: 1 1 auto;\n    min-height: 0;\n    overflow: auto;\n    -webkit-overflow-scrolling: touch;\n    padding: 12px 12px 8px;\n  }\n  .cg-input {\n    flex: 0 0 auto;\n    display: flex; gap: 8px;\n    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));\n    border-top: 1px solid rgba(255,255,255,.06);\n    background: rgba(17,17,17,.98);\n    position: sticky; bottom: 0;\n  }\n  .cg-input input[type="text"],\n  .cg-input textarea {\n    font-size: 16px; height: 44px; padding: 12px 12px;\n  }\n  .cg-input .cg-send { height: 44px; min-width: 88px; border-radius: 12px; }\n\n  .cg-card { border-radius: 14px; padding: 14px; margin: 10px 0; line-height: 1.35; cursor: pointer; }\n  .cg-card h4 { font-size: 16px; margin: 0 0 6px; }\n  .cg-card p  { font-size: 14px; opacity: .9; margin: 0; }\n  .cg-fab { display: none !important; } /* FAB skryjeme, když je otevřen panel */\n}\n.msg { border-radius: 12px; padding: 10px 12px; margin: 6px 0; }\n.msg.me { align-self: flex-end; max-width: 86%; }\n.msg.ai { align-self: flex-start; max-width: 86%; }\n'; shadow.appendChild(__cgMobileStyle); } catch(e) {}
+  try { var __cgMobileStyle = document.createElement("style"); __cgMobileStyle.textContent = '\n
+/* == Mobile-first styles injected inside Shadow DOM (v3, correct selectors) == */
+@media (max-width: 480px) {
+  .panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100dvh;
+    max-height: 100dvh;
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    border-radius: 16px 16px 0 0;
+    background: #111;
+    box-shadow: 0 -12px 32px rgba(0,0,0,.4);
+    display: flex; flex-direction: column;
+    z-index: 2147483647;
+  }
+  .header {
+    flex: 0 0 auto;
+    padding: 14px 16px calc(14px + env(safe-area-inset-top));
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  .messages {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px 12px 8px;
+  }
+  .input {
+    flex: 0 0 auto;
+    display: flex; gap: 8px;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(255,255,255,.06);
+    background: rgba(17,17,17,.98);
+    position: sticky; bottom: 0;
+  }
+  .input input[type="text"],
+  .input textarea {
+    font-size: 16px; height: 44px; padding: 12px 12px;
+  }
+  .input .send { height: 44px; min-width: 88px; border-radius: 12px; }
+  .cg-card { border-radius: 14px; padding: 14px; margin: 10px 0; line-height: 1.35; cursor: pointer; }
+  .cg-card h4 { font-size: 16px; margin: 0 0 6px; }
+  .cg-card p  { font-size: 14px; opacity: .9; margin: 0; }
+}
+.msg { border-radius: 12px; padding: 10px 12px; margin: 6px 0; }
+.msg.me { align-self: flex-end; max-width: 86%; }
+.msg.ai { align-self: flex-start; max-width: 86%; }
+\n@media (max-width: 480px) {\n  .cg-panel {\n    width: 100% !important;\n    max-width: 100% !important;\n    height: 100dvh;\n    max-height: 100dvh;\n    position: fixed;\n    left: 0; right: 0; bottom: 0;\n    border-radius: 16px 16px 0 0;\n    background: #111;\n    box-shadow: 0 -12px 32px rgba(0,0,0,.4);\n    display: flex; flex-direction: column;\n    z-index: 2147483647;\n  }\n  .cg-header {\n    flex: 0 0 auto;\n    padding: 14px 16px calc(14px + env(safe-area-inset-top));\n    border-bottom: 1px solid rgba(255,255,255,.06);\n  }\n  .cg-messages {\n    flex: 1 1 auto;\n    min-height: 0;\n    overflow: auto;\n    -webkit-overflow-scrolling: touch;\n    padding: 12px 12px 8px;\n  }\n  .cg-input {\n    flex: 0 0 auto;\n    display: flex; gap: 8px;\n    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));\n    border-top: 1px solid rgba(255,255,255,.06);\n    background: rgba(17,17,17,.98);\n    position: sticky; bottom: 0;\n  }\n  .cg-input input[type="text"],\n  .cg-input textarea {\n    font-size: 16px; height: 44px; padding: 12px 12px;\n  }\n  .cg-input .cg-send { height: 44px; min-width: 88px; border-radius: 12px; }\n\n  .cg-card { border-radius: 14px; padding: 14px; margin: 10px 0; line-height: 1.35; cursor: pointer; }\n  .cg-card h4 { font-size: 16px; margin: 0 0 6px; }\n  .cg-card p  { font-size: 14px; opacity: .9; margin: 0; }\n  .cg-fab { display: none !important; } /* FAB skryjeme, když je otevřen panel */\n}\n.msg { border-radius: 12px; padding: 10px 12px; margin: 6px 0; }\n.msg.me { align-self: flex-end; max-width: 86%; }\n.msg.ai { align-self: flex-start; max-width: 86%; }\n'; shadow.appendChild(__cgMobileStyle); } catch(e) {}
 const style = document.createElement("style");
   style.textContent = `
   :host{all:initial}
@@ -569,7 +617,7 @@ function ask(q) {
 try {
   const __cgSetVH = () => {
     if (!shadow) return;
-    const panel = shadow.querySelector('.cg-panel');
+    const panel = shadow.querySelector('.panel');
     if (!panel) return;
     const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
     panel.style.height = h + 'px';
