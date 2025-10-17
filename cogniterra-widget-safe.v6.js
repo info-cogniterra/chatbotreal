@@ -60,6 +60,21 @@ try {
     const style = document.createElement('style');
     style.id = 'cg-mobile-style';
     style.textContent = `/* Mobile-first styles injected inside Shadow DOM (final) */
+/* --- Shadow DOM mobile layout & background (identical to desktop look) --- */
+:host { width:100%; height:100%; display:block; }
+.wrap { width:100%; height:100%; display:flex; background:#0f1113; }
+.chat { width:100%; height:100%; display:flex; flex-direction:column; }
+.header { background:#0f1113; padding:12px 14px calc(12px + env(safe-area-inset-top)); border-bottom:1px solid rgba(255,255,255,.06); }
+.messages { flex:1 1 auto; min-height:0; overflow:auto; -webkit-overflow-scrolling:touch; padding:12px 12px 8px; background:#0f1113; }
+.input { flex:0 0 auto; display:flex; gap:8px; padding:10px 12px calc(10px + env(safe-area-inset-bottom)); background:#0f1113; }
+/* cards / bubbles keep same glow on dark background */
+.panel { background:#0f1113; }
+textarea { flex:1; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:#1a1d21; color:#EAF2FF; padding:12px 14px; }
+button { border-radius:12px; }
+@media (max-width: 600px) {
+  .wrap, .chat { height:100%; }
+}
+
 @media (max-width: 480px) {
   .panel {
     width: 100% !important;
@@ -101,13 +116,7 @@ try {
 }
 .msg { border-radius: 12px; padding: 10px 12px; margin: 6px 0; }
 .msg.me { align-self: flex-end; max-width: 86%; }
-.msg.ai { align-self: flex-start; max-width: 86%; }
-.wrap { background:#111; height:100%; display:flex; }
-.chat { display:flex; flex-direction:column; width:100%; height:100%; }
-.header { background:#111; }
-.messages { background:#111; }
-.input { background:#111; }
-`;
+.msg.ai { align-self: flex-start; max-width: 86%; }`;
     shadow.appendChild(style);
   }
 } catch (e) {}
