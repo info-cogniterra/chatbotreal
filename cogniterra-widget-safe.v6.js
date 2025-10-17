@@ -79,8 +79,7 @@ try {
   border-bottom:1px solid rgba(255,255,255,.06); }
 .messages { flex:1 1 auto; min-height:0; overflow:auto; -webkit-overflow-scrolling:touch;
   padding:12px 12px 8px; background:#0f1113; overscroll-behavior:contain; }
-.input { flex:0 0 auto; display:flex; gap:8px; padding:10px 12px calc(10px + env(safe-area-inset-bottom));
-  background:#0f1113; }
+.input { display:flex; gap:8px; padding:12px; position:sticky; bottom:0; background: rgba(17,17,17,.98); border-top:1px solid rgba(255,255,255,.06); }
 textarea { flex:1; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:#1a1d21; color:#EAF2FF; padding:12px 14px; }
 button { border-radius:12px; }
 .panel { background:#0f1113; }
@@ -111,17 +110,9 @@ button { border-radius:12px; }
     overflow: auto; -webkit-overflow-scrolling: touch;
     padding: 12px 12px 8px;
   }
-  .input {
-    flex: 0 0 auto; display: flex; gap: 8px;
-    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-    border-top: 1px solid rgba(255,255,255,.06);
-    background: rgba(17,17,17,.98);
-    position: sticky; bottom: 0;
-  }
-  .input input[type="text"], .input textarea {
-    font-size: 16px; height: 44px; padding: 12px 12px;
-  }
-  .input .send { height: 44px; min-width: 88px; border-radius: 12px; }
+  .input { display:flex; gap:8px; padding:12px; position:sticky; bottom:0; background: rgba(17,17,17,.98); border-top:1px solid rgba(255,255,255,.06); }
+  .input input[type="text"], .input textarea { flex:1; min-height:44px; max-height:140px; padding:10px 12px; border:1px solid rgba(255,255,255,.12); border-radius:12px; background:#12161b; color:#fff; resize: none; }
+  .input .send { min-width:44px; height:44px; border-radius:12px; border:0; cursor:pointer; background: linear-gradient(135deg, #0ea5e9, #22c55e); color:#fff; }
 
   .cg-card { border-radius: 14px; padding: 14px; margin: 10px 0; line-height: 1.35; cursor: pointer; }
   .cg-card h4 { font-size: 16px; margin: 0 0 6px; }
@@ -149,7 +140,7 @@ const style = document.createElement("style");
   .msg.ai{background:#1a1f25; border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:10px 12px}
   .msg.me{align-self:flex-end; background:#0a7d5a; border-radius:12px; padding:10px 12px}
   .panel{background:transparent; padding:0; margin:8px 0 4px}
-  .input{padding:10px; border-top:1px solid rgba(255,255,255,.08); display:flex; gap:8px}
+  .input{ display:flex; gap:8px; padding:12px; position:sticky; bottom:0; background: rgba(17,17,17,.98); border-top:1px solid rgba(255,255,255,.06); }
   .input textarea{flex:1; resize:none; height:40px; border-radius:10px; border:1px solid rgba(255,255,255,.1); background:#12161b; color:#fff; padding:8px}
   .input button{border:0; background:#0a7d5a; color:#fff; padding:0 14px; border-radius:10px; font-weight:700; cursor:pointer}
   .cg-start{display:flex; flex-direction:column; gap:12px}
@@ -173,7 +164,7 @@ const style = document.createElement("style");
   const messages = U.el("div", { class: "messages" }, []);
   const input = U.el("div", { class: "input" }, []);
   const ta = document.createElement("textarea");
-  const send = document.createElement("button");
+  const send = document.createElement("button"); send.className="send";
   send.textContent = "Odeslat";
   input.appendChild(ta); input.appendChild(send);
   chat.appendChild(header); chat.appendChild(messages); chat.appendChild(input);

@@ -4,56 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Cogniterra Chatbot (demo v6)</title>
-  <link rel="stylesheet" href="styles.css">
-
-    <style id="ct-chat-styles">
-    :root{
-      --ct-bg:#ffffff;--ct-text:#1a1f2c;--ct-subtle:#6b7280;--ct-line:#e5e7eb;
-      --ct-brand-start:#0ea5e9;--ct-brand-end:#22c55e;--ct-brand:#10b981;
-      --ct-shadow:0 8px 30px rgba(2,6,23,.2);--ct-radius:18px;--ct-radius-lg:22px;
-    }
-    @media (prefers-color-scheme: dark){
-      :root{--ct-bg:#0b1220;--ct-text:#f3f4f6;--ct-subtle:#9ca3af;--ct-line:#1f2937;--ct-shadow:0 12px 40px rgba(0,0,0,.55);}
-    }
-    .ct-bubble{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));
-      width:64px;height:64px;border-radius:50%;border:0;cursor:pointer;background:linear-gradient(135deg,var(--ct-brand-start),var(--ct-brand-end));
-      color:#fff;box-shadow:var(--ct-shadow);display:grid;place-items:center;transition:transform .15s ease,box-shadow .2s ease;z-index:2147483000}
-    .ct-bubble:hover{transform:translateY(-2px)}.ct-bubble:active{transform:translateY(0)}
-    .ct-bubble-icon{font-size:24px;line-height:1}
-    .ct-bubble-pulse{position:absolute;inset:-6px;border-radius:inherit;background:radial-gradient(closest-side,rgba(34,197,94,.35),transparent);
-      filter:blur(8px);opacity:.6;animation:ct-pulse 2.4s infinite ease-in-out}
-    @keyframes ct-pulse{0%,100%{opacity:.3}50%{opacity:.85}}
-    .ct-panel-backdrop{position:fixed;inset:0;background:rgba(2,6,23,.4);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);z-index:2147482990}
-    .ct-panel{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));
-      width:min(420px,92vw);max-height:85dvh;height:clamp(520px,70vh,640px);background:var(--ct-bg);
-      border:1px solid var(--ct-line);border-radius:var(--ct-radius-lg);box-shadow:var(--ct-shadow);display:grid;
-      grid-template-rows:auto auto 1fr auto;overflow:hidden;z-index:2147483001}
-    @media (max-width:480px){.ct-panel{width:min(100vw - 8px,480px);right:4px;left:4px;height:auto;max-height:calc(100dvh - 12px);border-radius:16px}}
-    .ct-panel-header{display:flex;align-items:center;justify-content:space-between;padding:14px;border-bottom:1px solid var(--ct-line);
-      background:linear-gradient(135deg,rgba(14,165,233,.15),rgba(34,197,94,.08))}
-    .ct-brand{display:flex;gap:10px;align-items:center;min-width:0}
-    .ct-logo{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,var(--ct-brand-start),var(--ct-brand-end));color:#fff;font-weight:700;letter-spacing:.5px}
-    .ct-meta h2{font-size:16px;margin:0}.ct-meta .ct-tagline{margin:2px 0 0;font-size:12px;color:var(--ct-subtle)}
-    .ct-actions{display:flex;gap:6px}.ct-action{background:transparent;border:1px solid var(--ct-line);border-radius:10px;width:36px;height:36px;cursor:pointer}
-    .ct-action:hover{background:rgba(2,6,23,.05)}
-    .ct-notice{padding:10px 14px;font-size:13px;color:var(--ct-text);background:linear-gradient(90deg,rgba(34,197,94,.12),transparent);border-bottom:1px solid var(--ct-line)}
-    .ct-notice a{color:var(--ct-brand);text-underline-offset:2px}
-    .ct-messages{padding:14px;overflow:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:12px}
-    .ct-msg{display:flex;gap:10px;max-width:90%}.ct-msg-bot{align-self:flex-start}.ct-msg-user{align-self:flex-end;flex-direction:row-reverse}
-    .ct-avatar{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:linear-gradient(135deg,var(--ct-brand-start),var(--ct-brand-end));color:#fff;font-size:12px;font-weight:700;flex:0 0 auto}
-    .ct-bubble-msg{padding:10px 12px;border:1px solid var(--ct-line);border-radius:14px 14px 14px 4px;background:#fff}
-    @media (prefers-color-scheme: dark){.ct-bubble-msg{background:#0e1627}}
-    .ct-msg-user .ct-bubble-msg{background:linear-gradient(135deg,rgba(14,165,233,.15),rgba(34,197,94,.12));border-radius:14px 14px 4px 14px}
-    .ct-inputbar{padding:10px 12px;border-top:1px solid var(--ct-line);background:rgba(2,6,23,.02)}
-    .ct-inputbar form{display:flex;align-items:center;gap:8px}
-    .ct-input{flex:1;min-width:0;height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--ct-line);background:var(--ct-bg)}
-    .ct-input:focus{outline:2px solid rgba(14,165,233,.35)}
-    .ct-send{height:44px;min-width:44px;border-radius:12px;border:0;cursor:pointer;background:linear-gradient(135deg,var(--ct-brand-start),var(--ct-brand-end));color:#fff;box-shadow:var(--ct-shadow)}
-    .ct-legal{margin-top:6px;font-size:11px;color:var(--ct-subtle)}.ct-legal a{color:var(--ct-brand)}
-    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-    </style>
-    
-</head>
+  <link rel="stylesheet" href="styles.css"></head>
 <body>
   <h1>Cogniterra Chatbot (demo v6)</h1>
   <p>Klikni na kulaté tlačítko vpravo dole — otevře se skleněný widget s chatem.</p>
@@ -63,93 +14,7 @@
           data-widget="./cogniterra-widget-safe.v6.js"
           data-styles="./styles.css"></script>
 
-    <!-- === Cogniterra Chatbot (inline) === -->
-    <button class="ct-bubble" id="ctBubble" aria-label="Otevřít chat" aria-haspopup="dialog" aria-controls="ctChatPanel">
-      <span class="ct-bubble-pulse" aria-hidden="true"></span>
-      <span class="ct-bubble-icon" aria-hidden="true">💬</span>
-    </button>
-    <div class="ct-panel-backdrop" id="ctBackdrop" hidden></div>
-    <section class="ct-panel" id="ctChatPanel" role="dialog" aria-modal="true" aria-labelledby="ctPanelTitle" hidden>
-      <header class="ct-panel-header">
-        <div class="ct-brand">
-          <div class="ct-logo">CT</div>
-          <div class="ct-meta">
-            <h2 id="ctPanelTitle">Cogniterra Chat</h2>
-            <p class="ct-tagline">Férově • Transparentně • Bezpečně</p>
-          </div>
-        </div>
-        <div class="ct-actions">
-          <button class="ct-action" id="ctMinimize" aria-label="Minimalizovat okno">—</button>
-          <button class="ct-action" id="ctClose" aria-label="Zavřít okno">✕</button>
-        </div>
-      </header>
-      <div class="ct-notice" id="ctNotice" role="status">
-        <strong>Tip:</strong> Potřebujete prodat/pronajmout? <a href="https://cogniterra.cz/kontakt/" target="_blank" rel="noopener">Kontaktujte nás</a> nebo <a href="https://cogniterra.cz/isns/" target="_blank" rel="noopener">ověřte nemovitost (ISNS)</a>.
-      </div>
-      <div class="ct-messages" id="ctMessages" aria-live="polite">
-        <div class="ct-msg ct-msg-bot">
-          <div class="ct-avatar" aria-hidden="true">CT</div>
-          <div class="ct-bubble-msg">
-            <p>Dobrý den! Rád vám pomohu s prodejem, pronájmem nebo prověřením nemovitosti.</p>
-          </div>
-        </div>
-      </div>
-      <footer class="ct-inputbar">
-        <form id="ctForm" autocomplete="off">
-          <label class="sr-only" for="ctInput">Vaše zpráva</label>
-          <input id="ctInput" class="ct-input" name="message" placeholder="Napište zprávu…" inputmode="text" />
-          <button class="ct-send" aria-label="Odeslat">↵</button>
-        </form>
-        <div class="ct-legal">Pokračováním souhlasíte se <a href="/gdpr/" target="_blank" rel="noopener">zpracováním údajů</a>.</div>
-      </footer>
-    </section>
-    <script id="ct-chat-script">
-    (function(){
-      const bubble = document.getElementById('ctBubble');
-      const panel  = document.getElementById('ctChatPanel');
-      const close  = document.getElementById('ctClose');
-      const minimize = document.getElementById('ctMinimize');
-      const backdrop = document.getElementById('ctBackdrop');
-      const form   = document.getElementById('ctForm');
-      const input  = document.getElementById('ctInput');
-      const messages = document.getElementById('ctMessages');
-      function openPanel(){
-        panel.hidden = false; backdrop.hidden = false; bubble.style.display = 'none';
-        panel.setAttribute('aria-hidden','false'); input?.focus();
-        document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden';
-      }
-      function closePanel(){
-        panel.hidden = true; backdrop.hidden = true; bubble.style.display = 'grid';
-        panel.setAttribute('aria-hidden','true');
-        document.documentElement.style.overflow = ''; document.body.style.overflow = '';
-      }
-      bubble?.addEventListener('click', openPanel);
-      close?.addEventListener('click', closePanel);
-      minimize?.addEventListener('click', closePanel);
-      backdrop?.addEventListener('click', closePanel);
-      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && !panel.hidden){ closePanel(); } });
-      form?.addEventListener('submit', (e)=>{
-        e.preventDefault();
-        const text = input.value.trim(); if(!text) return;
-        appendMessage('user', text); input.value='';
-        // TODO: replace with real backend call
-        setTimeout(()=>{ appendMessage('bot','Díky! Ozvěme se s nejlepší možností: <a href=\"/kontakt/\">Odhad ceny zdarma</a> nebo <a href=\"/isns/\">ISNS prověření</a>.'); }, 350);
-      });
-      function appendMessage(role, html){
-        const wrap = document.createElement('div');
-        wrap.className = role === 'user' ? 'ct-msg ct-msg-user' : 'ct-msg ct-msg-bot';
-        const avatar = document.createElement('div'); avatar.className='ct-avatar'; avatar.textContent = role==='user'?'Vy':'CT';
-        const bubble = document.createElement('div'); bubble.className='ct-bubble-msg'; bubble.innerHTML = `<p>${html}</p>`;
-        wrap.appendChild(avatar); wrap.appendChild(bubble); messages.appendChild(wrap); messages.scrollTop = messages.scrollHeight;
-      }
-      if(window.visualViewport){
-        const vv = window.visualViewport;
-        function adjust(){ const offset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop); panel.style.transform = `translateY(-${offset}px)`; }
-        vv.addEventListener('resize', adjust); vv.addEventListener('scroll', adjust);
-      }
-    })();
-    </script>
-    <!-- === /Cogniterra Chatbot === -->
-    
-</body>
+  <div class="chat-bubble" data-chatbot="bubble" aria-label="Chat">
+    💬
+  </div></body>
 </html>
