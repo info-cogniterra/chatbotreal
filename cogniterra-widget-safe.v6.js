@@ -1,12 +1,23 @@
-
-// === Viewport height variable ===
+// === Consolidated viewport height variable handler (fixed) ===
 (function setVH(){
   function updateVH(){
     const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
     document.documentElement.style.setProperty('--vh', vh + 'px');
+    // Update shadow DOM panel if exists
+    if (window.shadow) {
+      const panel = window.shadow.querySelector('.panel');
+      if (panel) { 
+        panel.style.height = vh + 'px'; 
+        panel.style.maxHeight = vh + 'px'; 
+      }
+    }
   }
   updateVH();
   window.addEventListener('resize', updateVH, {passive:true});
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', updateVH, {passive:true});
+  }
+  window.addEventListener('orientationchange', updateVH, {passive:true});
 })();
 
 // cogniterra-widget-safe.v6.js — BUBBLE-ONLY, SINGLE INSTANCE
@@ -64,97 +75,116 @@
 
   // ==== shadow root & UI skeleton ====
   const shadow = host.attachShadow({ mode: "open" });
+  window.shadow = shadow; // Make available for viewport handler
 
-// === Inject mobile CSS directly into Shadow DOM (final) ===
-try {
-  if (!shadow.querySelector('#cg-mobile-style')) {
-    const style = document.createElement('style');
-    style.id = 'cg-mobile-style';
-    style.textContent = `/* Mobile-first styles injected inside Shadow DOM (final) */
-/* === Full Shadow DOM layout fix (v13) === */
-:host { width:100%; height:100%; display:block; }
-.wrap { width:100%; height:100%; display:flex; background:#0f1113; }
-.chat { width:100%; height:100%; display:flex; flex-direction:column; }
-.header { flex:0 0 auto; background:#0f1113; padding:12px 14px calc(12px + env(safe-area-inset-top));
-  border-bottom:1px solid rgba(255,255,255,.06); }
-.messages { flex:1 1 auto; min-height:0; overflow:auto; -webkit-overflow-scrolling:touch;
-  padding:12px 12px 8px; background:#0f1113; overscroll-behavior:contain; }
-.input { display:flex; gap:8px; padding:12px; position:sticky; bottom:0; background: rgba(17,17,17,.98); border-top:1px solid rgba(255,255,255,.06); }
-textarea { flex:1; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:#1a1d21; color:#EAF2FF; padding:12px 14px; }
-button { border-radius:12px; }
-.panel { background:#0f1113; }
-@media (max-width:600px){
-  :host, .wrap, .chat { height:100%; }
-}
-
-@media (max-width: 480px) {
-  .panel {
-    width: 100% !important;
-    max-width: 100% !important;
-    height: 100dvh;
-    max-height: 100dvh;
-    position: fixed; left: 0; right: 0; bottom: 0;
-    border-radius: 16px 16px 0 0;
-    background: #111;
-    box-shadow: 0 -12px 32px rgba(0,0,0,.4);
-    display: flex; flex-direction: column;
-    z-index: 2147483647;
-  }
-  .header {
-    flex: 0 0 auto;
-    padding: 14px 16px calc(14px + env(safe-area-inset-top));
-    border-bottom: 1px solid rgba(255,255,255,.06);
-  }
-  .messages {
-    flex: 1 1 auto; min-height: 0;
-    overflow: auto; -webkit-overflow-scrolling: touch;
-    padding: 12px 12px 8px;
-  }
-  .input { display:flex; gap:8px; padding:12px; position:sticky; bottom:0; background: rgba(17,17,17,.98); border-top:1px solid rgba(255,255,255,.06); }
-  .input input[type="text"], .input textarea { flex:1; min-height:44px; max-height:140px; padding:10px 12px; border:1px solid rgba(255,255,255,.12); border-radius:12px; background:#12161b; color:#fff; resize: none; }
-  .input .send { min-width:44px; height:44px; border-radius:12px; border:0; cursor:pointer; background: linear-gradient(135deg, #0ea5e9, #22c55e); color:#fff; }
-
-  .cg-card { border-radius: 14px; padding: 14px; margin: 10px 0; line-height: 1.35; cursor: pointer; }
-  .cg-card h4 { font-size: 16px; margin: 0 0 6px; }
-  .cg-card p  { font-size: 14px; opacity: .9; margin: 0; }
-}
-.msg { border-radius: 12px; padding: 10px 12px; margin: 6px 0; }
-.msg.me { align-self: flex-end; max-width: 86%; }
-.msg.ai { align-self: flex-start; max-width: 86%; }`;
-    shadow.appendChild(style);
-  }
-} catch (e) {}
-
-
-
-  
-  try { var __cgMobileStyle = document.createElement("style"); __cgMobileStyle.textContent = '\n\n@media (max-width: 480px) {\n  .cg-panel {\n    width: 100% !important;\n    max-width: 100% !important;\n    height: 100dvh;\n    max-height: 100dvh;\n    position: fixed;\n    left: 0; right: 0; bottom: 0;\n    border-radius: 16px 16px 0 0;\n    background: #111;\n    box-shadow: 0 -12px 32px rgba(0,0,0,.4);\n    display: flex; flex-direction: column;\n    z-index: 2147483647;\n  }\n  .cg-header {\n    flex: 0 0 auto;\n    padding: 14px 16px calc(14px + env(safe-area-inset-top));\n    border-bottom: 1px solid rgba(255,255,255,.06);\n  }\n  .cg-messages {\n    flex: 1 1 auto;\n    min-height: 0;\n    overflow: auto;\n    -webkit-overflow-scrolling: touch;\n    padding: 12px 12px 8px;\n  }\n  .cg-input {\n    flex: 0 0 auto;\n    display: flex; gap: 8px;\n    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));\n    border-top: 1px solid rgba(255,255,255,.06);\n    background: rgba(17,17,17,.98);\n    position: sticky; bottom: 0;\n  }\n  .cg-input input[type="text"],\n  .cg-input textarea {\n    font-size: 16px; height: 44px; padding: 12px 12px;\n  }\n  .cg-input .cg-send { height: 44px; min-width: 88px; border-radius: 12px; }\n\n  .cg-card { border-radius: 14px; padding: 14px; margin: 10px 0; line-height: 1.35; cursor: pointer; }\n  .cg-card h4 { font-size: 16px; margin: 0 0 6px; }\n  .cg-card p  { font-size: 14px; opacity: .9; margin: 0; }\n  .cg-fab { display: none !important; } /* FAB skryjeme, když je otevřen panel */\n}\n.msg { border-radius: 12px; padding: 10px 12px; margin: 6px 0; }\n.msg.me { align-self: flex-end; max-width: 86%; }\n.msg.ai { align-self: flex-start; max-width: 86%; }\n'; shadow.appendChild(__cgMobileStyle); } catch(e) {}
-const style = document.createElement("style");
+  // === Consolidated mobile CSS directly into Shadow DOM ===
+  const style = document.createElement("style");
   style.textContent = `
   :host{all:initial}
-  .wrap{font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#fff}
-  .chat{background:#121417;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.35); width:360px; max-width:100vw; height:560px; display:flex; flex-direction:column; overflow:hidden}
+  .wrap{font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#fff; box-sizing:border-box}
+  .chat{background:#121417;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.35); width:360px; max-width:100vw; height:560px; display:flex; flex-direction:column; overflow:hidden; box-sizing:border-box}
   .header{padding:10px 12px; background:#0b0d10; border-bottom:1px solid rgba(255,255,255,.08); font-weight:700}
-  .messages{flex:1; padding:12px; overflow:auto}
-  .msg{max-width:100%; margin:8px 0; display:block}
-  .msg.ai{background:#1a1f25; border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:10px 12px}
+  .messages{flex:1; padding:12px; overflow:auto; -webkit-overflow-scrolling:touch}
+  .msg{max-width:86%; margin:8px 0; display:block; word-wrap:break-word; overflow-wrap:break-word; white-space:pre-wrap; box-sizing:border-box}
+  .msg.ai{background:#1a1f25; border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:10px 12px; align-self:flex-start}
   .msg.me{align-self:flex-end; background:#0a7d5a; border-radius:12px; padding:10px 12px}
-  .panel{background:transparent; padding:0; margin:8px 0 4px}
-  .input{ display:flex; gap:8px; padding:12px; position:sticky; bottom:0; background: rgba(17,17,17,.98); border-top:1px solid rgba(255,255,255,.06); }
-  .input textarea{flex:1; resize:none; height:40px; border-radius:10px; border:1px solid rgba(255,255,255,.1); background:#12161b; color:#fff; padding:8px}
+  .panel{background:transparent; padding:0; margin:8px 0 4px; box-sizing:border-box; word-wrap:break-word; overflow-wrap:break-word}
+  .input{display:flex; gap:8px; padding:12px; position:sticky; bottom:0; background:rgba(17,17,17,.98); border-top:1px solid rgba(255,255,255,.06); box-sizing:border-box}
+  .input textarea{flex:1; resize:none; height:40px; border-radius:10px; border:1px solid rgba(255,255,255,.1); background:#12161b; color:#fff; padding:8px; box-sizing:border-box}
   .input button{border:0; background:#0a7d5a; color:#fff; padding:0 14px; border-radius:10px; font-weight:700; cursor:pointer}
   .cg-start{display:flex; flex-direction:column; gap:12px}
   .cg-cards{display:grid; grid-template-columns:1fr; gap:12px}
-  .cg-card{ text-align:left; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:14px; padding:14px 16px; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,.08)}
-  .cg-card:hover{ box-shadow:0 12px 28px rgba(0,0,0,.14) }
-  .cg-card h3{ margin:0 0 4px; font-weight:700; font-size:16px }
-  .cg-card p{ margin:0; font-size:13px; opacity:.9 }
+  .cg-card{text-align:left; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:14px; padding:14px 16px; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,.08); word-wrap:break-word; overflow-wrap:break-word}
+  .cg-card:hover{box-shadow:0 12px 28px rgba(0,0,0,.14)}
+  .cg-card h3{margin:0 0 4px; font-weight:700; font-size:16px}
+  .cg-card p{margin:0; font-size:13px; opacity:.9}
   .cg-step label{display:block; margin:6px 0 8px; opacity:.9}
-  .cg-input,.cg-select{width:100%; margin:6px 0 8px; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:#12161b; color:#fff}
+  .cg-input,.cg-select{width:100%; margin:6px 0 8px; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:#12161b; color:#fff; box-sizing:border-box}
   .cg-cta{margin-top:8px; display:flex; gap:8px; flex-wrap:wrap}
   .cg-btn{border:0; background:#0a7d5a; color:#fff; padding:10px 14px; border-radius:10px; font-weight:700; cursor:pointer}
-  .leadbox input{width:100%; margin:6px 0 8px; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:#12161b; color:#fff}
+  .leadbox input{width:100%; margin:6px 0 8px; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:#12161b; color:#fff; box-sizing:border-box}
   .hint{opacity:.7; font-size:12px; margin-top:4px}
+
+  /* Improved mobile styles */
+  @media (max-width:600px){
+    :host, .wrap, .chat { height:100%; width:100%; max-width:100%; box-sizing:border-box }
+  }
+  
+  @media (max-width: 480px) {
+    .panel {
+      width: 100% !important;
+      max-width: 100% !important;
+      height: var(--vh);
+      max-height: var(--vh);
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      border-radius: 16px 16px 0 0;
+      background: #111;
+      box-shadow: 0 -12px 32px rgba(0,0,0,.4);
+      display: flex;
+      flex-direction: column;
+      z-index: 2147483647;
+      overflow: hidden;
+    }
+    .header {
+      flex: 0 0 auto;
+      padding: 14px 16px calc(14px + env(safe-area-inset-top));
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .messages {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 12px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .input {
+      display: flex;
+      gap: 8px;
+      padding: 12px calc(12px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
+      position: sticky;
+      bottom: 0;
+      background: rgba(17,17,17,.98);
+      border-top: 1px solid rgba(255,255,255,.06);
+      box-sizing: border-box;
+      width: 100%;
+    }
+    .input textarea {
+      flex: 1;
+      min-height: 44px;
+      max-height: 140px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 12px;
+      background: #12161b;
+      color: #fff;
+      resize: none;
+      font-size: 16px; /* Prevent iOS zoom */
+    }
+    .input button {
+      min-width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      border: 0;
+      cursor: pointer;
+      background: #0a7d5a;
+      color: #fff;
+    }
+    .cg-card {
+      border-radius: 14px;
+      padding: 14px;
+      margin: 10px 0;
+      line-height: 1.35;
+      cursor: pointer;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .cg-card h3 { font-size: 16px; margin: 0 0 6px; }
+    .cg-card p { font-size: 14px; opacity: .9; margin: 0; }
+    .msg { width: 100%; max-width: 86%; box-sizing: border-box; }
+  }
   `;
   shadow.appendChild(style);
 
@@ -593,9 +623,7 @@ function ask(q) {
   })();
 }
 
-
-  
-// ==== Config / data preload (optional) ====
+  // ==== Config / data preload (optional) ====
   (async () => {
     try {
       const scriptEl = document.currentScript || document.querySelector('script[data-config]');
@@ -637,32 +665,3 @@ function ask(q) {
   ta.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send.click(); } });
 
 })();
-
-// Mobile viewport height fix: keep panel height stable with soft keyboard
-try {
-  const __cgSetVH = () => {
-    if (!shadow) return;
-    const panel = shadow.querySelector('.cg-panel');
-    if (!panel) return;
-    const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-    panel.style.height = h + 'px';
-    panel.style.maxHeight = h + 'px';
-  };
-  __cgSetVH();
-  window.addEventListener('resize', __cgSetVH, { passive: true });
-} catch(e){}
-
-
-
-// === Mobile viewport height fix ===
-try {
-  const __cgSetVH = () => {
-    const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-    const panel = shadow.querySelector('.panel');
-    if (panel) { panel.style.height = h + 'px'; panel.style.maxHeight = h + 'px'; }
-  };
-  __cgSetVH();
-  if (window.visualViewport) window.visualViewport.addEventListener('resize', __cgSetVH, { passive: true });
-  window.addEventListener('orientationchange', __cgSetVH, { passive: true });
-} catch(e){}
-
