@@ -814,7 +814,7 @@
     return b;
   }
 
-// COMPLETE REWRITE: Using Mapy.cz Geocoding API for real addresses
+// FIXED: Extract municipality from location AND fix click handler
 function attachSuggest(inputEl, isPozemek) {
   if (!inputEl) {
     console.warn('[Widget] attachSuggest: no input element');
@@ -859,7 +859,6 @@ function attachSuggest(inputEl, isPozemek) {
     }
     
     try {
-      // Use Geocoding API with proper type filter
       const type = isPozemek ? 'regional.municipality' : 'regional.address';
       const url = `https://api.mapy.cz/v1/geocode?lang=cs&limit=10&type=${type}&query=${encodeURIComponent(query)}&apikey=${key}`;
       
@@ -884,8 +883,17 @@ function attachSuggest(inputEl, isPozemek) {
       for (const item of items) {
         const name = String(item.name || '').trim();
         const location = item.location || {};
-        const municipality = String(location.municipality || location.municipalityPart || '').trim();
-        const region = String(location.region || '').trim();
+        
+        // FIXED: Extract municipality from multiple possible fields
+        const municipality = String(
+          location.municipality || 
+          location.municipalityPart || 
+          location.ward ||
+          location.region ||
+          ''
+        ).trim();
+        
+        console.log('[Widget] Processing:', {name, municipality, location}); // DEBUG
         
         let displayText = '';
         
@@ -893,14 +901,11 @@ function attachSuggest(inputEl, isPozemek) {
           // For land: only municipality name
           displayText = municipality || name;
         } else {
-          // For apartments/houses: format as "Street, City"
+          // For apartments/houses: format as "Street Number, City"
           if (name && municipality) {
-            // If name already contains municipality, use as is
-            if (name.includes(municipality)) {
-              displayText = name;
-            } else {
-              displayText = `${name}, ${municipality}`;
-            }
+            // Remove municipality from name if it's already there
+            const cleanName = name.replace(new RegExp(`,?\\s*${municipality}\\s*$`, 'i'), '').trim();
+            displayText = `${cleanName}, ${municipality}`;
           } else if (name) {
             displayText = name;
           } else if (municipality) {
@@ -960,13 +965,28 @@ function attachSuggest(inputEl, isPozemek) {
         div.style.background = 'white';
       });
       
+      // FIXED: Use mousedown instead of click to prevent blur from hiding container first
+      div.addEventListener('mousedown', (e) => {
+        e.preventDefault(); // Prevent blur from firing
+      });
+      
       div.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        
+        // FIXED: Set value directly and trigger events
         inputEl.value = text;
+        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+        inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+        
         suggestContainer.style.display = 'none';
-        inputEl.focus();
-        console.log('[Widget] Selected:', text);
+        
+        // Focus after a short delay
+        setTimeout(() => {
+          inputEl.focus();
+        }, 10);
+        
+        console.log('[Widget] Selected and set:', text);
       });
       
       suggestContainer.appendChild(div);
@@ -981,7 +1001,7 @@ function attachSuggest(inputEl, isPozemek) {
     const value = (e.target.value || '').trim();
     debounceTimer = setTimeout(() => {
       fetchSuggestions(value);
-    }, 400); // Slightly longer delay for geocoding
+    }, 400);
   });
   
   inputEl.addEventListener('focus', () => {
@@ -995,7 +1015,7 @@ function attachSuggest(inputEl, isPozemek) {
   inputEl.addEventListener('blur', () => {
     setTimeout(() => {
       suggestContainer.style.display = 'none';
-    }, 250);
+    }, 300); // Increased delay to allow mousedown to fire first
   });
   
   inputEl.addEventListener('keydown', (e) => {
