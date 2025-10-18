@@ -9,13 +9,13 @@
 })();
 
 // cogniterra-widget-safe.v6.js — BUBBLE-ONLY, SINGLE INSTANCE - VERZE S UP DETEKCÍ
-// Build v6.bubble.15-FINAL — All critical, important and nice-to-have fixes implemented
+// Build v6.bubble.16-LOCATION-FIX — Fixed location inputs (single field with Suggest)
 // Date: 2025-10-18 | Author: info-cogniterra
 
 (function () {
   "use strict";
 
-  console.log('[Widget] Initialization started... (v6.15)');
+  console.log('[Widget] Initialization started... (v6.16-LOCATION-FIX)');
 
   const host = document.querySelector("[data-cogniterra-widget]");
   if (!host) {
@@ -48,7 +48,7 @@
     tempPricing: null,
     chat: { messages: [] },
     intent: {},
-    processing: false  // NEW: Prevent double submit
+    processing: false
   };
 
   console.log('[Widget] Session:', S.session);
@@ -87,7 +87,6 @@
     },
     fetchJson(url) { return fetch(url, { credentials: "omit" }).then(r => r.json()); },
     
-    // NEW: Clear all intent flags
     clearIntents() {
       console.log('[Widget] Clearing all intent flags');
       S.intent.contactOffer = false;
@@ -111,7 +110,7 @@
       const obecPartial = [];
       
       for (const item of upData.map) {
-        if (!item || !item.ku || !item.obec) continue;  // NEW: Validate item
+        if (!item || !item.ku || !item.obec) continue;
         
         const kuNorm = U.norm(item.ku);
         const obecNorm = U.norm(item.obec);
@@ -145,11 +144,10 @@
       const normalized = U.norm(text);
       console.log('[Widget] extractLocationFromUP NORMALIZED:', normalized);
       
-      // NEW: Check for multiple locations
       const multipleLocations = /\b(a|nebo|či)\b/.test(normalized);
       if (multipleLocations) {
         console.log('[Widget] ⚠️ Multiple locations detected');
-        return ['__MULTIPLE__'];  // Special marker
+        return ['__MULTIPLE__'];
       }
       
       const patterns = [
@@ -191,7 +189,6 @@
       return keywords.some(kw => s.includes(kw));
     },
     
-    // NEW: Session persistence helpers
     saveSession() {
       try {
         const sessionData = {
@@ -212,7 +209,6 @@
         const saved = localStorage.getItem('cgtr_session_' + S.session);
         if (saved) {
           const data = JSON.parse(saved);
-          // Only restore if less than 30 minutes old
           if (Date.now() - data.timestamp < 1800000) {
             S.flow = data.flow;
             S.tempPricing = data.tempPricing;
@@ -225,6 +221,35 @@
         console.warn('[Widget] Could not load session:', e);
       }
       return false;
+    },
+    
+    // NEW: Parse location from Mapy.cz Suggest result
+    parseMapyLocation(value, isPozemek) {
+      if (!value || !value.trim()) return null;
+      
+      // Format je "Ulice, Město" nebo jen "Město"
+      const parts = value.split(',').map(p => p.trim());
+      
+      if (isPozemek) {
+        // Pro pozemky bereme jen město (poslední část)
+        return {
+          obec: parts[parts.length - 1],
+          ulice: null
+        };
+      } else {
+        // Pro byty/domy bereme ulici i město
+        if (parts.length >= 2) {
+          return {
+            ulice: parts[0],
+            obec: parts[parts.length - 1]
+          };
+        } else {
+          return {
+            ulice: null,
+            obec: parts[0]
+          };
+        }
+      }
     }
   };
 
@@ -671,7 +696,7 @@
       e.preventDefault();
       e.stopPropagation();
       console.log('[Widget] Close button clicked');
-      U.saveSession();  // NEW: Save before closing
+      U.saveSession();
       if (window.CGTR && typeof window.CGTR.hide === 'function') {
         window.CGTR.hide();
       } else {
@@ -753,7 +778,6 @@
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
   
-  // NEW: Add loading message
   function addLoading(text) {
     const b = U.el("div", { class: "chat-msg ai loading" }, [text || "⏳ Zpracovávám..."]);
     chatMessages.appendChild(b);
@@ -777,22 +801,44 @@
           });
         } else resolve(false);
       };
-      s.onerror = function() { resolve(false); };  // NEW: Handle load error
+      s.onerror = function() { resolve(false); };
       document.head.appendChild(s);
     });
     return MAPY_PROMISE;
   }
   
-  function attachSuggest(inputEl) {
+  // UPDATED: attachSuggest with locality type filter
+  function attachSuggest(inputEl, isPozemek) {
     if (!inputEl) return;
     const key = (S.cfg && S.cfg.mapy_key) || "EreCyrH41se5wkNErc5JEWX2eMLqnpja5BUVxsvpqzM";
+    
     loadMapy(key).then((ok) => {
       if (!ok) {
         inputEl.setAttribute("placeholder", (inputEl.placeholder || "") + " (našeptávač nedostupný)");
-        console.warn('[Widget] Mapy.cz suggest unavailable');  // NEW: Console warning
+        console.warn('[Widget] Mapy.cz suggest unavailable');
         return;
       }
-      try { if (window.SMap && SMap.Suggest) new SMap.Suggest(inputEl); } catch (_) {}
+      try { 
+        if (window.SMap && SMap.Suggest) {
+          // Pro pozemky: pouze obce (municipality)
+          // Pro byty/domy: ulice s obcemi (street + municipality)
+          const options = isPozemek 
+            ? { 
+                provider: new SMap.SuggestProvider({
+                  // Filter pro pouze obce
+                  bounds: function() { return null; },
+                  // Pouze obce, ne ulice
+                  url: "https://api.mapy.cz/suggest"
+                })
+              }
+            : {}; // Default suggest zahrnuje ulice
+          
+          new SMap.Suggest(inputEl, options);
+          console.log('[Widget] Mapy.cz Suggest attached (isPozemek:', isPozemek, ')');
+        } 
+      } catch (e) {
+        console.warn('[Widget] Suggest init failed:', e);
+      }
     });
   }
 
@@ -830,18 +876,15 @@
   function handleUPQuery(q) {
     console.log('[Widget] Handling UP query:', q);
     
-    // NEW: Add loading state
     const loadingMsg = addLoading("🔍 Vyhledávám územní plán...");
     
-    // NEW: Async execution to show loading
     setTimeout(() => {
       const locations = U.extractLocationFromUP(q);
       
       console.log('[Widget] Extracted locations:', locations);
       
-      loadingMsg.remove();  // Remove loading
+      loadingMsg.remove();
       
-      // NEW: Check for multiple locations
       if (locations.length === 1 && locations[0] === '__MULTIPLE__') {
         addAI("⚠️ Zadejte prosím pouze jednu lokalitu najednou. Například 'územní plán pro Brno'.");
         S.intent.waitingForLocation = true;
@@ -873,7 +916,6 @@
       console.log('[Widget] Search results:', allResults.length);
       
       if (allResults.length === 0) {
-        // NEW: Better error message with location name
         const box = U.el("div", { class: "up-no-result" }, [
           `Pro lokalitu "${locations[0]}" jsem bohužel nenašel územní plán v databázi. `,
           `Zkuste prosím upřesnit název obce, katastrálního území, nebo mě můžete kontaktovat pro další pomoc.`
@@ -897,7 +939,7 @@
           U.el("p", {}, [
             "Odkaz: ",
             U.el("a", { 
-              href: item.url || "#",  // NEW: Fallback for missing URL
+              href: item.url || "#",
               target: item.url ? "_blank" : "_self", 
               rel: "noopener noreferrer" 
             }, [item.url || "(odkaz nedostupný)"])
@@ -935,7 +977,7 @@
         ])
       ]);
       addPanel(ctaBox);
-    }, 300);  // 300ms delay to show loading
+    }, 300);
   }
 
   function renderStart() { 
@@ -966,7 +1008,7 @@
 
   function startPricing() {
     S.flow = "pricing";
-    U.saveSession();  // NEW: Save on flow start
+    U.saveSession();
     stepChooseType();
   }
 
@@ -981,25 +1023,56 @@
     addAI("Nacenění – krok 1/3", box);
   }
 
+  // UPDATED: Single input field with location parsing
   function stepLocation(typ) {
-    const street = (typ === "Pozemek") ? null : U.input("ulice", "Ulice (volitelné)");
-    const town = U.input("obec", "Obec");
-    const hint = U.el("div", { class: "hint" }, ["Začněte psát – nabídneme shody (Mapy.cz Suggest)."]);
+    const isPozemek = (typ === "Pozemek");
+    
+    const locationInput = U.input("lokalita", 
+      isPozemek ? "Začněte psát obec..." : "Začněte psát ulici a obec...", 
+      "text"
+    );
+    
+    const hint = U.el("div", { class: "hint" }, [
+      isPozemek 
+        ? "Našeptávač vám nabídne pouze obce (bez ulic)."
+        : "Našeptávač vám nabídne ulice ve formátu 'Ulice, Obec'."
+    ]);
+    
     const nxt = U.el("button", { class: "cg-btn", type: "button", onclick: () => {
-      const obec = (town.value || "").trim();
-      if (!obec) { addAI("Zadejte prosím obec."); town.focus(); return; }
-      if (typ === "Byt") return stepParamsByt(obec);
-      if (typ === "Dům") return stepParamsDum(obec);
-      return stepParamsPozemek(obec);
+      const rawValue = (locationInput.value || "").trim();
+      
+      if (!rawValue) { 
+        addAI("Zadejte prosím lokalitu."); 
+        locationInput.focus(); 
+        return; 
+      }
+      
+      const parsed = U.parseMapyLocation(rawValue, isPozemek);
+      
+      if (!parsed || !parsed.obec) {
+        addAI("Nepodařilo se rozpoznat obec z vašeho zadání. Zkuste to prosím znovu.");
+        locationInput.focus();
+        return;
+      }
+      
+      console.log('[Widget] Parsed location:', parsed);
+      
+      if (typ === "Byt") return stepParamsByt(parsed.obec);
+      if (typ === "Dům") return stepParamsDum(parsed.obec);
+      return stepParamsPozemek(parsed.obec);
     }}, ["Pokračovat"]);
-    const inner = [U.el("label", {}, [`Lokalita – ${typ}`])];
-    if (street) inner.push(street);
-    inner.push(town, hint, U.el("div", { class: "cg-cta" }, [nxt]));
-    const box = U.el("div", { class: "cg-step" }, inner);
+    
+    const box = U.el("div", { class: "cg-step" }, [
+      U.el("label", {}, [`Lokalita – ${typ}`]),
+      locationInput,
+      hint,
+      U.el("div", { class: "cg-cta" }, [nxt])
+    ]);
 
     addAI("Nacenění – krok 2/3", box);
-    if (street) attachSuggest(street);
-    attachSuggest(town);
+    
+    // Attach Suggest with type filter
+    attachSuggest(locationInput, isPozemek);
   }
 
   function stepParamsByt(obec) {
@@ -1058,7 +1131,7 @@
 
   function renderLeadBoxPricing(params) {
     S.tempPricing = params;
-    U.saveSession();  // NEW: Save pricing params
+    U.saveSession();
     const consentId = "cgConsent_" + Math.random().toString(36).slice(2);
 
     const box = U.el("div", { class: "leadbox" }, [
@@ -1224,13 +1297,11 @@
   }
   
   function ask(q) {
-    // NEW: Prevent double submit
     if (S.processing) {
       console.log('[Widget] Already processing, ignoring duplicate request');
       return;
     }
     
-    // FIX 1: Contact offer intent (with clearing)
     try {
       if (S.intent.contactOffer) {
         console.log('[Widget] Contact offer active, checking response');
@@ -1243,11 +1314,11 @@
         if (yesRe.test(trimmed)) {
           console.log('[Widget] YES detected - opening contact form');
           addME(q);
-          U.clearIntents();  // NEW: Clear all intents
+          U.clearIntents();
           stepContactVerify();
           return;
         } else if (noRe.test(trimmed)) {
-          U.clearIntents();  // NEW: Clear all intents
+          U.clearIntents();
           addME(q);
           addAI("Dobře, pokud budete potřebovat později, dejte mi vědět!");
           return;
@@ -1258,7 +1329,6 @@
       console.error('[Widget] Contact offer check error:', e);
     }
 
-    // FIX 2: UP offer intent (with clearing)
     try {
       if (S.intent.upOffer) {
         console.log('[Widget] UP offer active, checking response');
@@ -1271,7 +1341,7 @@
           S.intent.waitingForLocation = true;
           return;
         } else if (noRe.test(q.trim())) {
-          U.clearIntents();  // NEW: Clear all intents
+          U.clearIntents();
           addME(q);
           addAI("Dobře, pokud budete potřebovat později, dejte mi vědět!");
           return;
@@ -1280,14 +1350,12 @@
       }
     } catch(_) {}
 
-    // FIX 3: Waiting for location (double UP request prevention)
     try {
       if (S.intent.waitingForLocation) {
         console.log('[Widget] waitingForLocation active, user input:', q);
         addME(q);
         S.intent.waitingForLocation = false;
         
-        // NEW: Check if user already wrote "územní plán" again
         if (needsUP(q)) {
           console.log('[Widget] User provided full UP query, using as-is');
           handleUPQuery(q);
@@ -1303,13 +1371,12 @@
 
     if (!q) return;
     
-    S.processing = true;  // NEW: Set processing flag
-    chatTextarea.disabled = true;  // NEW: Disable input
+    S.processing = true;
+    chatTextarea.disabled = true;
     chatSendBtn.disabled = true;
     
     addME(q);
     
-    // Restore input after short delay
     setTimeout(() => {
       S.processing = false;
       chatTextarea.disabled = false;
@@ -1335,7 +1402,7 @@
 
     const wantContact = /(^|\b)(chci ?byt ?kontaktovan|kontaktuj(te)? me|zavolejte|napiste|nechte kontakt|ozve se|muzete me kontaktovat)/i.test(U.norm(q));
     if (wantContact) { 
-      U.clearIntents();  // NEW: Clear intents before contact
+      U.clearIntents();
       stepContactVerify(); 
       return; 
     }
@@ -1352,7 +1419,7 @@
         try {
           const msgs = S.chat.messages.slice(-12);
           form.set("messages", JSON.stringify(msgs));
-        } catch(_) {
+                } catch(_) {
           form.set("messages", JSON.stringify([{role:"user", content:q}]));
         }
         
@@ -1391,7 +1458,7 @@
         if (ct.includes("application/json")) { 
           try { 
             const j = await resp.json(); 
-                        txt = j.message || j.reply || j.text || j.answer || JSON.stringify(j); 
+            txt = j.message || j.reply || j.text || j.answer || JSON.stringify(j); 
           } catch { 
             txt = await resp.text(); 
           } 
@@ -1440,7 +1507,6 @@
       if (!chatMessages) return setTimeout(cgSafeStart, 40);
       console.log('[Widget] Rendering start screen...');
       
-      // NEW: Try to restore session
       if (U.loadSession() && S.chat.messages.length > 0) {
         console.log('[Widget] Session restored, showing previous messages');
         S.chat.messages.forEach(msg => {
@@ -1479,6 +1545,6 @@
     } 
   });
 
-  console.log('[Widget] Initialization complete (v6.15)');
+  console.log('[Widget] Initialization complete (v6.16-LOCATION-FIX)');
 
 })();
