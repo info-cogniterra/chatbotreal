@@ -9,13 +9,13 @@
 })();
 
 // cogniterra-widget-safe.v6.js — BUBBLE-ONLY, SINGLE INSTANCE - VERZE S UP DETEKCÍ
-// Build v6.bubble.16-LOCATION-FIX — Fixed location inputs (single field with Suggest)
-// Date: 2025-10-18 | Author: info-cogniterra
+// Build v6.bubble.17-SUGGEST-FIX — Fixed Mapy.cz Suggest loading
+// Date: 2025-01-18 | Author: info-cogniterra
 
 (function () {
   "use strict";
 
-  console.log('[Widget] Initialization started... (v6.16-LOCATION-FIX)');
+  console.log('[Widget] Initialization started... (v6.17-SUGGEST-FIX)');
 
   const host = document.querySelector("[data-cogniterra-widget]");
   if (!host) {
@@ -48,7 +48,8 @@
     tempPricing: null,
     chat: { messages: [] },
     intent: {},
-    processing: false
+    processing: false,
+    mapyLoaded: false
   };
 
   console.log('[Widget] Session:', S.session);
@@ -223,21 +224,17 @@
       return false;
     },
     
-    // NEW: Parse location from Mapy.cz Suggest result
     parseMapyLocation(value, isPozemek) {
       if (!value || !value.trim()) return null;
       
-      // Format je "Ulice, Město" nebo jen "Město"
       const parts = value.split(',').map(p => p.trim());
       
       if (isPozemek) {
-        // Pro pozemky bereme jen město (poslední část)
         return {
           obec: parts[parts.length - 1],
           ulice: null
         };
       } else {
-        // Pro byty/domy bereme ulici i město
         if (parts.length >= 2) {
           return {
             ulice: parts[0],
@@ -785,59 +782,96 @@
     return b;
   }
 
+  // FIXED: Proper Mapy.cz API v5 loading
   let MAPY_PROMISE = null;
   function loadMapy(apiKey) {
     if (MAPY_PROMISE) return MAPY_PROMISE;
+    
+    console.log('[Widget] Loading Mapy.cz API with key:', apiKey);
+    
     MAPY_PROMISE = new Promise((resolve) => {
-      const s = document.createElement("script");
-      s.src = "https://api.mapy.cz/loader.js";
-      s.onload = function () {
-        if (window.Loader) {
-          window.Loader.async = true;
-          window.Loader.load(null, {
-            api: "suggest",
-            key: apiKey,
-            onload: function () { resolve(true); }
-          });
-        } else resolve(false);
+      // Load JAK library first (required dependency)
+      const jakScript = document.createElement("script");
+      jakScript.src = "https://api.mapy.cz/v5/js/api/jar/jak.js";
+      jakScript.onerror = () => {
+        console.error('[Widget] Failed to load JAK library');
+        resolve(false);
       };
-      s.onerror = function() { resolve(false); };
-      document.head.appendChild(s);
+      jakScript.onload = () => {
+        console.log('[Widget] JAK library loaded');
+        
+        // Now load SMap API
+        const smapScript = document.createElement("script");
+        smapScript.src = `https://api.mapy.cz/v5/js/api/?apikey=${apiKey}`;
+        smapScript.onerror = () => {
+          console.error('[Widget] Failed to load SMap API');
+          resolve(false);
+        };
+        smapScript.onload = () => {
+          console.log('[Widget] SMap API loaded, checking availability...');
+          
+          // Wait a bit for SMap to initialize
+          setTimeout(() => {
+            if (window.SMap && window.SMap.Suggest) {
+              console.log('[Widget] ✅ Mapy.cz Suggest ready');
+              S.mapyLoaded = true;
+              resolve(true);
+            } else {
+              console.error('[Widget] ❌ SMap.Suggest not available');
+              resolve(false);
+            }
+          }, 100);
+        };
+        document.head.appendChild(smapScript);
+      };
+      document.head.appendChild(jakScript);
     });
+    
     return MAPY_PROMISE;
   }
   
-  // UPDATED: attachSuggest with locality type filter
+  // FIXED: Simplified Suggest attachment
   function attachSuggest(inputEl, isPozemek) {
-    if (!inputEl) return;
+    if (!inputEl) {
+      console.warn('[Widget] attachSuggest: no input element');
+      return;
+    }
+    
     const key = (S.cfg && S.cfg.mapy_key) || "EreCyrH41se5wkNErc5JEWX2eMLqnpja5BUVxsvpqzM";
+    
+    console.log('[Widget] attachSuggest called, isPozemek:', isPozemek);
     
     loadMapy(key).then((ok) => {
       if (!ok) {
-        inputEl.setAttribute("placeholder", (inputEl.placeholder || "") + " (našeptávač nedostupný)");
-        console.warn('[Widget] Mapy.cz suggest unavailable');
+        console.warn('[Widget] Mapy.cz not available, suggest disabled');
+        inputEl.setAttribute("placeholder", inputEl.placeholder + " (našeptávač nedostupný)");
         return;
       }
-      try { 
-        if (window.SMap && SMap.Suggest) {
-          // Pro pozemky: pouze obce (municipality)
-          // Pro byty/domy: ulice s obcemi (street + municipality)
-          const options = isPozemek 
-            ? { 
-                provider: new SMap.SuggestProvider({
-                  // Filter pro pouze obce
-                  bounds: function() { return null; },
-                  // Pouze obce, ne ulice
-                  url: "https://api.mapy.cz/suggest"
-                })
-              }
-            : {}; // Default suggest zahrnuje ulice
-          
-          new SMap.Suggest(inputEl, options);
-          console.log('[Widget] Mapy.cz Suggest attached (isPozemek:', isPozemek, ')');
-        } 
+      
+      try {
+        console.log('[Widget] Attaching SMap.Suggest to input...');
+        
+        // Create suggest with appropriate options
+        const options = {
+          id: inputEl.id,
+          // For pozemky: suggest only municipalities
+          // For byty/domy: suggest streets and municipalities
+          provider: isPozemek 
+            ? new SMap.SuggestProvider({
+                // Only suggest municipalities (not streets)
+                filter: function(data) {
+                  return data.phrase && !data.userData.suggestFirstRow;
+                }
+              })
+            : new SMap.SuggestProvider() // Default: streets + municipalities
+        };
+        
+        new SMap.Suggest(inputEl, options);
+        console.log('[Widget] ✅ SMap.Suggest attached successfully');
+        
       } catch (e) {
-        console.warn('[Widget] Suggest init failed:', e);
+        console.error('[Widget] Failed to attach Suggest:', e);
+        inputEl.setAttribute("placeholder", inputEl.placeholder + " (chyba našeptávače)");
       }
     });
   }
@@ -1023,7 +1057,6 @@
     addAI("Nacenění – krok 1/3", box);
   }
 
-  // UPDATED: Single input field with location parsing
   function stepLocation(typ) {
     const isPozemek = (typ === "Pozemek");
     
@@ -1071,8 +1104,10 @@
 
     addAI("Nacenění – krok 2/3", box);
     
-    // Attach Suggest with type filter
-    attachSuggest(locationInput, isPozemek);
+    // Attach Suggest after element is in DOM
+    setTimeout(() => {
+      attachSuggest(locationInput, isPozemek);
+    }, 100);
   }
 
   function stepParamsByt(obec) {
@@ -1395,7 +1430,7 @@
     }
     
     const url = (S.cfg && (S.cfg.proxy_url || S.cfg.chat_url)) || null;
-    if (!url) { 
+        if (!url) { 
       addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS apod."); 
       return; 
     }
@@ -1419,7 +1454,7 @@
         try {
           const msgs = S.chat.messages.slice(-12);
           form.set("messages", JSON.stringify(msgs));
-                } catch(_) {
+        } catch(_) {
           form.set("messages", JSON.stringify([{role:"user", content:q}]));
         }
         
@@ -1482,6 +1517,7 @@
       const CFG_URL = scriptEl ? scriptEl.getAttribute("data-config") : null;
       if (CFG_URL) {
         S.cfg = await U.fetchJson(CFG_URL);
+        console.log('[Widget] Config loaded:', S.cfg);
       }
       if (S.cfg && S.cfg.data_urls) {
         const d = S.cfg.data_urls;
@@ -1545,6 +1581,6 @@
     } 
   });
 
-  console.log('[Widget] Initialization complete (v6.16-LOCATION-FIX)');
+  console.log('[Widget] Initialization complete (v6.17-SUGGEST-FIX)');
 
 })();
