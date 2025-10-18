@@ -8,14 +8,14 @@
   window.addEventListener('resize', updateVH, {passive:true});
 })();
 
-// cogniterra-widget-safe.v6.js — BUBBLE-ONLY, SINGLE INSTANCE - VERZE S UP DETEKCÍ
-// Build v6.22-FINAL — Complete with interactive disposition buttons
+// cogniterra-widget-safe.v7.js — COMPLETE VERSION WITH ALL FORM QUESTIONS
+// Build v7.0-FINAL — Byty/Domy/Pozemky s kompletními otázkami
 // Date: 2025-01-18 | Author: info-cogniterra
 
 (function () {
   "use strict";
 
-  console.log('[Widget] Initialization started... (v6.22-FINAL)');
+  console.log('[Widget] Initialization started... (v7.0-FINAL)');
 
   const host = document.querySelector("[data-cogniterra-widget]");
   if (!host) {
@@ -221,31 +221,6 @@
         console.warn('[Widget] Could not load session:', e);
       }
       return false;
-    },
-    
-    parseMapyLocation(value, isPozemek) {
-      if (!value || !value.trim()) return null;
-      
-      const parts = value.split(',').map(p => p.trim());
-      
-      if (isPozemek) {
-        return {
-          obec: parts[parts.length - 1],
-          ulice: null
-        };
-      } else {
-        if (parts.length >= 2) {
-          return {
-            ulice: parts[0],
-            obec: parts[parts.length - 1]
-          };
-        } else {
-          return {
-            ulice: null,
-            obec: parts[0]
-          };
-        }
-      }
     }
   };
 
@@ -850,7 +825,7 @@
     return b;
   }
 
-  // FINAL WORKING VERSION: Mapy.cz Geocoding API with fixed click handlers
+  // Mapy.cz Geocoding API autocomplete
   function attachSuggest(inputEl, isPozemek) {
     if (!inputEl) {
       console.warn('[Widget] attachSuggest: no input element');
@@ -1312,19 +1287,16 @@
         return; 
       }
       
-      const parsed = U.parseMapyLocation(rawValue, isPozemek);
+      console.log('[Widget] Location selected:', rawValue, 'isPozemek:', isPozemek);
       
-      if (!parsed || !parsed.obec) {
-        addAI("Nepodařilo se rozpoznat obec z vašeho zadání. Zkuste to prosím znovu.");
-        locationInput.focus();
-        return;
+      if (isPozemek) {
+        // Pro pozemky - jen obec
+        return stepParamsPozemek(rawValue);
+      } else {
+        // Pro byty/domy - celá adresa (ulice, obec)
+        if (typ === "Byt") return stepParamsByt(rawValue);
+        if (typ === "Dům") return stepParamsDum(rawValue);
       }
-      
-      console.log('[Widget] Parsed location:', parsed);
-      
-      if (typ === "Byt") return stepParamsByt(parsed.obec);
-      if (typ === "Dům") return stepParamsDum(parsed.obec);
-      return stepParamsPozemek(parsed.obec);
     }}, ["Pokračovat"]);
     
     const box = U.el("div", { class: "cg-step" }, [
@@ -1341,7 +1313,7 @@
     }, 100);
   }
 
-  function stepParamsByt(obec) {
+  function stepParamsByt(adresa) {
     const dispositions = [
       "1+kk", "1+1",
       "2+kk", "2+1", 
@@ -1353,12 +1325,12 @@
     
     let selectedDisposition = null;
     let selectedStav = "Dobrý";
-    let selectedVlast = "Osobní";
+    let selectedVlast = "osobní";
     
     const dispGrid = U.el("div", { 
       style: { 
         display: "grid", 
-        gridTemplateColumns: "1fr 1fr", 
+        gridTemplateColumns: "repeat(2, 1fr)", 
         gap: "8px",
         marginBottom: "16px"
       } 
@@ -1400,18 +1372,97 @@
       dispGrid.appendChild(btn);
     });
     
-    const stavLabel = U.el("label", {}, ["Stav"]);
-    const stav = U.select("stav", ["Novostavba", "Po rekonstrukci", "Dobrý", "Špatný"]);
-    stav.value = "Dobrý";
-    stav.addEventListener("change", (e) => {
-      selectedStav = e.target.value;
+    const stavLabel = U.el("label", {}, ["Stav bytu"]);
+    const stavButtons = [];
+    const stavOptions = ["Novostavba", "Po rekonstrukci", "Dobrý", "Špatný"];
+    
+    const stavGrid = U.el("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "repeat(2, 1fr)",
+        gap: "8px",
+        marginBottom: "16px"
+      }
+    });
+    
+    stavOptions.forEach((stav) => {
+      const btn = U.el("button", {
+        class: "cg-btn-disp",
+        type: "button",
+        style: {
+          background: stav === "Dobrý" ? "#2c5282" : "#fff",
+          border: "2px solid " + (stav === "Dobrý" ? "#2c5282" : "#cbd5e0"),
+          color: stav === "Dobrý" ? "#fff" : "#2d3748",
+          padding: "10px",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontWeight: "600",
+          transition: "all 0.2s",
+          minHeight: "44px"
+        },
+        onclick: (e) => {
+          e.preventDefault();
+          stavButtons.forEach(b => {
+            b.style.background = "#fff";
+            b.style.borderColor = "#cbd5e0";
+            b.style.color = "#2d3748";
+          });
+          btn.style.background = "#2c5282";
+          btn.style.borderColor = "#2c5282";
+          btn.style.color = "#fff";
+          selectedStav = stav;
+        }
+      }, [stav]);
+      
+      stavButtons.push(btn);
+      stavGrid.appendChild(btn);
     });
     
     const vlastLabel = U.el("label", {}, ["Vlastnictví"]);
-    const vlast = U.select("vlastnictvi", ["Osobní", "Družstevní"]);
-    vlast.value = "Osobní";
-    vlast.addEventListener("change", (e) => {
-      selectedVlast = e.target.value;
+    const vlastButtons = [];
+    const vlastOptions = ["osobní", "družstevní"];
+    
+    const vlastGrid = U.el("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "repeat(2, 1fr)",
+        gap: "8px",
+        marginBottom: "16px"
+      }
+    });
+    
+    vlastOptions.forEach((vlast) => {
+      const btn = U.el("button", {
+        class: "cg-btn-disp",
+        type: "button",
+        style: {
+          background: vlast === "osobní" ? "#2c5282" : "#fff",
+          border: "2px solid " + (vlast === "osobní" ? "#2c5282" : "#cbd5e0"),
+          color: vlast === "osobní" ? "#fff" : "#2d3748",
+          padding: "10px",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontWeight: "600",
+          transition: "all 0.2s",
+          minHeight: "44px",
+          textTransform: "capitalize"
+        },
+        onclick: (e) => {
+          e.preventDefault();
+          vlastButtons.forEach(b => {
+            b.style.background = "#fff";
+            b.style.borderColor = "#cbd5e0";
+            b.style.color = "#2d3748";
+          });
+          btn.style.background = "#2c5282";
+          btn.style.borderColor = "#2c5282";
+          btn.style.color = "#fff";
+          selectedVlast = vlast;
+        }
+      }, [vlast.charAt(0).toUpperCase() + vlast.slice(1)]);
+      
+      vlastButtons.push(btn);
+      vlastGrid.appendChild(btn);
     });
     
     const areaLabel = U.el("label", {}, ["Výměra (m²)"]);
@@ -1435,9 +1486,9 @@
         
         const params = { 
           typ: "Byt", 
-          obec, 
+          adresa: adresa,
           dispozice: selectedDisposition, 
-          stav: selectedStav, 
+          stav_bytu: selectedStav, 
           vlastnictvi: selectedVlast, 
           vymera: vymera 
         };
@@ -1448,13 +1499,14 @@
     }, ["Pokračovat k odhadu"]);
     
     const box = U.el("div", { class: "cg-step" }, [
-      U.el("label", {}, ["Parametry bytu – ", obec]),
+      U.el("label", {}, ["Parametry bytu"]),
+      U.el("div", { class: "hint" }, ["Adresa: " + adresa]),
       U.el("label", { style: { marginTop: "12px" } }, ["Dispozice"]),
       dispGrid,
       stavLabel,
-      stav,
+      stavGrid,
       vlastLabel,
-      vlast,
+      vlastGrid,
       areaLabel,
       area,
       U.el("div", { class: "cg-cta" }, [go])
@@ -1463,38 +1515,348 @@
     addAI("Nacenění – krok 3/3", box);
   }
 
-  function stepParamsDum(obec) {
-    const typS = U.input("typ_stavby", "Typ stavby");
-    const stav = U.select("stav", ["Novostavba","Po rekonstrukci","Dobrý","Špatný"]);
+  function stepParamsDum(adresa) {
+    let selectedTyp = "Cihlová";
+    let selectedZatepleni = "NE";
+    let selectedOkna = "NE";
+    
+    const typLabel = U.el("label", {}, ["Typ stavby"]);
+    const typButtons = [];
+    const typOptions = ["Cihlová", "Dřevostavba", "Smíšená", "Jiná"];
+    
+    const typGrid = U.el("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "repeat(2, 1fr)",
+        gap: "8px",
+        marginBottom: "16px"
+      }
+    });
+    
+    typOptions.forEach((typ) => {
+      const btn = U.el("button", {
+        class: "cg-btn-disp",
+        type: "button",
+        style: {
+          background: typ === "Cihlová" ? "#2c5282" : "#fff",
+          border: "2px solid " + (typ === "Cihlová" ? "#2c5282" : "#cbd5e0"),
+          color: typ === "Cihlová" ? "#fff" : "#2d3748",
+          padding: "10px",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontWeight: "600",
+          transition: "all 0.2s",
+          minHeight: "44px"
+        },
+        onclick: (e) => {
+          e.preventDefault();
+          typButtons.forEach(b => {
+            b.style.background = "#fff";
+            b.style.borderColor = "#cbd5e0";
+            b.style.color = "#2d3748";
+          });
+          btn.style.background = "#2c5282";
+          btn.style.borderColor = "#2c5282";
+          btn.style.color = "#fff";
+          selectedTyp = typ;
+        }
+      }, [typ]);
+      
+      typButtons.push(btn);
+      typGrid.appendChild(btn);
+    });
+    
+    const zatepleniLabel = U.el("label", {}, ["Zateplený?"]);
+    const zatepleniButtons = [];
+    const zatepleniOptions = ["ANO", "NE"];
+    
+    const zatepleniGrid = U.el("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "repeat(2, 1fr)",
+        gap: "8px",
+        marginBottom: "16px"
+      }
+    });
+    
+    zatepleniOptions.forEach((opt) => {
+      const btn = U.el("button", {
+        class: "cg-btn-disp",
+        type: "button",
+        style: {
+          background: opt === "NE" ? "#2c5282" : "#fff",
+          border: "2px solid " + (opt === "NE" ? "#2c5282" : "#cbd5e0"),
+          color: opt === "NE" ? "#fff" : "#2d3748",
+          padding: "10px",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontWeight: "600",
+          transition: "all 0.2s",
+          minHeight: "44px"
+        },
+        onclick: (e) => {
+          e.preventDefault();
+          zatepleniButtons.forEach(b => {
+            b.style.background = "#fff";
+            b.style.borderColor = "#cbd5e0";
+            b.style.color = "#2d3748";
+          });
+          btn.style.background = "#2c5282";
+          btn.style.borderColor = "#2c5282";
+          btn.style.color = "#fff";
+          selectedZatepleni = opt;
+        }
+      }, [opt]);
+      
+      zatepleniButtons.push(btn);
+      zatepleniGrid.appendChild(btn);
+    });
+    
+    const oknaLabel = U.el("label", {}, ["Nová okna?"]);
+    const oknaButtons = [];
+    const oknaOptions = ["ANO", "NE"];
+    
+    const oknaGrid = U.el("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "repeat(2, 1fr)",
+        gap: "8px",
+                marginBottom: "16px"
+      }
+    });
+    
+    oknaOptions.forEach((opt) => {
+      const btn = U.el("button", {
+        class: "cg-btn-disp",
+        type: "button",
+        style: {
+          background: opt === "NE" ? "#2c5282" : "#fff",
+          border: "2px solid " + (opt === "NE" ? "#2c5282" : "#cbd5e0"),
+          color: opt === "NE" ? "#fff" : "#2d3748",
+          padding: "10px",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontWeight: "600",
+          transition: "all 0.2s",
+          minHeight: "44px"
+        },
+        onclick: (e) => {
+          e.preventDefault();
+          oknaButtons.forEach(b => {
+            b.style.background = "#fff";
+            b.style.borderColor = "#cbd5e0";
+            b.style.color = "#2d3748";
+          });
+          btn.style.background = "#2c5282";
+          btn.style.borderColor = "#2c5282";
+          btn.style.color = "#fff";
+          selectedOkna = opt;
+        }
+      }, [opt]);
+      
+      oknaButtons.push(btn);
+      oknaGrid.appendChild(btn);
+    });
+    
+    const areaLabel = U.el("label", {}, ["Výměra domu (m²)"]);
     const area = U.input("vymera", "Výměra (m²)", "number");
 
-    const go = U.el("button", { class: "cg-btn", type: "button", onclick: () => {
-      const params = { typ:"Dům", obec, typ_stavby:typS.value, stav:stav.value, vymera:parseFloat(area.value||0) };
-      renderLeadBoxPricing(params);
-    }}, ["Pokračovat k odhadu"]);
+    const go = U.el("button", { 
+      class: "cg-btn", 
+      type: "button", 
+      onclick: () => {
+        const vymera = parseFloat(area.value || 0);
+        if (!vymera || vymera <= 0) {
+          addAI("⚠️ Prosím zadejte platnou výměru v m².");
+          area.focus();
+          return;
+        }
+        
+        const params = { 
+          typ: "Dům", 
+          adresa: adresa,
+          typ_stavby: selectedTyp, 
+          zatepleni: selectedZatepleni,
+          nova_okna: selectedOkna,
+          vymera: vymera 
+        };
+        
+        console.log('[Widget] Dům params:', params);
+        renderLeadBoxPricing(params);
+      }
+    }, ["Pokračovat k odhadu"]);
 
     const box = U.el("div", { class: "cg-step" }, [
-      U.el("label", {}, ["Parametry domu – ", obec]),
-      typS, stav, area,
+      U.el("label", {}, ["Parametry domu"]),
+      U.el("div", { class: "hint" }, ["Adresa: " + adresa]),
+      typLabel,
+      typGrid,
+      zatepleniLabel,
+      zatepleniGrid,
+      oknaLabel,
+      oknaGrid,
+      areaLabel,
+      area,
       U.el("div", { class: "cg-cta" }, [go]),
     ]);
+    
     addAI("Nacenění – krok 3/3", box);
   }
 
   function stepParamsPozemek(obec) {
-    const kat  = U.input("kategorie", "Kategorie pozemku");
+    let selectedKategorie = "stavební";
+    let selectedSpoluvl = "NE";
+    
+    const katLabel = U.el("label", {}, ["Kategorie pozemku"]);
+    const katButtons = [];
+    const katOptions = ["stavební", "zahrada", "zemědělský", "les", "ostatní"];
+    
+    const katGrid = U.el("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "repeat(2, 1fr)",
+        gap: "8px",
+        marginBottom: "16px"
+      }
+    });
+    
+    katOptions.forEach((kat) => {
+      const btn = U.el("button", {
+        class: "cg-btn-disp",
+        type: "button",
+        style: {
+          background: kat === "stavební" ? "#2c5282" : "#fff",
+          border: "2px solid " + (kat === "stavební" ? "#2c5282" : "#cbd5e0"),
+          color: kat === "stavební" ? "#fff" : "#2d3748",
+          padding: "10px",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontWeight: "600",
+          transition: "all 0.2s",
+          minHeight: "44px",
+          textTransform: "capitalize"
+        },
+        onclick: (e) => {
+          e.preventDefault();
+          katButtons.forEach(b => {
+            b.style.background = "#fff";
+            b.style.borderColor = "#cbd5e0";
+            b.style.color = "#2d3748";
+          });
+          btn.style.background = "#2c5282";
+          btn.style.borderColor = "#2c5282";
+          btn.style.color = "#fff";
+          selectedKategorie = kat;
+        }
+      }, [kat.charAt(0).toUpperCase() + kat.slice(1)]);
+      
+      katButtons.push(btn);
+      katGrid.appendChild(btn);
+    });
+    
+    const areaLabel = U.el("label", {}, ["Výměra pozemku (m²)"]);
     const area = U.input("vymera", "Výměra (m²)", "number");
+    
+    const spoluvlLabel = U.el("label", {}, ["Spoluvlastnictví?"]);
+    const spoluvlButtons = [];
+    const spoluvlOptions = ["ANO", "NE"];
+    
+    const spoluvlGrid = U.el("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "repeat(2, 1fr)",
+        gap: "8px",
+        marginBottom: "16px"
+      }
+    });
+    
+    spoluvlOptions.forEach((opt) => {
+      const btn = U.el("button", {
+        class: "cg-btn-disp",
+        type: "button",
+        style: {
+          background: opt === "NE" ? "#2c5282" : "#fff",
+          border: "2px solid " + (opt === "NE" ? "#2c5282" : "#cbd5e0"),
+          color: opt === "NE" ? "#fff" : "#2d3748",
+          padding: "10px",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontWeight: "600",
+          transition: "all 0.2s",
+          minHeight: "44px"
+        },
+        onclick: (e) => {
+          e.preventDefault();
+          spoluvlButtons.forEach(b => {
+            b.style.background = "#fff";
+            b.style.borderColor = "#cbd5e0";
+            b.style.color = "#2d3748";
+          });
+          btn.style.background = "#2c5282";
+          btn.style.borderColor = "#2c5282";
+          btn.style.color = "#fff";
+          selectedSpoluvl = opt;
+          
+          // Show/hide podil input
+          if (opt === "ANO") {
+            podilContainer.style.display = "block";
+          } else {
+            podilContainer.style.display = "none";
+            podil.value = "1";
+          }
+        }
+      }, [opt]);
+      
+      spoluvlButtons.push(btn);
+      spoluvlGrid.appendChild(btn);
+    });
+    
+    const podilLabel = U.el("label", {}, ["Podíl (např. 1/2 nebo 0.5)"]);
+    const podil = U.input("podil", "Např. 1/2 nebo 0.5", "text");
+    podil.value = "1";
+    
+    const podilContainer = U.el("div", {
+      style: { display: "none" }
+    }, [podilLabel, podil]);
 
-    const go = U.el("button", { class: "cg-btn", type: "button", onclick: () => {
-      const params = { typ:"Pozemek", obec, kategorie:kat.value, vymera:parseFloat(area.value||0) };
-      renderLeadBoxPricing(params);
-    }}, ["Pokračovat k odhadu"]);
+    const go = U.el("button", { 
+      class: "cg-btn", 
+      type: "button", 
+      onclick: () => {
+        const vymera = parseFloat(area.value || 0);
+        if (!vymera || vymera <= 0) {
+          addAI("⚠️ Prosím zadejte platnou výměru v m².");
+          area.focus();
+          return;
+        }
+        
+        const params = { 
+          typ: "Pozemek", 
+          obec: obec,
+          kategorie: selectedKategorie, 
+          vymera: vymera,
+          spoluvl: selectedSpoluvl,
+          podil: podil.value || "1"
+        };
+        
+        console.log('[Widget] Pozemek params:', params);
+        renderLeadBoxPricing(params);
+      }
+    }, ["Pokračovat k odhadu"]);
 
     const box = U.el("div", { class: "cg-step" }, [
-      U.el("label", {}, ["Parametry pozemku – ", obec]),
-      kat, area,
+      U.el("label", {}, ["Parametry pozemku"]),
+      U.el("div", { class: "hint" }, ["Obec: " + obec]),
+      katLabel,
+      katGrid,
+      areaLabel,
+      area,
+      spoluvlLabel,
+      spoluvlGrid,
+      podilContainer,
       U.el("div", { class: "cg-cta" }, [go]),
     ]);
+    
     addAI("Nacenění – krok 3/3", box);
   }
 
@@ -1578,23 +1940,62 @@
 
     const P = S.tempPricing || {};
     let res = null;
-    if (P.typ === "Byt")       res = window.CG_Estimator.estimateByt(window.PRICES ? window.PRICES.byty : null, P);
-    else if (P.typ === "Dům")  res = window.CG_Estimator.estimateDum(window.PRICES ? window.PRICES.domy : null, P);
-    else                       res = window.CG_Estimator.estimatePozemek(window.PRICES ? window.PRICES.pozemky : null, P);
+    
+    // Volání estimátoru s novými parametry
+    if (P.typ === "Byt") {
+      res = window.CG_Estimator.estimateByt(
+        window.PRICES ? window.PRICES.byty : null, 
+        P
+      );
+    } else if (P.typ === "Dům") {
+      res = window.CG_Estimator.estimateDum(
+        window.PRICES ? window.PRICES.domy : null, 
+        P
+      );
+    } else {
+      res = window.CG_Estimator.estimatePozemek(
+        window.PRICES ? window.PRICES.pozemky : null, 
+        P
+      );
+    }
 
-    renderEstimate(res || {low:"-",high:"-",per_m2:"-",note:""}, P.typ || "Nemovitost");
+    renderEstimate(res || {ok:false, reason:"Chyba výpočtu"}, P);
   }
 
-  function renderEstimate(res, typ) {
+  function renderEstimate(res, params) {
+    if (!res.ok) {
+      const box = U.el("div", { class: "cg-step" }, [
+        U.el("label", {}, ["⚠️ Nelze spočítat odhad"]),
+        U.el("div", {}, [res.reason || "Chyba při výpočtu."]),
+        U.el("div", { class: "cg-cta" }, [
+          U.el("button", { class: "cg-btn", type: "button", onclick: () => stepContactVerify() }, 
+            ["Kontaktovat odborníka"])
+        ])
+      ]);
+      addAI("", box);
+      return;
+    }
+    
+    const typ = params.typ || "Nemovitost";
+    
     const box = U.el("div", { class: "cg-step" }, [
-      U.el("label", {}, [`${typ}: předběžný odhad`]),
-      U.el("div", {}, [`Rozpětí: ${res.low?.toLocaleString?.("cs-CZ") || res.low || "-"} – ${res.high?.toLocaleString?.("cs-CZ") || res.high || "-" } Kč`]),
-      U.el("div", {}, [`Orientační cena za m²: ${res.per_m2 || "-"} Kč/m²`]),
+      U.el("label", {}, [`${typ}: orientační odhad`]),
+      U.el("div", { style: { fontSize: "18px", fontWeight: "700", margin: "12px 0", color: "#2c5282" } }, 
+        [`${res.low?.toLocaleString?.("cs-CZ") || res.low || "-"} – ${res.high?.toLocaleString?.("cs-CZ") || res.high || "-"} Kč`]),
+      U.el("div", { style: { fontSize: "14px", margin: "8px 0" } }, 
+        [`Medián: ${res.mid?.toLocaleString?.("cs-CZ") || res.mid || "-"} Kč`]),
+      U.el("div", { style: { fontSize: "14px", margin: "8px 0" } }, 
+        [`Cena za m²: ~${res.per_m2?.toLocaleString?.("cs-CZ") || res.per_m2 || "-"} Kč/m²`]),
       U.el("div", { class: "hint" }, [res.note || "Odhad je orientační."]),
-      U.el("div", { class: "cg-cta" }, [
-        U.el("button", { class: "cg-btn", type: "button", onclick: () => addAI("Děkujeme, kolegové se vám ozvou s přesným odhadem.") }, ["Přesný odhad zdarma"]),
+      U.el("div", { style: { marginTop: "12px", padding: "10px", background: "#f0f9ff", borderRadius: "8px", fontSize: "13px" } }, [
+        `Spolehlivost: ${res.confidence || "střední"} (vzorek: ${res.n || "?"} záznamů)`
       ]),
+      U.el("div", { class: "cg-cta", style: { marginTop: "16px" } }, [
+        U.el("button", { class: "cg-btn", type: "button", onclick: () => stepContactVerify() }, 
+          ["Chci přesný odhad od odborníka"])
+      ])
     ]);
+    
     addAI("Výsledek odhadu", box);
   }
 
@@ -1853,17 +2254,77 @@
         S.cfg = await U.fetchJson(CFG_URL);
         console.log('[Widget] Config loaded:', S.cfg);
       }
+      
       if (S.cfg && S.cfg.data_urls) {
         const d = S.cfg.data_urls;
-        const [byty, domy, pozemky, up] = await Promise.all([
-          d.byty ? U.fetchJson(d.byty) : null,
-          d.domy ? U.fetchJson(d.domy) : null,
-          d.pozemky ? U.fetchJson(d.pozemky) : null,
-          d.up ? U.fetchJson(d.up) : null
-        ]);
-        window.PRICES = { byty, domy, pozemky, up };
-        S.data.up = up;
-        console.log('[Widget] UP data loaded:', up ? `${up.map?.length || 0} entries` : 'FAILED');
+        
+        // Zjistit formát dat
+        const isExcel = (d.byty && d.byty.endsWith('.xlsx')) || S.cfg.data_format === 'excel';
+        
+        if (isExcel) {
+          // Načíst XLSX.js pokud ještě není
+          if (typeof XLSX === 'undefined') {
+            console.log('[Widget] Loading XLSX.js...');
+            await new Promise((resolve, reject) => {
+              const script = document.createElement('script');
+              script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+              script.onload = resolve;
+              script.onerror = reject;
+              document.head.appendChild(script);
+            });
+          }
+          
+          console.log('[Widget] Loading Excel files...');
+          
+          // Načíst Excel soubory
+          const loadExcel = async (url, preferSheet) => {
+            try {
+              const resp = await fetch(url + '?v=' + Date.now());
+              if (!resp.ok) throw new Error('Failed to load');
+              const ab = await resp.arrayBuffer();
+              const wb = XLSX.read(ab, { type: 'array' });
+              const sheetName = wb.SheetNames.find(n => 
+                n.toLowerCase().includes(preferSheet)
+              ) || wb.SheetNames[0];
+              return XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: null, raw: true });
+            } catch (e) {
+              console.error('[Widget] Failed to load Excel:', url, e);
+              return [];
+            }
+          };
+          
+          const [byty, domy, pozemky, up] = await Promise.all([
+            d.byty ? loadExcel(d.byty, 'ai_byty') : [],
+            d.domy ? loadExcel(d.domy, 'ai_domy') : [],
+            d.pozemky ? loadExcel(d.pozemky, 'ai_pozemky') : [],
+            d.up ? U.fetchJson(d.up) : null
+          ]);
+          
+          window.PRICES = { byty, domy, pozemky, up };
+          S.data.up = up;
+          
+          console.log('[Widget] Excel data loaded:', {
+            byty: byty?.length || 0,
+            domy: domy?.length || 0,
+            pozemky: pozemky?.length || 0,
+            up: up?.map?.length || 0
+          });
+          
+        } else {
+          // JSON formát (původní)
+          const [byty, domy, pozemky, up] = await Promise.all([
+            d.byty ? U.fetchJson(d.byty) : null,
+            d.domy ? U.fetchJson(d.domy) : null,
+            d.pozemky ? U.fetchJson(d.pozemky) : null,
+            d.up ? U.fetchJson(d.up) : null
+          ]);
+          
+          window.PRICES = { byty, domy, pozemky, up };
+          S.data.up = up;
+          
+          console.log('[Widget] JSON data loaded');
+        }
+        
       }
     } catch (e) {
       console.error('[Widget] Config/data loading error:', e);
@@ -1915,6 +2376,6 @@
     } 
   });
 
-  console.log('[Widget] Initialization complete (v6.22-FINAL)');
+  console.log('[Widget] Initialization complete (v7.0-FINAL)');
 
 })();
