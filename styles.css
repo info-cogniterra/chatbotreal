@@ -1,7 +1,11 @@
-body{background:#0B0F14;color:#EAF2FF;font:16px/1.6 Inter,system-ui;margin:24px}
+body{
+  background:#0B0F14;
+  color:#EAF2FF;
+  font:16px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,system-ui;
+  margin:24px;
+}
 
-
-/* --- Added by fix: clickable links in chat --- */
+/* --- Clickable links in chat --- */
 .chat-message a, .message a {
   color: #006B4F;
   text-decoration: none;
@@ -12,33 +16,121 @@ body{background:#0B0F14;color:#EAF2FF;font:16px/1.6 Inter,system-ui;margin:24px}
   text-decoration: underline;
 }
 
-
 /* --- Start screen cards for pricing/help --- */
-.cg-start{display:flex;flex-direction:column;gap:12px;padding:12px}
-.cg-cards{display:grid;grid-template-columns:1fr;gap:12px}
-.cg-card{border:1px solid rgba(0,0,0,.08);background:#fff;border-radius:14px;padding:14px;cursor:pointer;
-  box-shadow:0 6px 18px rgba(0,0,0,.06)}
-.cg-card:hover{box-shadow:0 12px 28px rgba(0,0,0,.10)}
-.cg-card h3{margin:0 0 6px 0;font:600 16px Inter,system-ui}
-.cg-card p{margin:0;font:400 13px/1.5 Inter,system-ui;color:#444}
-.cg-step{display:flex;flex-direction:column;gap:10px;padding:12px}
-.cg-row{display:flex;gap:8px}
-.cg-row > *{flex:1}
-.cg-select, .cg-input{width:100%;padding:10px 12px;border:1px solid rgba(0,0,0,.12);border-radius:10px;font:500 14px Inter}
-.cg-cta{display:flex;gap:8px;align-items:center;justify-content:flex-end}
-.cg-btn{background:#006B4F;color:#fff;border:0;border-radius:12px;padding:10px 14px;font:600 14px Inter;cursor:pointer}
-.cg-btn.secondary{background:#F4F4F4;color:#111}
-.cg-result{background:#f8faf9;border:1px solid rgba(0,0,0,.06);border-radius:12px;padding:12px}
-.cg-result h4{margin:0 0 8px 0;font:700 16px Inter}
-.cg-note{font-size:12px;color:#555}
-
+.cg-start{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  padding:12px;
+}
+.cg-cards{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:12px;
+}
+.cg-card{
+  border:1px solid rgba(0,0,0,.08);
+  background:#fff;
+  border-radius:14px;
+  padding:14px;
+  cursor:pointer;
+  box-shadow:0 6px 18px rgba(0,0,0,.06);
+  transition: all 0.2s ease;
+}
+.cg-card:hover{
+  box-shadow:0 12px 28px rgba(0,0,0,.10);
+  transform: translateY(-2px);
+}
+.cg-card h3{
+  margin:0 0 6px 0;
+  font:600 16px -apple-system,system-ui;
+}
+.cg-card p{
+  margin:0;
+  font:400 13px/1.5 -apple-system,system-ui;
+  color:#444;
+}
+.cg-step{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  padding:12px;
+}
+.cg-row{
+  display:flex;
+  gap:8px;
+}
+.cg-row > *{
+  flex:1;
+}
+.cg-select, .cg-input{
+  width:100%;
+  padding:10px 12px;
+  border:1px solid rgba(0,0,0,.12);
+  border-radius:10px;
+  font:500 14px -apple-system,system-ui;
+  transition: border-color 0.2s;
+}
+.cg-select:focus, .cg-input:focus {
+  outline: none;
+  border-color: #2c5282;
+  box-shadow: 0 0 0 2px rgba(44,82,130,.2);
+}
+.cg-cta{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  justify-content:flex-end;
+}
+.cg-btn{
+  background:#006B4F;
+  color:#fff;
+  border:0;
+  border-radius:12px;
+  padding:10px 14px;
+  font:600 14px -apple-system,system-ui;
+  cursor:pointer;
+  transition: all 0.2s;
+}
+.cg-btn:hover {
+  background:#005a42;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,107,79,.3);
+}
+.cg-btn.secondary{
+  background:#F4F4F4;
+  color:#111;
+}
+.cg-btn.secondary:hover {
+  background:#e0e0e0;
+}
+.cg-result{
+  background:#f8faf9;
+  border:1px solid rgba(0,0,0,.06);
+  border-radius:12px;
+  padding:12px;
+}
+.cg-result h4{
+  margin:0 0 8px 0;
+  font:700 16px -apple-system,system-ui;
+}
+.cg-note{
+  font-size:12px;
+  color:#555;
+  margin-top:6px;
+}
 
 /* panel blocks (not bubble) */
-.panel{background:transparent;padding:0;margin:8px 0}
-.panel .cg-start{margin-top:4px}
+.panel{
+  background:transparent;
+  padding:0;
+  margin:8px 0;
+}
+.panel .cg-start{
+  margin-top:4px;
+}
 
-
-/* === Odstranění černých okrajů - nové styly === */
+/* === Odstranění černých okrajů - kompletní fix === */
 .cg-panel {
   padding: 0 !important;
   background: transparent !important;
@@ -51,6 +143,7 @@ body{background:#0B0F14;color:#EAF2FF;font:16px/1.6 Inter,system-ui;margin:24px}
   inset: 0 !important;
   width: 100% !important;
   height: 100% !important;
+  overflow: hidden !important;
 }
 
 .chat-container {
@@ -61,16 +154,18 @@ body{background:#0B0F14;color:#EAF2FF;font:16px/1.6 Inter,system-ui;margin:24px}
   padding: 0 !important;
   position: absolute !important;
   inset: 0 !important;
+  overflow: hidden !important;
 }
 
 #chatbot-container {
   position: absolute !important;
   inset: 0 !important;
   overflow: hidden !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
-
-/* === Cogniterra widget mobile tweaks (v1) === */
+/* === Mobile viewport improvements === */
 @media (max-width: 480px) {
   .cg-widget {
     inset: auto 0 env(safe-area-inset-bottom) 0 !important;
@@ -81,11 +176,13 @@ body{background:#0B0F14;color:#EAF2FF;font:16px/1.6 Inter,system-ui;margin:24px}
   .cg-widget .cg-panel {
     width: 100% !important;
     max-width: 100% !important;
-    height: 100dvh;
-    max-height: 100dvh;
+    height: 100vh;
+    max-height: 100vh;
     border-radius: 16px 16px 0 0;
     position: fixed;
-    left: 0; right: 0; bottom: 0;
+    left: 0; 
+    right: 0; 
+    bottom: 0;
     box-shadow: 0 -12px 32px rgba(0,0,0,.4);
     background: #fff;
     display: flex;
@@ -111,8 +208,15 @@ body{background:#0B0F14;color:#EAF2FF;font:16px/1.6 Inter,system-ui;margin:24px}
     line-height: 1.35;
     cursor: pointer;
   }
-  .cg-card h4 { font-size: 16px; margin: 0 0 6px; }
-  .cg-card p  { font-size: 14px; opacity: .9; margin: 0; }
+  .cg-card h4 { 
+    font-size: 16px; 
+    margin: 0 0 6px; 
+  }
+  .cg-card p { 
+    font-size: 14px; 
+    opacity: .9; 
+    margin: 0; 
+  }
   .cg-widget .cg-input {
     flex: 0 0 auto;
     display: flex;
@@ -130,12 +234,16 @@ body{background:#0B0F14;color:#EAF2FF;font:16px/1.6 Inter,system-ui;margin:24px}
     height: 44px;
   }
   .cg-widget .cg-input .cg-send {
-    height: 44px; min-width: 88px;
+    height: 44px; 
+    min-width: 88px;
     border-radius: 12px;
   }
-  .cg-open .cg-fab { opacity: 0; pointer-events: none; }
+  .cg-open .cg-fab { 
+    opacity: 0; 
+    pointer-events: none; 
+  }
   
-  /* Mobilní zobrazení - doplnění pro odstranění černých okrajů */
+  /* Mobilní zobrazení - kompletní fix */
   .chat-container {
     border-radius: 16px 16px 0 0 !important;
   }
@@ -146,12 +254,44 @@ body{background:#0B0F14;color:#EAF2FF;font:16px/1.6 Inter,system-ui;margin:24px}
   }
 }
 
-.cg-open { overflow: hidden; touch-action: none; overscroll-behavior: contain; }
-.cg-widget .msg { border-radius: 12px; padding: 10px 12px; margin: 6px 0; }
-.cg-widget .msg.me { align-self: flex-end; max-width: 86%; }
-.cg-widget .msg.ai { align-self: flex-start; max-width: 86%; }
+/* === Mobile viewport fallback === */
+@supports (height: 100dvh) {
+  @media (max-width: 480px) {
+    .cg-widget .cg-panel {
+      height: 100dvh;
+      max-height: 100dvh;
+    }
+  }
+}
 
-:root { --vh: 100vh; }
 @supports not (height: 100dvh) {
-  .cg-widget .cg-panel { height: var(--vh); max-height: var(--vh); }
+  @media (max-width: 480px) {
+    .cg-widget .cg-panel {
+      height: var(--vh, 100vh);
+      max-height: var(--vh, 100vh);
+    }
+  }
+}
+
+.cg-open { 
+  overflow: hidden; 
+  touch-action: none; 
+  overscroll-behavior: contain; 
+}
+.cg-widget .msg { 
+  border-radius: 12px; 
+  padding: 10px 12px; 
+  margin: 6px 0; 
+}
+.cg-widget .msg.me { 
+  align-self: flex-end; 
+  max-width: 86%; 
+}
+.cg-widget .msg.ai { 
+  align-self: flex-start; 
+  max-width: 86%; 
+}
+
+:root { 
+  --vh: 100vh; 
 }
