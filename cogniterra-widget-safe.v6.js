@@ -874,7 +874,8 @@ function attachSuggest(inputEl, isPozemek) {
       
       console.log('[Widget] Got', items.length, 'raw results');
       console.log('[Widget] Sample item:', items[0]); // DEBUG
-      
+      console.log('[Widget] Full API response:', data);
+      console.log('[Widget] First item detail:', items[0]);
       const results = [];
       
       for (const item of items) {
