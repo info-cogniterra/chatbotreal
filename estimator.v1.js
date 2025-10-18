@@ -1,135 +1,250 @@
-
-// Cogniterra estimator (v1 MVP)
+// estimator.v2.js - Complete rewrite based on original widget logic
 (function(global){
-  const cfg = {
-    koefStav: {
+  
+  // Helper functions
+  const median = arr => {
+    const sorted = arr.filter(n => typeof n === 'number' && isFinite(n)).sort((a,b) => a-b);
+    if (!sorted.length) return NaN;
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 ? sorted[mid] : (sorted[mid-1] + sorted[mid]) / 2;
+  };
+  
+  const cleanPraha = s => {
+    if (!s) return s;
+    s = String(s).trim()
+      .replace(/\bobvod\s+/i, '')
+      .replace(/praha\s*0+(\d+)/i, 'Praha $1')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return s;
+  };
+  
+  const eqObec = (a, b) => {
+    return (cleanPraha(a) || '').toLowerCase() === (cleanPraha(b) || '').toLowerCase();
+  };
+  
+  const dispoRooms = d => {
+    const m = /^\s*(\d+)/.exec((d || '').toString());
+    return m ? m[1] : '?';
+  };
+  
+  // BYTY estimation
+  function estimateByt(rows, params) {
+    if (!rows || !rows.length) {
+      return { ok: false, reason: "Data nejsou k dispozici." };
+    }
+    
+    const { obec, dispozice, stav_bytu, vlastnictvi, vymera } = params;
+    
+    // Fallback cascade
+    const d = (dispozice || '').toLowerCase().trim();
+    const rooms = dispoRooms(dispozice);
+    
+    const cascades = [
+      { label: "obec + dispozice", 
+        filter: r => eqObec(r.obec, obec) && (r.dispozice || '').toLowerCase() === d },
+      { label: "obec + počet místností", 
+        filter: r => eqObec(r.obec, obec) && dispoRooms(r.dispozice) === rooms },
+      { label: "ČR + dispozice", 
+        filter: r => (r.dispozice || '').toLowerCase() === d },
+      { label: "ČR + počet místností", 
+        filter: r => dispoRooms(r.dispozice) === rooms },
+      { label: "ČR – všechny byty", 
+        filter: r => true }
+    ];
+    
+    let medianPrice = null;
+    let usedLevel = null;
+    let count = 0;
+    
+    for (const cascade of cascades) {
+      const filtered = rows.filter(cascade.filter);
+      const prices = filtered.map(r => Number(r.cena_m2)).filter(p => isFinite(p));
+      
+      if (prices.length > 0) {
+        medianPrice = median(prices);
+        usedLevel = cascade.label;
+        count = prices.length;
+        break;
+      }
+    }
+    
+    if (!medianPrice || !isFinite(medianPrice)) {
+      return { ok: false, reason: "Nenašel jsem vhodný vzorek dat." };
+    }
+    
+    // Apply coefficients
+    const koefStav = {
       "Novostavba": 1.30,
       "Po rekonstrukci": 1.15,
       "Dobrý": 1.00,
       "Špatný": 0.85
-    },
-    koefVlastnictvi: {
+    };
+    
+    const koefVlast = {
       "osobní": 1.00,
       "družstevní": 0.85
-    }
-  };
-
-  function confidence(n, fallbackSteps){
-    if(n >= 20 && fallbackSteps === 0) return "vysoká";
-    if(n >= 5 && fallbackSteps <= 1) return "střední";
-    return "nízká";
-  }
-
-  function pick(obj, keys){
-    let ref = obj, used=0;
-    for(const k of keys){
-      if(ref && ref[k] != null){ ref = ref[k]; }
-      else return {value:null, steps:used+1};
-      used++;
-    }
-    return {value:ref, steps:0};
-  }
-
-  function fallbackByt(map, obec, dispozice, stav, vlast){
-    let steps=0, node = map[obec];
-    if(!node){ return {median:null, n:0, steps:3}; }
-    // exact
-    let v = (((node||{})[dispozice]||{}))[stav];
-    v = (v||{})[vlast];
-    if(v && v.median) return {median:v.median, n:v.n||0, steps};
-    // ignore vlastnictví
-    v = (((node||{})[dispozice]||{}))[stav];
-    if(v){
-      const any = Object.values(v)[0];
-      if(any && any.median){ return {median:any.median, n:any.n||0, steps:++steps}; }
-    }
-    // ignore stav
-    v = ((node||{})[dispozice]);
-    if(v){
-      // choose first available leaf
-      for(const st of Object.values(v)){
-        for(const own of Object.values(st)){
-          if(own && own.median){ return {median:own.median, n:own.n||0, steps:steps+1}; }
-        }
-      }
-    }
-    // fallback: any in obec
-    for(const disp of Object.values(node)){
-      for(const st of Object.values(disp)){
-        for(const own of Object.values(st)){
-          if(own && own.median){ return {median:own.median, n:own.n||0, steps:steps+2}; }
-        }
-      }
-    }
-    return {median:null, n:0, steps:3};
-  }
-
-  function estimateByt(map, params){
-    const { obec, dispozice, stav, vlastnictvi, vymera } = params;
-    const res = fallbackByt(map, obec, dispozice, stav, vlastnictvi);
-    if(!res.median){ return { ok:false, reason:"Pro tuto lokalitu nemáme dost dat." }; }
-    const kStav = cfg.koefStav[stav] || 1.0;
-    const kVlast = cfg.koefVlastnictvi[(vlastnictvi||'').toLowerCase()] || 1.0;
-    const mid_m2 = res.median * kStav * kVlast;
-    const mid = mid_m2 * vymera;
-    const spread = 0.12; // ±12 %
+    };
+    
+    const kS = koefStav[stav_bytu] || 1.00;
+    const kV = koefVlast[(vlastnictvi || '').toLowerCase()] || 1.00;
+    
+    const pricePerM2 = medianPrice * kS * kV;
+    const totalPrice = pricePerM2 * parseFloat(vymera || 0);
+    
     return {
-      ok:true,
-      mid: Math.round(mid),
-      low: Math.round(mid*(1-spread)),
-      high: Math.round(mid*(1+spread)),
-      m2: Math.round(mid_m2),
-      n: res.n||0,
-      confidence: confidence(res.n||0, res.steps||0),
-      notes: res.steps>0 ? "Použit částečný odhad (fallback)." : "Přímá shoda v datech."
+      ok: true,
+      mid: Math.round(totalPrice),
+      low: Math.round(totalPrice * 0.88),
+      high: Math.round(totalPrice * 1.12),
+      per_m2: Math.round(pricePerM2),
+      n: count,
+      confidence: count >= 20 ? "vysoká" : (count >= 5 ? "střední" : "nízká"),
+      note: `Vzorek: ${usedLevel} (n=${count})`
     };
   }
-
-  function fallbackDum(map, obec, typ){
-    const node = map[obec]; if(!node) return {median:null,n:0,steps:2};
-    let v = (node[typ]||{})['nan'] || Object.values(node[typ]||{})[0];
-    if(v && v.median) return {median:v.median,n:v.n||0,steps:0};
-    // any in obec
-    for(const item of Object.values(node)){
-      const leaf = Object.values(item||{})[0];
-      if(leaf && leaf.median) return {median:leaf.median,n:leaf.n||0,steps:1};
+  
+  // DOMY estimation
+  function estimateDum(rows, params) {
+    if (!rows || !rows.length) {
+      return { ok: false, reason: "Data nejsou k dispozici." };
     }
-    return {median:null,n:0,steps:2};
+    
+    const { obec, typ_stavby, zatepleni, nova_okna, vymera } = params;
+    
+    const cascades = [
+      { label: "obec + typ stavby",
+        filter: r => eqObec(r.obec, obec) && (r.typ_stavby || '').toLowerCase() === (typ_stavby || '').toLowerCase() },
+      { label: "ČR + typ stavby",
+        filter: r => (r.typ_stavby || '').toLowerCase() === (typ_stavby || '').toLowerCase() },
+      { label: "ČR – všechny domy",
+        filter: r => true }
+    ];
+    
+    let medianPrice = null;
+    let usedLevel = null;
+    let count = 0;
+    
+    for (const cascade of cascades) {
+      const filtered = rows.filter(cascade.filter);
+      const prices = filtered.map(r => Number(r.cena_m2)).filter(p => isFinite(p));
+      
+      if (prices.length > 0) {
+        medianPrice = median(prices);
+        usedLevel = cascade.label;
+        count = prices.length;
+        break;
+      }
+    }
+    
+    if (!medianPrice || !isFinite(medianPrice)) {
+      return { ok: false, reason: "Nenašel jsem vhodný vzorek dat." };
+    }
+    
+    // Type coefficient
+    let kK = 1.0;
+    const typ = (typ_stavby || '').toLowerCase();
+    if (typ.includes('dřev')) kK = 0.90;
+    else if (typ.includes('smíšen')) kK = 0.95;
+    else if (typ && !typ.includes('cihl')) kK = 0.85;
+    
+    // State coefficient (zatepleni + nova_okna)
+    const z = (zatepleni || '').toLowerCase();
+    const o = (nova_okna || '').toLowerCase();
+    const kS = (z === 'ano' && o === 'ano') ? 1.30 : 
+               ((z === 'ano' || o === 'ano') ? 1.15 : 1.00);
+    
+    const pricePerM2 = medianPrice * kK * kS;
+    const totalPrice = pricePerM2 * parseFloat(vymera || 0);
+    
+    return {
+      ok: true,
+      mid: Math.round(totalPrice),
+      low: Math.round(totalPrice * 0.88),
+      high: Math.round(totalPrice * 1.12),
+      per_m2: Math.round(pricePerM2),
+      n: count,
+      confidence: count >= 20 ? "vysoká" : (count >= 5 ? "střední" : "nízká"),
+      note: `Vzorek: ${usedLevel} (n=${count}). Koef: typ=${kK}, stav=${kS}`
+    };
   }
-
-  function estimateDum(map, params){
-    const { obec, typ_stavby, stav, vymera } = params;
-    const res = fallbackDum(map, obec, typ_stavby);
-    if(!res.median){ return {ok:false, reason:"Pro tuto lokalitu nemáme dost dat."}; }
-    const kStav = cfg.koefStav[stav] || 1.0;
-    const mid_m2 = res.median * kStav;
-    const mid = mid_m2 * vymera;
-    const spread = 0.12;
-    return { ok:true, mid:Math.round(mid), low:Math.round(mid*(1-spread)), high:Math.round(mid*(1+spread)),
-      m2:Math.round(mid_m2), n:res.n||0, confidence:confidence(res.n||0,res.steps||0), notes: res.steps? "Použit částečný odhad.":"Přímá shoda." };
+  
+  // POZEMKY estimation
+  function estimatePozemek(rows, params) {
+    if (!rows || !rows.length) {
+      return { ok: false, reason: "Data nejsou k dispozici." };
+    }
+    
+    const { obec, kategorie, vymera, spoluvl, podil } = params;
+    
+    // Determine field name
+    const field = rows[0]?.kategorie_final !== undefined ? 'kategorie_final' : 
+                  (rows[0]?.kategorie !== undefined ? 'kategorie' : null);
+    
+    if (!field) {
+      return { ok: false, reason: "Data nemají správnou strukturu." };
+    }
+    
+    const k = (kategorie || '').toLowerCase().trim();
+    
+    const cascades = [
+      { label: "obec + kategorie",
+        filter: r => eqObec(r.obec, obec) && (r[field] || '').toLowerCase() === k },
+      { label: "ČR + kategorie",
+        filter: r => (r[field] || '').toLowerCase() === k },
+      { label: "ČR – všechny pozemky",
+        filter: r => true }
+    ];
+    
+    let medianPrice = null;
+    let usedLevel = null;
+    let count = 0;
+    
+    for (const cascade of cascades) {
+      const filtered = rows.filter(cascade.filter);
+      const prices = filtered.map(r => Number(r.cena_m2)).filter(p => isFinite(p));
+      
+      if (prices.length > 0) {
+        medianPrice = median(prices);
+        usedLevel = cascade.label;
+        count = prices.length;
+        break;
+      }
+    }
+    
+    if (!medianPrice || !isFinite(medianPrice)) {
+      return { ok: false, reason: "Nenašel jsem vhodný vzorek dat." };
+    }
+    
+    // Calculate share
+    let share = 1.0;
+    if ((spoluvl || '').toLowerCase() === 'ano') {
+      let p = (podil || '').trim();
+      if (/^\s*\d+(\.\d+)?\s*$/.test(p)) {
+        share = parseFloat(p);
+      } else if (p.includes('/')) {
+        const [x, y] = p.split('/').map(s => parseFloat(s.replace(',', '.')));
+        if (isFinite(x) && isFinite(y) && y > 0) {
+          share = x / y;
+        }
+      }
+      if (!isFinite(share) || share <= 0 || share > 1) share = 1.0;
+    }
+    
+    const totalPrice = medianPrice * parseFloat(vymera || 0) * share;
+    
+    return {
+      ok: true,
+      mid: Math.round(totalPrice),
+      low: Math.round(totalPrice * 0.88),
+      high: Math.round(totalPrice * 1.12),
+      per_m2: Math.round(medianPrice),
+      n: count,
+      confidence: count >= 20 ? "vysoká" : (count >= 5 ? "střední" : "nízká"),
+      note: `Vzorek: ${usedLevel} (n=${count}). Podíl: ${share}`
+    };
   }
-
-  function fallbackPoz(map, obec, kategorie){
-    const node = map[obec]; if(!node) return {median:null,n:0,steps:1};
-    let v = node[kategorie];
-    if(v && v.median) return {median:v.median, n:v.n||0, steps:0};
-    // any in obec
-    v = Object.values(node||{})[0];
-    if(v && v.median) return {median:v.median, n:v.n||0, steps:1};
-    return {median:null,n:0,steps:2};
-  }
-
-  function estimatePozemek(map, params){
-    const { obec, kategorie, vymera } = params;
-    const res = fallbackPoz(map, obec, kategorie);
-    if(!res.median){ return {ok:false, reason:"Pro tuto lokalitu nemáme dost dat."}; }
-    const mid_m2 = res.median;
-    const mid = mid_m2 * vymera;
-    const spread = 0.12;
-    return { ok:true, mid:Math.round(mid), low:Math.round(mid*(1-spread)), high:Math.round(mid*(1+spread)),
-      m2:Math.round(mid_m2), n:res.n||0, confidence:confidence(res.n||0,res.steps||0),
-      notes: res.steps? "Použit částečný odhad.":"Přímá shoda."};
-  }
-
-  global.CG_Estimator = { cfg, estimateByt, estimateDum, estimatePozemek };
+  
+  global.CG_Estimator = { estimateByt, estimateDum, estimatePozemek };
+  
 })(window);
