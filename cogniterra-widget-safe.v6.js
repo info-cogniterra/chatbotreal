@@ -9,7 +9,7 @@
 })();
 
 // cogniterra-widget-safe.v6.js — BUBBLE-ONLY, SINGLE INSTANCE - VERZE S UP DETEKCÍ
-// Build v6.bubble.8 — Fixed "ano" triggering UP instead of contact form
+// Build v6.bubble.8-fix — Fixed syntax error
 
 (function () {
   "use strict";
@@ -75,7 +75,7 @@
     },
     select(name, options) {
       const s = U.el("select", { id: name, name, class: "cg-select" });
-      options.forEach((o) => s.appendChild(U.el("option", { value: o }, [o]));
+      options.forEach((o) => s.appendChild(U.el("option", { value: o }, [o])));
       return s;
     },
     emailOk(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v || ""); },
@@ -727,12 +727,12 @@
     estimatePozemek(m,p){ return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; }
   };
 
-  // ==== FIXED: Better UP vs AI detection with context awareness ====
+  // ==== Better UP vs AI detection with context awareness ====
   function needsUP(q) {
     const s = U.norm(q);
     console.log('[Widget] Checking UP need for:', q, '-> normalized:', s);
     
-    // FIXED: If contact form was just offered, don't treat "ano" as UP query
+    // If contact form was just offered, don't treat "ano" as UP query
     if (S.intent.contactOffer) {
       console.log('[Widget] Contact form offered, skipping UP detection');
       return false;
@@ -745,7 +745,7 @@
       return false;
     }
     
-    // FIXED: Don't treat common affirmative/negative words as locations
+    // Don't treat common affirmative/negative words as locations
     const isAffirmation = /^(ano|ne|jo|ok|okej|dobre|jasne|souhlasim|nesouhlasim)$/i.test(s);
     if (isAffirmation) {
       console.log('[Widget] Detected affirmation/negation, not UP');
@@ -1150,7 +1150,7 @@
   }
   
   function ask(q) {
-    // FIXED: Check contact offer intent FIRST before anything else
+    // Check contact offer intent FIRST before anything else
     try {
       if (S.intent.contactOffer) {
         console.log('[Widget] Contact offer active, checking response');
