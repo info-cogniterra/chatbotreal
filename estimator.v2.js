@@ -1,5 +1,6 @@
 // estimator.v2.js - Complete rewrite based on original widget logic
 // Supports Excel data format with obec-okres-kraj structure
+// v2.1 - Fixed municipality parsing (removes city parts like "Teplice - Nová Ves" → "Teplice")
 (function(global){
   
   // Helper functions
@@ -21,6 +22,53 @@
     return s;
   };
   
+  const extractMainMunicipality = s => {
+    if (!s) return null;
+    
+    s = String(s).trim();
+    
+    // Praha - speciální handling
+    if (/praha/i.test(s)) {
+      const prahaMatch = s.match(/praha\s*(\d+)/i);
+      if (prahaMatch) {
+        return `Praha ${prahaMatch[1]}`;
+      }
+      // Pokud obsahuje "Praha" ale bez čísla, vrátit jen "Praha"
+      return 'Praha';
+    }
+    
+    // Odstranit části města (formát "Město - Část")
+    // Např: "Teplice - Nová Ves" → "Teplice"
+    if (s.includes(' - ')) {
+      const mainPart = s.split(' - ')[0].trim();
+      if (mainPart) {
+        console.log('[Estimator] Extracted main municipality:', s, '→', mainPart);
+        return mainPart;
+      }
+    }
+    
+    // Odstranit části v závorce
+    // Např: "Brno (Řečkovice)" → "Brno"
+    const withoutParens = s.replace(/\s*\([^)]+\)/g, '').trim();
+    if (withoutParens !== s) {
+      console.log('[Estimator] Removed parentheses:', s, '→', withoutParens);
+      s = withoutParens;
+    }
+    
+    // Odstranit označení částí typu "Brno-střed"
+    if (s.includes('-')) {
+      const parts = s.split('-');
+      // Pokud je první část město, vrátit ji
+      if (parts[0].trim().length > 2) {
+        const mainPart = parts[0].trim();
+        console.log('[Estimator] Extracted from hyphen:', s, '→', mainPart);
+        return mainPart;
+      }
+    }
+    
+    return s;
+  };
+  
   const extractPrahaDistrict = s => {
     if (!s) return null;
     s = normalizePraha(s);
@@ -29,20 +77,38 @@
   };
   
   const eqObec = (a, b) => {
-    const normA = (normalizePraha(a) || '').toLowerCase();
-    const normB = (normalizePraha(b) || '').toLowerCase();
+    const normA = (extractMainMunicipality(normalizePraha(a)) || '').toLowerCase();
+    const normB = (extractMainMunicipality(normalizePraha(b)) || '').toLowerCase();
+    
+    console.log('[Estimator] Comparing municipalities:', {
+      a, 
+      b, 
+      normA, 
+      normB,
+      match: normA === normB
+    });
     
     // Exact match
     if (normA === normB) return true;
     
     // Praha district matching
-    const prahaA = extractPrahaDistrict(normA);
-    const prahaB = extractPrahaDistrict(normB);
+    if (/praha/i.test(normA) && /praha/i.test(normB)) {
+      // Extrahovat čísla
+      const numA = (normA.match(/\d+/) || [])[0];
+      const numB = (normB.match(/\d+/) || [])[0];
+      
+      // Pokud obě mají čísla, porovnat je
+      if (numA && numB) {
+        console.log('[Estimator] Praha district match:', numA, '===', numB);
+        return numA === numB;
+      }
+      
+      // Pokud jedna nemá číslo, považovat za match (Praha obecně)
+      console.log('[Estimator] Praha generic match');
+      return true;
+    }
     
-    if (prahaA && prahaB) return prahaA.toLowerCase() === prahaB.toLowerCase();
-    if (prahaA || prahaB) return false;
-    
-    return normA === normB;
+    return false;
   };
   
   const dispoRooms = d => {
@@ -58,15 +124,32 @@
     
     if (parts.length >= 2) {
       // Has street
+      const rawObec = parts[parts.length - 1];
+      const mainObec = extractMainMunicipality(normalizePraha(rawObec));
+      
+      console.log('[Estimator] Parsed location with street:', {
+        raw: locationStr,
+        ulice: parts[0],
+        rawObec,
+        mainObec
+      });
+      
       return {
         ulice: parts[0],
-        obec: normalizePraha(parts[parts.length - 1])
+        obec: mainObec
       };
     } else {
       // Just municipality
+      const mainObec = extractMainMunicipality(normalizePraha(parts[0]));
+      
+      console.log('[Estimator] Parsed location (no street):', {
+        raw: locationStr,
+        mainObec
+      });
+      
       return {
         ulice: null,
-        obec: normalizePraha(parts[0])
+        obec: mainObec
       };
     }
   };
@@ -89,7 +172,7 @@
     
     console.log('[Estimator] Byt - hledám obec:', targetObec);
     
-    // Fallback cascade
+    // Fallback cascade (SIMPLIFIED - no okres/kraj)
     const d = (dispozice || '').toLowerCase().trim();
     const rooms = dispoRooms(dispozice);
     
@@ -98,12 +181,6 @@
         filter: r => eqObec(r.obec, targetObec) && (r.dispozice || '').toLowerCase() === d },
       { label: "obec + počet místností", 
         filter: r => eqObec(r.obec, targetObec) && dispoRooms(r.dispozice) === rooms },
-      { label: "okres + dispozice",
-        filter: r => r.okres && targetObec && 
-                     r.okres.toLowerCase().includes(targetObec.toLowerCase().split(' ')[0]) &&
-                     (r.dispozice || '').toLowerCase() === d },
-      { label: "kraj + dispozice",
-        filter: r => r.kraj && (r.dispozice || '').toLowerCase() === d },
       { label: "ČR + dispozice", 
         filter: r => (r.dispozice || '').toLowerCase() === d },
       { label: "ČR + počet místností", 
@@ -124,8 +201,10 @@
         medianPrice = median(prices);
         usedLevel = cascade.label;
         count = prices.length;
-        console.log(`[Estimator] Použit fallback: ${cascade.label}, n=${count}`);
+        console.log(`[Estimator] ✅ Použit fallback: ${cascade.label}, n=${count}, medián=${Math.round(medianPrice)} Kč/m²`);
         break;
+      } else {
+        console.log(`[Estimator] ❌ Fallback "${cascade.label}" nenašel žádná data`);
       }
     }
     
@@ -151,6 +230,15 @@
     
     const pricePerM2 = medianPrice * kS * kV;
     const totalPrice = pricePerM2 * parseFloat(vymera || 0);
+    
+    console.log('[Estimator] Výpočet bytu:', {
+      medianPrice: Math.round(medianPrice),
+      kS,
+      kV,
+      pricePerM2: Math.round(pricePerM2),
+      vymera,
+      totalPrice: Math.round(totalPrice)
+    });
     
     return {
       ok: true,
@@ -182,18 +270,13 @@
     
     console.log('[Estimator] Dům - hledám obec:', targetObec);
     
+    // Fallback cascade (SIMPLIFIED - no okres/kraj)
     const cascades = [
       { label: "obec + typ stavby",
         filter: r => eqObec(r.obec, targetObec) && 
                      (r.typ_stavby || '').toLowerCase() === (typ_stavby || '').toLowerCase() },
       { label: "obec (jakýkoliv typ)",
         filter: r => eqObec(r.obec, targetObec) },
-      { label: "okres + typ stavby",
-        filter: r => r.okres && targetObec &&
-                     r.okres.toLowerCase().includes(targetObec.toLowerCase().split(' ')[0]) &&
-                     (r.typ_stavby || '').toLowerCase() === (typ_stavby || '').toLowerCase() },
-      { label: "kraj + typ stavby",
-        filter: r => r.kraj && (r.typ_stavby || '').toLowerCase() === (typ_stavby || '').toLowerCase() },
       { label: "ČR + typ stavby",
         filter: r => (r.typ_stavby || '').toLowerCase() === (typ_stavby || '').toLowerCase() },
       { label: "ČR – všechny domy",
@@ -212,8 +295,10 @@
         medianPrice = median(prices);
         usedLevel = cascade.label;
         count = prices.length;
-        console.log(`[Estimator] Použit fallback: ${cascade.label}, n=${count}`);
+        console.log(`[Estimator] ✅ Použit fallback: ${cascade.label}, n=${count}, medián=${Math.round(medianPrice)} Kč/m²`);
         break;
+      } else {
+        console.log(`[Estimator] ❌ Fallback "${cascade.label}" nenašel žádná data`);
       }
     }
     
@@ -237,6 +322,15 @@
     const pricePerM2 = medianPrice * kK * kS;
     const totalPrice = pricePerM2 * parseFloat(vymera || 0);
     
+    console.log('[Estimator] Výpočet domu:', {
+      medianPrice: Math.round(medianPrice),
+      kK,
+      kS,
+      pricePerM2: Math.round(pricePerM2),
+      vymera,
+      totalPrice: Math.round(totalPrice)
+    });
+    
     return {
       ok: true,
       mid: Math.round(totalPrice),
@@ -257,7 +351,7 @@
     
     const { obec, kategorie, vymera, spoluvl, podil } = params;
     
-    const targetObec = normalizePraha(obec);
+    const targetObec = extractMainMunicipality(normalizePraha(obec));
     
     console.log('[Estimator] Pozemek - hledám obec:', targetObec);
     
@@ -271,17 +365,12 @@
     
     const k = (kategorie || '').toLowerCase().trim();
     
+    // Fallback cascade (SIMPLIFIED - no okres/kraj)
     const cascades = [
       { label: "obec + kategorie",
         filter: r => eqObec(r.obec, targetObec) && (r[field] || '').toLowerCase() === k },
       { label: "obec (jakákoliv kategorie)",
         filter: r => eqObec(r.obec, targetObec) },
-      { label: "okres + kategorie",
-        filter: r => r.okres && targetObec &&
-                     r.okres.toLowerCase().includes(targetObec.toLowerCase().split(' ')[0]) &&
-                     (r[field] || '').toLowerCase() === k },
-      { label: "kraj + kategorie",
-        filter: r => r.kraj && (r[field] || '').toLowerCase() === k },
       { label: "ČR + kategorie",
         filter: r => (r[field] || '').toLowerCase() === k },
       { label: "ČR – všechny pozemky",
@@ -300,8 +389,10 @@
         medianPrice = median(prices);
         usedLevel = cascade.label;
         count = prices.length;
-        console.log(`[Estimator] Použit fallback: ${cascade.label}, n=${count}`);
+        console.log(`[Estimator] ✅ Použit fallback: ${cascade.label}, n=${count}, medián=${Math.round(medianPrice)} Kč/m²`);
         break;
+      } else {
+        console.log(`[Estimator] ❌ Fallback "${cascade.label}" nenašel žádná data`);
       }
     }
     
@@ -325,6 +416,13 @@
     }
     
     const totalPrice = medianPrice * parseFloat(vymera || 0) * share;
+    
+    console.log('[Estimator] Výpočet pozemku:', {
+      medianPrice: Math.round(medianPrice),
+      vymera,
+      share,
+      totalPrice: Math.round(totalPrice)
+    });
     
     return {
       ok: true,
