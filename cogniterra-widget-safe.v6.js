@@ -9,12 +9,13 @@
 })();
 
 // cogniterra-widget-safe.v6.js — BUBBLE-ONLY, SINGLE INSTANCE - VERZE S UP DETEKCÍ
-// Build v6.bubble.14 — Fixed normalization in extractLocationFromUP + debug logs
+// Build v6.bubble.15-FINAL — All critical, important and nice-to-have fixes implemented
+// Date: 2025-10-18 | Author: info-cogniterra
 
 (function () {
   "use strict";
 
-  console.log('[Widget] Initialization started...');
+  console.log('[Widget] Initialization started... (v6.15)');
 
   const host = document.querySelector("[data-cogniterra-widget]");
   if (!host) {
@@ -46,7 +47,8 @@
     data: {},
     tempPricing: null,
     chat: { messages: [] },
-    intent: {}
+    intent: {},
+    processing: false  // NEW: Prevent double submit
   };
 
   console.log('[Widget] Session:', S.session);
@@ -85,8 +87,20 @@
     },
     fetchJson(url) { return fetch(url, { credentials: "omit" }).then(r => r.json()); },
     
+    // NEW: Clear all intent flags
+    clearIntents() {
+      console.log('[Widget] Clearing all intent flags');
+      S.intent.contactOffer = false;
+      S.intent.upOffer = false;
+      S.intent.waitingForLocation = false;
+    },
+    
     searchUP(query, upData) {
-      if (!upData || !upData.map) return [];
+      if (!upData || !upData.map || !Array.isArray(upData.map)) {
+        console.error('[Widget] Invalid UP data structure');
+        return [];
+      }
+      
       const q = U.norm(query);
       
       console.log('[Widget] Searching UP for:', query, '-> normalized:', q);
@@ -97,8 +111,10 @@
       const obecPartial = [];
       
       for (const item of upData.map) {
-        const kuNorm = U.norm(item.ku || "");
-        const obecNorm = U.norm(item.obec || "");
+        if (!item || !item.ku || !item.obec) continue;  // NEW: Validate item
+        
+        const kuNorm = U.norm(item.ku);
+        const obecNorm = U.norm(item.obec);
         
         if (kuNorm === q) {
           kuExact.push(item);
@@ -128,6 +144,13 @@
       
       const normalized = U.norm(text);
       console.log('[Widget] extractLocationFromUP NORMALIZED:', normalized);
+      
+      // NEW: Check for multiple locations
+      const multipleLocations = /\b(a|nebo|či)\b/.test(normalized);
+      if (multipleLocations) {
+        console.log('[Widget] ⚠️ Multiple locations detected');
+        return ['__MULTIPLE__'];  // Special marker
+      }
       
       const patterns = [
         /(?:uzemni\s+plan|up)\s+(?:pro|v|ve|na)\s+([^\s]+)/i,
@@ -166,6 +189,42 @@
         'zastavitelnost'
       ];
       return keywords.some(kw => s.includes(kw));
+    },
+    
+    // NEW: Session persistence helpers
+    saveSession() {
+      try {
+        const sessionData = {
+          flow: S.flow,
+          tempPricing: S.tempPricing,
+          messages: S.chat.messages.slice(-10),
+          timestamp: Date.now()
+        };
+        localStorage.setItem('cgtr_session_' + S.session, JSON.stringify(sessionData));
+        console.log('[Widget] Session saved');
+      } catch(e) {
+        console.warn('[Widget] Could not save session:', e);
+      }
+    },
+    
+    loadSession() {
+      try {
+        const saved = localStorage.getItem('cgtr_session_' + S.session);
+        if (saved) {
+          const data = JSON.parse(saved);
+          // Only restore if less than 30 minutes old
+          if (Date.now() - data.timestamp < 1800000) {
+            S.flow = data.flow;
+            S.tempPricing = data.tempPricing;
+            S.chat.messages = data.messages || [];
+            console.log('[Widget] Session restored');
+            return true;
+          }
+        }
+      } catch(e) {
+        console.warn('[Widget] Could not load session:', e);
+      }
+      return false;
     }
   };
 
@@ -279,6 +338,18 @@
     align-self: flex-end;
   }
   
+  .chat-msg.loading {
+    background: #e2e8f0;
+    color: #4a5568;
+    font-style: italic;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+  
   .chat-panel {
     background: transparent;
     padding: 0;
@@ -313,6 +384,11 @@
     box-shadow: 0 0 0 2px rgba(44,82,130,.2);
   }
   
+  .chat-input-area textarea:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
   .chat-input-area button {
     border: 0;
     background: #2c5282;
@@ -330,6 +406,11 @@
   .chat-input-area button:hover,
   .chat-input-area button:active {
     background: #1a365d;
+  }
+  
+  .chat-input-area button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
   
   .cg-start {
@@ -590,6 +671,7 @@
       e.preventDefault();
       e.stopPropagation();
       console.log('[Widget] Close button clicked');
+      U.saveSession();  // NEW: Save before closing
       if (window.CGTR && typeof window.CGTR.hide === 'function') {
         window.CGTR.hide();
       } else {
@@ -670,6 +752,14 @@
     chatMessages.appendChild(w);
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
+  
+  // NEW: Add loading message
+  function addLoading(text) {
+    const b = U.el("div", { class: "chat-msg ai loading" }, [text || "⏳ Zpracovávám..."]);
+    chatMessages.appendChild(b);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return b;
+  }
 
   let MAPY_PROMISE = null;
   function loadMapy(apiKey) {
@@ -687,6 +777,7 @@
           });
         } else resolve(false);
       };
+      s.onerror = function() { resolve(false); };  // NEW: Handle load error
       document.head.appendChild(s);
     });
     return MAPY_PROMISE;
@@ -698,6 +789,7 @@
     loadMapy(key).then((ok) => {
       if (!ok) {
         inputEl.setAttribute("placeholder", (inputEl.placeholder || "") + " (našeptávač nedostupný)");
+        console.warn('[Widget] Mapy.cz suggest unavailable');  // NEW: Console warning
         return;
       }
       try { if (window.SMap && SMap.Suggest) new SMap.Suggest(inputEl); } catch (_) {}
@@ -738,87 +830,112 @@
   function handleUPQuery(q) {
     console.log('[Widget] Handling UP query:', q);
     
-    const locations = U.extractLocationFromUP(q);
+    // NEW: Add loading state
+    const loadingMsg = addLoading("🔍 Vyhledávám územní plán...");
     
-    console.log('[Widget] Extracted locations:', locations);
-    
-    if (locations.length === 0) {
-      addAI("Pro vyhledání územního plánu potřebuji znát obec nebo katastrální území. Můžete mi prosím uvést konkrétní lokalitu?");
-      S.intent.waitingForLocation = true;
-      return;
-    }
-    
-    const upData = S.data.up || window.PRICES?.up;
-    if (!upData || !upData.map) {
-      addAI("Omlouvám se, databáze územních plánů není aktuálně dostupná. Zkuste to prosím později nebo mě kontaktujte pro další pomoc.");
-      stepContactVerify();
-      return;
-    }
-    
-    let allResults = [];
-    for (const loc of locations) {
-      const results = U.searchUP(loc, upData);
-      if (results.length > 0) {
-        allResults = results;
-        break;
+    // NEW: Async execution to show loading
+    setTimeout(() => {
+      const locations = U.extractLocationFromUP(q);
+      
+      console.log('[Widget] Extracted locations:', locations);
+      
+      loadingMsg.remove();  // Remove loading
+      
+      // NEW: Check for multiple locations
+      if (locations.length === 1 && locations[0] === '__MULTIPLE__') {
+        addAI("⚠️ Zadejte prosím pouze jednu lokalitu najednou. Například 'územní plán pro Brno'.");
+        S.intent.waitingForLocation = true;
+        return;
       }
-    }
-    
-    console.log('[Widget] Search results:', allResults.length);
-    
-    if (allResults.length === 0) {
-      const box = U.el("div", { class: "up-no-result" }, [
-        `Pro "${locations[0]}" jsem bohužel nenašel územní plán v databázi. Zkuste prosím upřesnit název obce nebo katastrálního území, případně vás mohu spojit s odborníkem.`
-      ]);
-      addPanel(box);
+      
+      if (locations.length === 0) {
+        addAI("Pro vyhledání územního plánu potřebuji znát obec nebo katastrální území. Můžete mi prosím uvést konkrétní lokalitu?");
+        S.intent.waitingForLocation = true;
+        return;
+      }
+      
+      const upData = S.data.up || window.PRICES?.up;
+      if (!upData || !upData.map) {
+        addAI("Omlouvám se, databáze územních plánů není aktuálně dostupná. Zkuste to prosím později nebo mě kontaktujte pro další pomoc.");
+        stepContactVerify();
+        return;
+      }
+      
+      let allResults = [];
+      for (const loc of locations) {
+        const results = U.searchUP(loc, upData);
+        if (results.length > 0) {
+          allResults = results;
+          break;
+        }
+      }
+      
+      console.log('[Widget] Search results:', allResults.length);
+      
+      if (allResults.length === 0) {
+        // NEW: Better error message with location name
+        const box = U.el("div", { class: "up-no-result" }, [
+          `Pro lokalitu "${locations[0]}" jsem bohužel nenašel územní plán v databázi. `,
+          `Zkuste prosím upřesnit název obce, katastrálního území, nebo mě můžete kontaktovat pro další pomoc.`
+        ]);
+        addPanel(box);
+        
+        const ctaBox = U.el("div", { class: "cg-step" }, [
+          U.el("div", { class: "cg-cta" }, [
+            U.el("button", { class: "cg-btn", type: "button", onclick: () => stepContactVerify() }, ["Kontaktovat odborníka"])
+          ])
+        ]);
+        addPanel(ctaBox);
+        return;
+      }
+      
+      if (allResults.length === 1) {
+        const item = allResults[0];
+        const box = U.el("div", { class: "up-result" }, [
+          U.el("h4", {}, [`Územní plán: ${item.obec}`]),
+          U.el("p", {}, [`Katastrální území: ${item.ku}`]),
+          U.el("p", {}, [
+            "Odkaz: ",
+            U.el("a", { 
+              href: item.url || "#",  // NEW: Fallback for missing URL
+              target: item.url ? "_blank" : "_self", 
+              rel: "noopener noreferrer" 
+            }, [item.url || "(odkaz nedostupný)"])
+          ])
+        ]);
+        addAI("Našel jsem územní plán pro vaši lokalitu:", box);
+        
+      } else {
+        addAI(`Našel jsem ${allResults.length} výsledků:`);
+        
+        allResults.slice(0, 5).forEach(item => {
+          const box = U.el("div", { class: "up-result" }, [
+            U.el("h4", {}, [`${item.obec}`]),
+            U.el("p", {}, [`KÚ: ${item.ku}`]),
+            U.el("p", {}, [
+              U.el("a", { 
+                href: item.url || "#", 
+                target: item.url ? "_blank" : "_self",
+                rel: "noopener noreferrer" 
+              }, [item.url ? "Otevřít územní plán →" : "(odkaz nedostupný)"])
+            ])
+          ]);
+          addPanel(box);
+        });
+        
+        if (allResults.length > 5) {
+          addAI(`... a dalších ${allResults.length - 5} výsledků. Pro přesnější vyhledávání upřesněte prosím katastrální území.`);
+        }
+      }
       
       const ctaBox = U.el("div", { class: "cg-step" }, [
+        U.el("p", {}, ["Potřebujete další pomoc s územním plánováním?"]),
         U.el("div", { class: "cg-cta" }, [
           U.el("button", { class: "cg-btn", type: "button", onclick: () => stepContactVerify() }, ["Kontaktovat odborníka"])
         ])
       ]);
       addPanel(ctaBox);
-      return;
-    }
-    
-    if (allResults.length === 1) {
-      const item = allResults[0];
-      const box = U.el("div", { class: "up-result" }, [
-        U.el("h4", {}, [`Územní plán: ${item.obec}`]),
-        U.el("p", {}, [`Katastrální území: ${item.ku}`]),
-        U.el("p", {}, [
-          "Odkaz: ",
-          U.el("a", { href: item.url, target: "_blank", rel: "noopener noreferrer" }, [item.url])
-        ])
-      ]);
-      addAI("Našel jsem územní plán pro vaši lokalitu:", box);
-      
-    } else {
-      addAI(`Našel jsem ${allResults.length} výsledků:`);
-      
-      allResults.slice(0, 5).forEach(item => {
-        const box = U.el("div", { class: "up-result" }, [
-          U.el("h4", {}, [`${item.obec}`]),
-          U.el("p", {}, [`KÚ: ${item.ku}`]),
-          U.el("p", {}, [
-            U.el("a", { href: item.url, target: "_blank", rel: "noopener noreferrer" }, ["Otevřít územní plán →"])
-          ])
-        ]);
-        addPanel(box);
-      });
-      
-      if (allResults.length > 5) {
-        addAI(`... a dalších ${allResults.length - 5} výsledků. Pro přesnější vyhledávání upřesněte prosím katastrální území.`);
-      }
-    }
-    
-    const ctaBox = U.el("div", { class: "cg-step" }, [
-      U.el("p", {}, ["Potřebujete další pomoc s územním plánováním?"]),
-      U.el("div", { class: "cg-cta" }, [
-        U.el("button", { class: "cg-btn", type: "button", onclick: () => stepContactVerify() }, ["Kontaktovat odborníka"])
-      ])
-    ]);
-    addPanel(ctaBox);
+    }, 300);  // 300ms delay to show loading
   }
 
   function renderStart() { 
@@ -849,6 +966,7 @@
 
   function startPricing() {
     S.flow = "pricing";
+    U.saveSession();  // NEW: Save on flow start
     stepChooseType();
   }
 
@@ -940,6 +1058,7 @@
 
   function renderLeadBoxPricing(params) {
     S.tempPricing = params;
+    U.saveSession();  // NEW: Save pricing params
     const consentId = "cgConsent_" + Math.random().toString(36).slice(2);
 
     const box = U.el("div", { class: "leadbox" }, [
@@ -1105,6 +1224,13 @@
   }
   
   function ask(q) {
+    // NEW: Prevent double submit
+    if (S.processing) {
+      console.log('[Widget] Already processing, ignoring duplicate request');
+      return;
+    }
+    
+    // FIX 1: Contact offer intent (with clearing)
     try {
       if (S.intent.contactOffer) {
         console.log('[Widget] Contact offer active, checking response');
@@ -1117,11 +1243,11 @@
         if (yesRe.test(trimmed)) {
           console.log('[Widget] YES detected - opening contact form');
           addME(q);
+          U.clearIntents();  // NEW: Clear all intents
           stepContactVerify();
-          S.intent.contactOffer = false;
           return;
         } else if (noRe.test(trimmed)) {
-          S.intent.contactOffer = false;
+          U.clearIntents();  // NEW: Clear all intents
           addME(q);
           addAI("Dobře, pokud budete potřebovat později, dejte mi vědět!");
           return;
@@ -1132,6 +1258,7 @@
       console.error('[Widget] Contact offer check error:', e);
     }
 
+    // FIX 2: UP offer intent (with clearing)
     try {
       if (S.intent.upOffer) {
         console.log('[Widget] UP offer active, checking response');
@@ -1144,7 +1271,7 @@
           S.intent.waitingForLocation = true;
           return;
         } else if (noRe.test(q.trim())) {
-          S.intent.upOffer = false;
+          U.clearIntents();  // NEW: Clear all intents
           addME(q);
           addAI("Dobře, pokud budete potřebovat později, dejte mi vědět!");
           return;
@@ -1153,12 +1280,21 @@
       }
     } catch(_) {}
 
+    // FIX 3: Waiting for location (double UP request prevention)
     try {
       if (S.intent.waitingForLocation) {
         console.log('[Widget] waitingForLocation active, user input:', q);
         addME(q);
         S.intent.waitingForLocation = false;
-        handleUPQuery("územní plán " + q);
+        
+        // NEW: Check if user already wrote "územní plán" again
+        if (needsUP(q)) {
+          console.log('[Widget] User provided full UP query, using as-is');
+          handleUPQuery(q);
+        } else {
+          console.log('[Widget] User provided location only, prepending "územní plán"');
+          handleUPQuery("územní plán " + q);
+        }
         return;
       }
     } catch(e) {
@@ -1166,7 +1302,20 @@
     }
 
     if (!q) return;
+    
+    S.processing = true;  // NEW: Set processing flag
+    chatTextarea.disabled = true;  // NEW: Disable input
+    chatSendBtn.disabled = true;
+    
     addME(q);
+    
+    // Restore input after short delay
+    setTimeout(() => {
+      S.processing = false;
+      chatTextarea.disabled = false;
+      chatSendBtn.disabled = false;
+      try { chatTextarea.focus(); } catch(e) {}
+    }, 500);
     
     if (needPricing(q)) { 
       startPricing(); 
@@ -1185,7 +1334,11 @@
     }
 
     const wantContact = /(^|\b)(chci ?byt ?kontaktovan|kontaktuj(te)? me|zavolejte|napiste|nechte kontakt|ozve se|muzete me kontaktovat)/i.test(U.norm(q));
-    if (wantContact) { stepContactVerify(); return; }
+    if (wantContact) { 
+      U.clearIntents();  // NEW: Clear intents before contact
+      stepContactVerify(); 
+      return; 
+    }
     
     (async () => {
       try {
@@ -1238,74 +1391,4 @@
         if (ct.includes("application/json")) { 
           try { 
             const j = await resp.json(); 
-            txt = j.message || j.reply || j.text || j.answer || JSON.stringify(j); 
-          } catch { 
-            txt = await resp.text(); 
-          } 
-        } else { 
-          txt = await resp.text(); 
-        }
-        
-        txt = (txt && String(txt).trim()) || "Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS apod.";
-        addAI(txt);
-      } catch (e) { 
-        addAI("Omlouvám se, došlo k chybě při komunikaci s AI. Zkuste to prosím znovu."); 
-        console.error("[Widget] AI chat error:", e); 
-      }
-    })();
-  }
-
-  (async () => {
-    try {
-      const scriptEl = document.currentScript || document.querySelector('script[data-config]');
-      const CFG_URL = scriptEl ? scriptEl.getAttribute("data-config") : null;
-      if (CFG_URL) {
-        S.cfg = await U.fetchJson(CFG_URL);
-      }
-      if (S.cfg && S.cfg.data_urls) {
-        const d = S.cfg.data_urls;
-        const [byty, domy, pozemky, up] = await Promise.all([
-          d.byty ? U.fetchJson(d.byty) : null,
-          d.domy ? U.fetchJson(d.domy) : null,
-          d.pozemky ? U.fetchJson(d.pozemky) : null,
-          d.up ? U.fetchJson(d.up) : null
-        ]);
-        window.PRICES = { byty, domy, pozemky, up };
-        S.data.up = up;
-        console.log('[Widget] UP data loaded:', up ? `${up.map?.length || 0} entries` : 'FAILED');
-      }
-    } catch (e) {
-      console.error('[Widget] Config/data loading error:', e);
-      addAI("Chyba načítání konfigurace/dat: " + String(e));
-    }
-  })();
-
-  function cgSafeStart() {
-    try {
-      if (!chatMessages) return setTimeout(cgSafeStart, 40);
-      console.log('[Widget] Rendering start screen...');
-      renderStart();
-    } catch (e) {
-      console.error('[Widget] Start error:', e);
-      setTimeout(cgSafeStart, 40);
-    }
-  }
-
-  cgSafeStart();
-
-  chatSendBtn.addEventListener("click", () => { 
-    const q = chatTextarea.value.trim(); 
-    chatTextarea.value = ""; 
-    ask(q); 
-  });
-  
-  chatTextarea.addEventListener("keydown", (e) => { 
-    if (e.key === "Enter" && !e.shiftKey) { 
-      e.preventDefault(); 
-      chatSendBtn.click(); 
-    } 
-  });
-
-  console.log('[Widget] Initialization complete');
-
-})();
+            txt
