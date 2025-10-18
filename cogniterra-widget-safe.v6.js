@@ -822,7 +822,7 @@
     return b;
   }
 
- // FIXED: Prevent infinite loop when selecting from autocomplete
+ // FINAL FIX: Simplified logic for pozemek (use name directly)
 function attachSuggest(inputEl, isPozemek) {
   if (!inputEl) {
     console.warn('[Widget] attachSuggest: no input element');
@@ -847,7 +847,7 @@ function attachSuggest(inputEl, isPozemek) {
   }
   
   let debounceTimer = null;
-  let isSelecting = false; // ⬅️ FLAG pro zamezení re-open
+  let isSelecting = false;
   
   function updatePosition() {
     const inputRect = inputEl.getBoundingClientRect();
@@ -867,7 +867,6 @@ function attachSuggest(inputEl, isPozemek) {
       return;
     }
     
-    // ⬅️ PŘIDAT: Neotevírej pokud uživatel právě vybírá z listu
     if (isSelecting) {
       console.log('[Widget] Skipping fetch - user is selecting');
       return;
@@ -897,27 +896,25 @@ function attachSuggest(inputEl, isPozemek) {
       
       for (const item of items) {
         const name = String(item.name || '').trim();
-        const locationStr = String(item.location || '').trim();
-        
-        let municipality = '';
-        
-        if (locationStr) {
-          const cleanLocation = locationStr.replace(/,\s*(Česko|Czech Republic)\s*$/i, '').trim();
-          
-          if (isPozemek) {
-            municipality = cleanLocation;
-          } else {
-            municipality = cleanLocation.split(',')[0].trim();
-          }
-        }
-        
-        console.log('[Widget] Processing:', {name, locationStr, municipality});
         
         let displayText = '';
         
         if (isPozemek) {
-          displayText = municipality || name;
+          // ✅ FIX: For pozemek, just use name directly (municipality name)
+          displayText = name;
+          console.log('[Widget] Pozemek - using name:', name);
         } else {
+          // For addresses, parse location to get city
+          const locationStr = String(item.location || '').trim();
+          let municipality = '';
+          
+          if (locationStr) {
+            const cleanLocation = locationStr.replace(/,\s*(Česko|Czech Republic)\s*$/i, '').trim();
+            municipality = cleanLocation.split(',')[0].trim();
+          }
+          
+          console.log('[Widget] Address - Processing:', {name, locationStr, municipality});
+          
           if (name && municipality) {
             displayText = `${name}, ${municipality}`;
           } else if (name) {
@@ -927,6 +924,7 @@ function attachSuggest(inputEl, isPozemek) {
           }
         }
         
+        // Only add valid, non-empty results
         if (displayText && displayText.length > 2) {
           results.push(displayText);
         }
@@ -985,29 +983,21 @@ function attachSuggest(inputEl, isPozemek) {
         const selectedValue = div.getAttribute('data-value');
         console.log('[Widget] Mousedown on:', selectedValue);
         
-        // ⬅️ KRITICKÉ: Nastavit flag PŘED nastavením hodnoty
         isSelecting = true;
-        
-        // Set value immediately
         inputEl.value = selectedValue;
-        
-        // Hide suggestions
         suggestContainer.style.display = 'none';
         
-        // Trigger events (ale input handler je ignoruje kvůli isSelecting flag)
         setTimeout(() => {
           inputEl.dispatchEvent(new Event('input', { bubbles: true }));
           inputEl.dispatchEvent(new Event('change', { bubbles: true }));
           console.log('[Widget] Value set and events triggered:', selectedValue);
           
-          // ⬅️ Resetovat flag po chvíli
           setTimeout(() => {
             isSelecting = false;
             console.log('[Widget] Selection completed, autocomplete ready again');
           }, 500);
         }, 10);
         
-        // Keep focus on input
         setTimeout(() => {
           inputEl.focus();
         }, 50);
@@ -1046,7 +1036,6 @@ function attachSuggest(inputEl, isPozemek) {
     clearTimeout(debounceTimer);
     const value = (e.target.value || '').trim();
     
-    // ⬅️ KRITICKÉ: Ignorovat input event pokud uživatel vybírá z listu
     if (isSelecting) {
       console.log('[Widget] Input event ignored - user is selecting');
       return;
@@ -1061,7 +1050,6 @@ function attachSuggest(inputEl, isPozemek) {
     updatePosition();
     const value = (inputEl.value || '').trim();
     
-    // ⬅️ PŘIDAT: Neotevírej pokud uživatel právě vybírá
     if (value.length >= 2 && !isSelecting) {
       fetchSuggestions(value);
     }
@@ -1086,7 +1074,7 @@ function attachSuggest(inputEl, isPozemek) {
     if (e.key === 'Escape') {
       suggestContainer.style.display = 'none';
       inputEl.blur();
-      isSelecting = false; // ⬅️ Resetovat flag
+      isSelecting = false;
     }
   });
   
