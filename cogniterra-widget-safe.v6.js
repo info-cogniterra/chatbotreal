@@ -9,7 +9,7 @@
 })();
 
 // cogniterra-widget-safe.v6.js — BUBBLE-ONLY, SINGLE INSTANCE - VERZE S UP DETEKCÍ
-// Build v6.bubble.4 — Fixed UP detection with diacritics and exact matching
+// Build v6.bubble.5 — Added proactive UP offer
 
 (function () {
   "use strict";
@@ -90,7 +90,7 @@
     },
     fetchJson(url) { return fetch(url, { credentials: "omit" }).then(r => r.json()); },
     
-    // ==== FIXED: Territorial plan utilities ====
+    // ==== Territorial plan utilities ====
     searchUP(query, upData) {
       if (!upData || !upData.map) return [];
       const q = U.norm(query);
@@ -154,6 +154,24 @@
       }
       
       return words;
+    },
+    
+    // NEW: Check if message mentions land/property context
+    mentionsProperty(text) {
+      const s = U.norm(text);
+      const keywords = [
+        'pozemek',
+        'parcela',
+        'stavba',
+        'nehnutelnost',
+        'reality',
+        'katastr',
+        'vlastnictvi',
+        'koupit',
+        'prodat',
+        'zastavitelnost'
+      ];
+      return keywords.some(kw => s.includes(kw));
     }
   };
 
@@ -378,6 +396,16 @@
     color: #4a5568;
   }
   
+  .cg-card.secondary {
+    border-left-color: #48bb78;
+    background: #f0fff4;
+  }
+  
+  .cg-card.secondary:hover,
+  .cg-card.secondary:active {
+    background: #e6ffed;
+  }
+  
   /* Formulář */
   .cg-step {
     background: #fff;
@@ -440,6 +468,15 @@
   .cg-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+  
+  .cg-btn.secondary {
+    background: #48bb78;
+  }
+  
+  .cg-btn.secondary:hover,
+  .cg-btn.secondary:active {
+    background: #38a169;
   }
   
   .leadbox {
@@ -520,6 +557,16 @@
     padding: 14px 16px;
     margin: 8px 0;
     color: #856404;
+  }
+  
+  .up-offer {
+    background: #e6ffed;
+    border: 1px solid #48bb78;
+    border-left: 4px solid #48bb78;
+    border-radius: 0 8px 8px 0;
+    padding: 14px 16px;
+    margin: 8px 0;
+    color: #22543d;
   }
   
   /* Mobilní styly */
@@ -634,6 +681,14 @@
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
+  // ==== NEW: Proactive UP offer ====
+  function offerUPSearch() {
+    const box = U.el("div", { class: "up-offer" }, [
+      "💡 Tip: Pokud potřebujete územní plán pro konkrétní lokalitu, stačí mi napsat název obce nebo katastrálního území a já vám najdu odkaz."
+    ]);
+    addPanel(box);
+  }
+
   // ==== Mapy.cz Suggest ====
   let MAPY_PROMISE = null;
   function loadMapy(apiKey) {
@@ -675,12 +730,11 @@
     estimatePozemek(m,p){ return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; }
   };
 
-  // ==== FIXED: Territorial Plan Detection & Display ====
+  // ==== Territorial Plan Detection & Display ====
   function needsUP(q) {
     const s = U.norm(q);
     console.log('[Widget] Checking UP need for:', q, '-> normalized:', s);
     
-    // FIXED: Keywords without diacritics since we normalize
     const keywords = [
       'uzemni\\s*plan',
       'katastr',
@@ -739,7 +793,6 @@
       return;
     }
     
-    // FIXED: If we have results, show them appropriately
     if (results.length === 1) {
       const item = results[0];
       const box = U.el("div", { class: "up-result" }, [
@@ -753,7 +806,6 @@
       addAI("Našel jsem územní plán pro vaši lokalitu:", box);
       
     } else {
-      // Multiple results - show up to 5
       addAI(`Našel jsem ${results.length} výsledků pro "${firstLocation}":`);
       
       results.slice(0, 5).forEach(item => {
@@ -795,7 +847,7 @@
         ]),
         U.el("button", { class: "cg-card", type: "button", onclick: () => startHelp(), "aria-label":"Potřebuji pomoct" }, [
           U.el("h3", {}, ["Potřebuji pomoct"]),
-          U.el("p", {}, ["Zeptejte se na postup, dokumenty nebo pravidla. Odpovím hned."])
+          U.el("p", {}, ["Zeptejte se na postup, dokumenty, pravidla nebo územní plány."])
         ])
       ])
     ]);
@@ -807,6 +859,11 @@
     chatInputArea.style.display='flex'; 
     try{chatTextarea.focus();}catch(e){}
     addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod.");
+    
+    // NEW: Proactively offer UP search
+    setTimeout(() => {
+      offerUPSearch();
+    }, 800);
   }
 
   function startPricing() {
@@ -1164,6 +1221,14 @@
         
         txt = (txt && String(txt).trim()) || "Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod.";
         addAI(txt);
+        
+        // NEW: After AI response, check if we should offer UP
+        if (U.mentionsProperty(q) && !needsUP(q) && !S.intent.upOffered) {
+          setTimeout(() => {
+            offerUPSearch();
+            S.intent.upOffered = true;
+          }, 1200);
+        }
       } catch (e) { 
         addAI("Omlouvám se, došlo k chybě při komunikaci s AI. Zkuste to prosím znovu."); 
         console.error("[Widget] AI chat error:", e); 
@@ -1213,8 +1278,7 @@
 
   // input handlers
   chatSendBtn.addEventListener("click", () => { 
-    const q = chatTextarea.value.trim(); 
-    chatTextarea.value = ""; 
+    const q = chatTextarea.value.trim(); chatTextarea.value = ""; 
     ask(q); 
   });
   
