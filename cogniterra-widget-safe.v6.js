@@ -782,41 +782,40 @@
     return b;
   }
 
-  // SPRÁVNÁ verze pro Mapy.cz API v5
-function loadMapy(apiKey) {
-  if (MAPY_PROMISE) return MAPY_PROMISE;
+    // FIXED: Correct Mapy.cz API v5 loading (loader.js method)
+  let MAPY_PROMISE = null;  // ← TOTO CHYBĚLO!
   
-  console.log('[Widget] Loading Mapy.cz API v5 with key:', apiKey);
-  
-  MAPY_PROMISE = new Promise((resolve) => {
-    // API v5 má vše (včetně JAK) v jednom souboru
-    const script = document.createElement("script");
-    script.src = `https://api.mapy.cz/loader.js`;
-    script.onerror = () => {
-      console.error('[Widget] Failed to load Mapy.cz loader');
-      resolve(false);
-    };
-    script.onload = () => {
-      console.log('[Widget] Mapy.cz loader loaded, initializing...');
-      
-      if (window.Loader && window.Loader.async) {
-        window.Loader.load(null, { 
-          suggest: true 
-        }, () => {
-          console.log('[Widget] ✅ Mapy.cz Suggest ready');
-          S.mapyLoaded = true;
-          resolve(true);
-        });
-      } else {
-        console.error('[Widget] ❌ Loader not available');
+  function loadMapy(apiKey) {
+    if (MAPY_PROMISE) return MAPY_PROMISE;
+    
+    console.log('[Widget] Loading Mapy.cz API v5 with key:', apiKey);
+    
+    MAPY_PROMISE = new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://api.mapy.cz/loader.js";
+      script.onerror = () => {
+        console.error('[Widget] Failed to load Mapy.cz loader');
         resolve(false);
-      }
-    };
-    document.head.appendChild(script);
-  });
-  
-  return MAPY_PROMISE;
-}
+      };
+      script.onload = () => {
+        console.log('[Widget] Mapy.cz loader loaded, initializing...');
+        
+        if (window.Loader && window.Loader.async) {
+          window.Loader.load(null, { suggest: true }, () => {
+            console.log('[Widget] ✅ Mapy.cz Suggest ready');
+            S.mapyLoaded = true;
+            resolve(true);
+          });
+        } else {
+          console.error('[Widget] ❌ Loader not available');
+          resolve(false);
+        }
+      };
+      document.head.appendChild(script);
+    });
+    
+    return MAPY_PROMISE;
+  }
   
   // FIXED: Simplified Suggest attachment
   function attachSuggest(inputEl, isPozemek) {
