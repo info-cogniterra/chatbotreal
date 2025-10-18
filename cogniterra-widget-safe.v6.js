@@ -9,7 +9,7 @@
 })();
 
 // cogniterra-widget-safe.v6.js — BUBBLE-ONLY, SINGLE INSTANCE - VERZE S UP DETEKCÍ
-// Build v6.bubble.11-complete — Fixed syntax error, complete file
+// Build v6.bubble.12 — Fixed waitingForLocation flag
 
 (function () {
   "use strict";
@@ -738,6 +738,7 @@
     
     if (locations.length === 0) {
       addAI("Pro vyhledání územního plánu potřebuji znát obec nebo katastrální území. Můžete mi prosím uvést konkrétní lokalitu?");
+      S.intent.waitingForLocation = true; // ✅ FIXED: Added this line
       return;
     }
     
@@ -1245,7 +1246,6 @@
     })();
   }
 
-  // ==== Config / data preload ====
   (async () => {
     try {
       const scriptEl = document.currentScript || document.querySelector('script[data-config]');
@@ -1271,7 +1271,6 @@
     }
   })();
 
-  // ==== Init ====
   function cgSafeStart() {
     try {
       if (!chatMessages) return setTimeout(cgSafeStart, 40);
@@ -1285,7 +1284,6 @@
 
   cgSafeStart();
 
-  // input handlers
   chatSendBtn.addEventListener("click", () => { 
     const q = chatTextarea.value.trim(); 
     chatTextarea.value = ""; 
