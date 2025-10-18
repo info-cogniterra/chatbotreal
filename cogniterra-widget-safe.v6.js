@@ -782,53 +782,41 @@
     return b;
   }
 
-  // FIXED: Proper Mapy.cz API v5 loading
-  let MAPY_PROMISE = null;
-  function loadMapy(apiKey) {
-    if (MAPY_PROMISE) return MAPY_PROMISE;
-    
-    console.log('[Widget] Loading Mapy.cz API with key:', apiKey);
-    
-    MAPY_PROMISE = new Promise((resolve) => {
-      // Load JAK library first (required dependency)
-      const jakScript = document.createElement("script");
-      jakScript.src = "https://api.mapy.cz/v5/js/api/jar/jak.js";
-      jakScript.onerror = () => {
-        console.error('[Widget] Failed to load JAK library');
+  // SPRÁVNÁ verze pro Mapy.cz API v5
+function loadMapy(apiKey) {
+  if (MAPY_PROMISE) return MAPY_PROMISE;
+  
+  console.log('[Widget] Loading Mapy.cz API v5 with key:', apiKey);
+  
+  MAPY_PROMISE = new Promise((resolve) => {
+    // API v5 má vše (včetně JAK) v jednom souboru
+    const script = document.createElement("script");
+    script.src = `https://api.mapy.cz/loader.js`;
+    script.onerror = () => {
+      console.error('[Widget] Failed to load Mapy.cz loader');
+      resolve(false);
+    };
+    script.onload = () => {
+      console.log('[Widget] Mapy.cz loader loaded, initializing...');
+      
+      if (window.Loader && window.Loader.async) {
+        window.Loader.load(null, { 
+          suggest: true 
+        }, () => {
+          console.log('[Widget] ✅ Mapy.cz Suggest ready');
+          S.mapyLoaded = true;
+          resolve(true);
+        });
+      } else {
+        console.error('[Widget] ❌ Loader not available');
         resolve(false);
-      };
-      jakScript.onload = () => {
-        console.log('[Widget] JAK library loaded');
-        
-        // Now load SMap API
-        const smapScript = document.createElement("script");
-        smapScript.src = `https://api.mapy.cz/v5/js/api/?apikey=${apiKey}`;
-        smapScript.onerror = () => {
-          console.error('[Widget] Failed to load SMap API');
-          resolve(false);
-        };
-        smapScript.onload = () => {
-          console.log('[Widget] SMap API loaded, checking availability...');
-          
-          // Wait a bit for SMap to initialize
-          setTimeout(() => {
-            if (window.SMap && window.SMap.Suggest) {
-              console.log('[Widget] ✅ Mapy.cz Suggest ready');
-              S.mapyLoaded = true;
-              resolve(true);
-            } else {
-              console.error('[Widget] ❌ SMap.Suggest not available');
-              resolve(false);
-            }
-          }, 100);
-        };
-        document.head.appendChild(smapScript);
-      };
-      document.head.appendChild(jakScript);
-    });
-    
-    return MAPY_PROMISE;
-  }
+      }
+    };
+    document.head.appendChild(script);
+  });
+  
+  return MAPY_PROMISE;
+}
   
   // FIXED: Simplified Suggest attachment
   function attachSuggest(inputEl, isPozemek) {
