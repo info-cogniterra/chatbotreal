@@ -814,7 +814,7 @@
     return b;
   }
 
- // COMPLETELY REWRITTEN: Use Mapy.cz Geocoding API for real addresses
+// FINAL WORKING VERSION: Mapy.cz Suggest API with smart filtering
 function attachSuggest(inputEl, isPozemek) {
   if (!inputEl) {
     console.warn('[Widget] attachSuggest: no input element');
@@ -823,7 +823,7 @@ function attachSuggest(inputEl, isPozemek) {
   
   const key = (S.cfg && S.cfg.mapy_key) || "EreCyrH41se5wkNErc5JEWX2eMLqnpja5BUVxsvpqzM";
   
-  console.log('[Widget] Setting up Mapy.cz Geocoding autocomplete, isPozemek:', isPozemek);
+  console.log('[Widget] Setting up Mapy.cz autocomplete, isPozemek:', isPozemek);
   
   // Create suggestion container
   const suggestContainer = document.createElement('div');
@@ -841,7 +841,6 @@ function attachSuggest(inputEl, isPozemek) {
   }
   
   let debounceTimer = null;
-  let currentResults = [];
   
   // Update container position
   function updatePosition() {
@@ -856,109 +855,90 @@ function attachSuggest(inputEl, isPozemek) {
     });
   }
   
-  // Fetch suggestions from Mapy.cz Geocoding API
+  // Fetch suggestions
   async function fetchSuggestions(query) {
-    if (!query || query.length < 3) {
+    if (!query || query.length < 2) {
       suggestContainer.style.display = 'none';
       return;
     }
     
     try {
-      // Use Geocoding API with type filter
-      // For real addresses, we need to use 'geocode' endpoint with specific types
-      let url;
+      // Use simple suggest API
+      const url = `https://api.mapy.cz/v1/suggest?lang=cs&limit=15&query=${encodeURIComponent(query)}&apikey=${key}`;
       
-      if (isPozemek) {
-        // For land: only municipalities
-        url = `https://api.mapy.cz/v1/geocode?lang=cs&limit=10&type=municipality&query=${encodeURIComponent(query)}&apikey=${key}`;
-      } else {
-        // For apartments/houses: addresses (street + number)
-        url = `https://api.mapy.cz/v1/geocode?lang=cs&limit=10&type=address&query=${encodeURIComponent(query)}&apikey=${key}`;
-      }
-      
-      console.log('[Widget] Fetching geocoding results for:', query);
+      console.log('[Widget] Fetching for:', query);
       
       const response = await fetch(url);
       if (!response.ok) {
-        console.error('[Widget] Geocoding API error:', response.status, response.statusText);
+        console.error('[Widget] API error:', response.status);
         return;
       }
       
       const data = await response.json();
-      const items = data.items || [];
+      let items = data.items || [];
       
-      console.log('[Widget] Geocoding API returned:', items.length, 'results');
+      console.log('[Widget] Got', items.length, 'raw results');
       
-      // Format results
-      const formattedItems = items.map(item => {
-        const name = item.name || '';
-        const location = item.location || {};
-        const municipality = location.municipality || location.municipalityPart || '';
-        const region = location.region || '';
+      // Smart filtering
+      const results = [];
+      
+      for (const item of items) {
+        const label = item.label || item.name || '';
+        const category = (item.category || '').toLowerCase();
         
-        let display = '';
+        // Skip unwanted categories
+        if (category.includes('tram') || category.includes('bus') || 
+            category.includes('stop') || category.includes('station') ||
+            label.includes('zastávka') || label.includes('stanice')) {
+          continue;
+        }
         
         if (isPozemek) {
-          // For land: just municipality name
-          display = municipality || name;
+          // For land: only municipalities
+          if (category.includes('municipality') || category.includes('regional')) {
+            results.push(label);
+          }
         } else {
-          // For apartments/houses: "Street Number, City"
-          if (municipality && name) {
-            display = `${name}, ${municipality}`;
-          } else if (name) {
-            display = name;
-          } else {
-            display = municipality;
+          // For apartments/houses: addresses with street names
+          // Check if it has format "Street, City" or "Street Number, City"
+          if (label.includes(',')) {
+            const parts = label.split(',');
+            if (parts.length >= 2) {
+              results.push(label);
+            }
           }
         }
         
-        return {
-          display: display,
-          full: display,
-          raw: item
-        };
-      });
-      
-      // Remove duplicates
-      const uniqueItems = [];
-      const seen = new Set();
-      
-      for (const item of formattedItems) {
-        const key = item.display.toLowerCase().trim();
-        if (key && !seen.has(key)) {
-          seen.add(key);
-          uniqueItems.push(item);
-        }
+        if (results.length >= 10) break;
       }
       
-      currentResults = uniqueItems;
+      console.log('[Widget] Filtered to', results.length, 'relevant results');
       
-      console.log('[Widget] Showing', currentResults.length, 'unique addresses');
-      
-      if (currentResults.length > 0) {
-        renderSuggestions(currentResults);
+      if (results.length > 0) {
+        renderSuggestions(results);
       } else {
         suggestContainer.style.display = 'none';
       }
       
     } catch (e) {
-      console.error('[Widget] Geocoding fetch error:', e);
+      console.error('[Widget] Fetch error:', e);
       suggestContainer.style.display = 'none';
     }
   }
   
-  // Render suggestion list
+  // Render suggestions
   function renderSuggestions(items) {
     suggestContainer.innerHTML = '';
     updatePosition();
     
-    items.slice(0, 10).forEach((item) => {
+    // Remove duplicates
+    const unique = [...new Set(items)];
+    
+    unique.forEach((text) => {
       const div = document.createElement('div');
       div.className = 'mapy-suggest-item';
+      div.textContent = text;
       
-      div.textContent = item.display;
-      
-      // Hover effect
       div.addEventListener('mouseenter', () => {
         div.style.background = '#f8fafc';
       });
@@ -966,49 +946,45 @@ function attachSuggest(inputEl, isPozemek) {
         div.style.background = 'white';
       });
       
-      // Click handler
       div.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        inputEl.value = item.full;
+        inputEl.value = text;
         suggestContainer.style.display = 'none';
         inputEl.focus();
-        console.log('[Widget] Selected:', item.full);
+        console.log('[Widget] Selected:', text);
       });
       
       suggestContainer.appendChild(div);
     });
     
     suggestContainer.style.display = 'block';
-    console.log('[Widget] Suggestions displayed');
   }
   
-  // Input event handler with debounce
+  // Input handler
   inputEl.addEventListener('input', (e) => {
     clearTimeout(debounceTimer);
-    const value = e.target.value.trim();
-    console.log('[Widget] Input value:', value);
     debounceTimer = setTimeout(() => {
-      fetchSuggestions(value);
-    }, 400); // Slightly longer delay for geocoding
+      fetchSuggestions(e.target.value.trim());
+    }, 300);
   });
   
   // Focus handler
   inputEl.addEventListener('focus', () => {
     updatePosition();
-    if (inputEl.value.trim().length >= 3) {
+    if (inputEl.value.trim().length >= 2) {
       fetchSuggestions(inputEl.value.trim());
     }
   });
   
-  // Close suggestions on blur
+  // Blur handler
   inputEl.addEventListener('blur', () => {
     setTimeout(() => {
       suggestContainer.style.display = 'none';
     }, 250);
   });
   
-  // Close on Escape
+  // Escape key
   inputEl.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       suggestContainer.style.display = 'none';
@@ -1016,10 +992,10 @@ function attachSuggest(inputEl, isPozemek) {
     }
   });
   
-  // Update position on window resize
+  // Resize handler
   window.addEventListener('resize', updatePosition, { passive: true });
   
-  console.log('[Widget] ✅ Mapy.cz Geocoding autocomplete ready');
+  console.log('[Widget] ✅ Autocomplete ready');
 }
 
   window.CG_Estimator = window.CG_Estimator || {
