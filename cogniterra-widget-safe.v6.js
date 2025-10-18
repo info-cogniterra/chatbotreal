@@ -1391,4 +1391,94 @@
         if (ct.includes("application/json")) { 
           try { 
             const j = await resp.json(); 
-            txt
+                        txt = j.message || j.reply || j.text || j.answer || JSON.stringify(j); 
+          } catch { 
+            txt = await resp.text(); 
+          } 
+        } else { 
+          txt = await resp.text(); 
+        }
+        
+        txt = (txt && String(txt).trim()) || "Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS apod.";
+        addAI(txt);
+      } catch (e) { 
+        addAI("Omlouvám se, došlo k chybě při komunikaci s AI. Zkuste to prosím znovu."); 
+        console.error("[Widget] AI chat error:", e); 
+      }
+    })();
+  }
+
+  // ==== Config / data preload ====
+  (async () => {
+    try {
+      const scriptEl = document.currentScript || document.querySelector('script[data-config]');
+      const CFG_URL = scriptEl ? scriptEl.getAttribute("data-config") : null;
+      if (CFG_URL) {
+        S.cfg = await U.fetchJson(CFG_URL);
+      }
+      if (S.cfg && S.cfg.data_urls) {
+        const d = S.cfg.data_urls;
+        const [byty, domy, pozemky, up] = await Promise.all([
+          d.byty ? U.fetchJson(d.byty) : null,
+          d.domy ? U.fetchJson(d.domy) : null,
+          d.pozemky ? U.fetchJson(d.pozemky) : null,
+          d.up ? U.fetchJson(d.up) : null
+        ]);
+        window.PRICES = { byty, domy, pozemky, up };
+        S.data.up = up;
+        console.log('[Widget] UP data loaded:', up ? `${up.map?.length || 0} entries` : 'FAILED');
+      }
+    } catch (e) {
+      console.error('[Widget] Config/data loading error:', e);
+      addAI("Chyba načítání konfigurace/dat: " + String(e));
+    }
+  })();
+
+  // ==== Init ====
+  function cgSafeStart() {
+    try {
+      if (!chatMessages) return setTimeout(cgSafeStart, 40);
+      console.log('[Widget] Rendering start screen...');
+      
+      // NEW: Try to restore session
+      if (U.loadSession() && S.chat.messages.length > 0) {
+        console.log('[Widget] Session restored, showing previous messages');
+        S.chat.messages.forEach(msg => {
+          if (msg.role === 'user') {
+            const b = U.el("div", { class: "chat-msg me" }, [msg.content]);
+            chatMessages.appendChild(b);
+          } else {
+            const b = U.el("div", { class: "chat-msg ai" }, [msg.content]);
+            chatMessages.appendChild(b);
+          }
+        });
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        chatInputArea.style.display = 'flex';
+      } else {
+        renderStart();
+      }
+    } catch (e) {
+      console.error('[Widget] Start error:', e);
+      setTimeout(cgSafeStart, 40);
+    }
+  }
+
+  cgSafeStart();
+
+  // ==== Input handlers ====
+  chatSendBtn.addEventListener("click", () => { 
+    const q = chatTextarea.value.trim(); 
+    chatTextarea.value = ""; 
+    ask(q); 
+  });
+  
+  chatTextarea.addEventListener("keydown", (e) => { 
+    if (e.key === "Enter" && !e.shiftKey) { 
+      e.preventDefault(); 
+      chatSendBtn.click(); 
+    } 
+  });
+
+  console.log('[Widget] Initialization complete (v6.15)');
+
+})();
