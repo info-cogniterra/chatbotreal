@@ -814,196 +814,238 @@
     return b;
   }
 
-  // COMPLETE WORKING VERSION: Mapy.cz Suggest with smart filtering
-  function attachSuggest(inputEl, isPozemek) {
-    if (!inputEl) {
-      console.warn('[Widget] attachSuggest: no input element');
+ // FIXED: Better parsing of Mapy.cz API response structure
+function attachSuggest(inputEl, isPozemek) {
+  if (!inputEl) {
+    console.warn('[Widget] attachSuggest: no input element');
+    return;
+  }
+  
+  const key = (S.cfg && S.cfg.mapy_key) || "EreCyrH41se5wkNErc5JEWX2eMLqnpja5BUVxsvpqzM";
+  
+  console.log('[Widget] Setting up Mapy.cz autocomplete, isPozemek:', isPozemek);
+  
+  const suggestContainer = document.createElement('div');
+  suggestContainer.className = 'mapy-suggest-container';
+  
+  let parentStep = inputEl.parentElement;
+  while (parentStep && !parentStep.classList.contains('cg-step')) {
+    parentStep = parentStep.parentElement;
+  }
+  
+  if (parentStep) {
+    parentStep.style.position = 'relative';
+    parentStep.appendChild(suggestContainer);
+  }
+  
+  let debounceTimer = null;
+  
+  function updatePosition() {
+    const inputRect = inputEl.getBoundingClientRect();
+    const parentRect = parentStep.getBoundingClientRect();
+    
+    Object.assign(suggestContainer.style, {
+      width: inputRect.width + 'px',
+      left: (inputRect.left - parentRect.left) + 'px',
+      top: (inputRect.bottom - parentRect.top) + 'px',
+      marginTop: '-1px'
+    });
+  }
+  
+  async function fetchSuggestions(query) {
+    if (!query || query.length < 2) {
+      suggestContainer.style.display = 'none';
       return;
     }
     
-    const key = (S.cfg && S.cfg.mapy_key) || "EreCyrH41se5wkNErc5JEWX2eMLqnpja5BUVxsvpqzM";
-    
-    console.log('[Widget] Setting up Mapy.cz autocomplete, isPozemek:', isPozemek);
-    
-    const suggestContainer = document.createElement('div');
-    suggestContainer.className = 'mapy-suggest-container';
-    
-    let parentStep = inputEl.parentElement;
-    while (parentStep && !parentStep.classList.contains('cg-step')) {
-      parentStep = parentStep.parentElement;
-    }
-    
-    if (parentStep) {
-      parentStep.style.position = 'relative';
-      parentStep.appendChild(suggestContainer);
-    }
-    
-    let debounceTimer = null;
-    
-    function updatePosition() {
-      const inputRect = inputEl.getBoundingClientRect();
-      const parentRect = parentStep.getBoundingClientRect();
+    try {
+      const url = `https://api.mapy.cz/v1/suggest?lang=cs&limit=15&query=${encodeURIComponent(query)}&apikey=${key}`;
       
-      Object.assign(suggestContainer.style, {
-        width: inputRect.width + 'px',
-        left: (inputRect.left - parentRect.left) + 'px',
-        top: (inputRect.bottom - parentRect.top) + 'px',
-        marginTop: '-1px'
-      });
-    }
-    
-    async function fetchSuggestions(query) {
-      if (!query || query.length < 2) {
-        suggestContainer.style.display = 'none';
+      console.log('[Widget] Fetching for:', query);
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.error('[Widget] API error:', response.status);
         return;
       }
       
-      try {
-        const url = `https://api.mapy.cz/v1/suggest?lang=cs&limit=15&query=${encodeURIComponent(query)}&apikey=${key}`;
-        
-        console.log('[Widget] Fetching for:', query);
-        
-        const response = await fetch(url);
-        if (!response.ok) {
-          console.error('[Widget] API error:', response.status);
-          return;
-        }
-        
-        const data = await response.json();
-        let items = data.items || [];
-        
-        console.log('[Widget] Got', items.length, 'raw results');
-        
-        const results = [];
-        
-        for (const item of items) {
-          const label = String(item.label || item.name || '').trim();
-          if (!label) continue;
-          
-          const category = String(item.category || '').toLowerCase();
-          
-          if (category.includes('tram') || category.includes('bus') || 
-              category.includes('stop') || label.toLowerCase().includes('zastávka')) {
-            continue;
-          }
-          
-          if (isPozemek) {
-            if (category.includes('municipal') || category.includes('regional') ||
-                !label.includes(',')) {
-              results.push(label);
-            }
-          } else {
-            if (label.includes(',')) {
-              results.push(label);
-            }
-          }
-          
-          if (results.length >= 10) break;
-        }
-        
-        if (results.length === 0 && !isPozemek) {
-          for (const item of items) {
-            const label = String(item.label || item.name || '').trim();
-            if (!label) continue;
-            
-            const category = String(item.category || '').toLowerCase();
-            if (!category.includes('tram') && !category.includes('bus') && 
-                !category.includes('stop') && !label.toLowerCase().includes('zastávka')) {
-              results.push(label);
-              if (results.length >= 10) break;
-            }
-          }
-        }
-        
-        console.log('[Widget] Filtered to', results.length, 'relevant results');
-        
-        if (results.length > 0) {
-          renderSuggestions(results);
-        } else {
-          suggestContainer.style.display = 'none';
-        }
-        
-      } catch (e) {
-        console.error('[Widget] Fetch error:', e);
-        suggestContainer.style.display = 'none';
-      }
-    }
-    
-    function renderSuggestions(items) {
-      suggestContainer.innerHTML = '';
-      updatePosition();
+      const data = await response.json();
+      let items = data.items || [];
       
-      const unique = [];
-      const seen = new Set();
+      console.log('[Widget] Got', items.length, 'raw results');
+      console.log('[Widget] Sample item:', items[0]); // DEBUG
+      
+      const results = [];
       
       for (const item of items) {
-        const text = String(item).trim();
-        if (text && !seen.has(text.toLowerCase())) {
-          seen.add(text.toLowerCase());
-          unique.push(text);
+        // Get all possible fields
+        const name = String(item.name || '').trim();
+        const label = String(item.label || '').trim();
+        const category = String(item.category || '').toLowerCase();
+        const location = item.location || {};
+        const municipality = String(location.municipality || location.municipalityPart || '').trim();
+        const region = String(location.region || '').trim();
+        
+        // Skip transport stops
+        if (category.includes('tram') || category.includes('bus') || 
+            category.includes('stop') || category.includes('station') ||
+            label.toLowerCase().includes('zastávka') || 
+            name.toLowerCase().includes('zastávka')) {
+          continue;
+        }
+        
+        let displayText = '';
+        
+        if (isPozemek) {
+          // For land: only municipality name
+          displayText = municipality || name || label;
+        } else {
+          // For apartments/houses: build "Street, City" format
+          
+          // Try to extract street from label if it contains comma
+          if (label.includes(',')) {
+            displayText = label;
+          } 
+          // If name looks like address (contains numbers or specific keywords)
+          else if (name && municipality) {
+            // Check if name is different from municipality (likely a street)
+            if (name.toLowerCase() !== municipality.toLowerCase()) {
+              displayText = `${name}, ${municipality}`;
+            } else {
+              displayText = municipality;
+            }
+          }
+          // Fallback to label or name
+          else if (label) {
+            displayText = label;
+          } else if (name) {
+            displayText = name;
+          }
+        }
+        
+        // Only add if we have valid text and it's not too generic
+        if (displayText && 
+            displayText.toLowerCase() !== 'ulice' && 
+            displayText.toLowerCase() !== 'obec' &&
+            displayText.length > 2) {
+          results.push(displayText);
+        }
+        
+        if (results.length >= 10) break;
+      }
+      
+      // Fallback: if no results, try less strict filtering
+      if (results.length === 0) {
+        console.log('[Widget] No results with strict filter, trying fallback');
+        for (const item of items) {
+          const label = String(item.label || item.name || '').trim();
+          const category = String(item.category || '').toLowerCase();
+          
+          if (label && 
+              !category.includes('tram') && 
+              !category.includes('bus') && 
+              !category.includes('stop') &&
+              !label.toLowerCase().includes('zastávka') &&
+              label.toLowerCase() !== 'ulice' &&
+              label.toLowerCase() !== 'obec') {
+            results.push(label);
+            if (results.length >= 10) break;
+          }
         }
       }
       
-      unique.forEach((text) => {
-        const div = document.createElement('div');
-        div.className = 'mapy-suggest-item';
-        div.textContent = text;
-        
-        div.addEventListener('mouseenter', () => {
-          div.style.background = '#f8fafc';
-        });
-        div.addEventListener('mouseleave', () => {
-          div.style.background = 'white';
-        });
-        
-        div.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          inputEl.value = text;
-          suggestContainer.style.display = 'none';
-          inputEl.focus();
-          console.log('[Widget] Selected:', text);
-        });
-        
-        suggestContainer.appendChild(div);
-      });
+      console.log('[Widget] Filtered to', results.length, 'relevant results:', results);
       
-      suggestContainer.style.display = 'block';
+      if (results.length > 0) {
+        renderSuggestions(results);
+      } else {
+        suggestContainer.style.display = 'none';
+      }
+      
+    } catch (e) {
+      console.error('[Widget] Fetch error:', e);
+      suggestContainer.style.display = 'none';
+    }
+  }
+  
+  function renderSuggestions(items) {
+    suggestContainer.innerHTML = '';
+    updatePosition();
+    
+    // Remove duplicates
+    const unique = [];
+    const seen = new Set();
+    
+    for (const item of items) {
+      const text = String(item).trim();
+      const key = text.toLowerCase();
+      if (text && !seen.has(key)) {
+        seen.add(key);
+        unique.push(text);
+      }
     }
     
-    inputEl.addEventListener('input', (e) => {
-      clearTimeout(debounceTimer);
-      const value = (e.target.value || '').trim();
-      debounceTimer = setTimeout(() => {
-        fetchSuggestions(value);
-      }, 300);
-    });
-    
-    inputEl.addEventListener('focus', () => {
-      updatePosition();
-      const value = (inputEl.value || '').trim();
-      if (value.length >= 2) {
-        fetchSuggestions(value);
-      }
-    });
-    
-    inputEl.addEventListener('blur', () => {
-      setTimeout(() => {
+    unique.forEach((text) => {
+      const div = document.createElement('div');
+      div.className = 'mapy-suggest-item';
+      div.textContent = text;
+      
+      div.addEventListener('mouseenter', () => {
+        div.style.background = '#f8fafc';
+      });
+      div.addEventListener('mouseleave', () => {
+        div.style.background = 'white';
+      });
+      
+      div.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        inputEl.value = text;
         suggestContainer.style.display = 'none';
-      }, 250);
+        inputEl.focus();
+        console.log('[Widget] Selected:', text);
+      });
+      
+      suggestContainer.appendChild(div);
     });
     
-    inputEl.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        suggestContainer.style.display = 'none';
-        inputEl.blur();
-      }
-    });
-    
-    window.addEventListener('resize', updatePosition, { passive: true });
-    
-    console.log('[Widget] ✅ Autocomplete ready');
+    suggestContainer.style.display = 'block';
+    console.log('[Widget] Rendered', unique.length, 'suggestions');
   }
+  
+  inputEl.addEventListener('input', (e) => {
+    clearTimeout(debounceTimer);
+    const value = (e.target.value || '').trim();
+    debounceTimer = setTimeout(() => {
+      fetchSuggestions(value);
+    }, 300);
+  });
+  
+  inputEl.addEventListener('focus', () => {
+    updatePosition();
+    const value = (inputEl.value || '').trim();
+    if (value.length >= 2) {
+      fetchSuggestions(value);
+    }
+  });
+  
+  inputEl.addEventListener('blur', () => {
+    setTimeout(() => {
+      suggestContainer.style.display = 'none';
+    }, 250);
+  });
+  
+  inputEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      suggestContainer.style.display = 'none';
+      inputEl.blur();
+    }
+  });
+  
+  window.addEventListener('resize', updatePosition, { passive: true });
+  
+  console.log('[Widget] ✅ Autocomplete ready');
+}
 
   window.CG_Estimator = window.CG_Estimator || {
     estimateByt(m, p)   { return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; },
