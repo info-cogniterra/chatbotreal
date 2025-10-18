@@ -814,7 +814,7 @@
     return b;
   }
 
-  // FIXED: Better parsing of Mapy.cz API results
+ // COMPLETELY REWRITTEN: Use Mapy.cz Geocoding API for real addresses
 function attachSuggest(inputEl, isPozemek) {
   if (!inputEl) {
     console.warn('[Widget] attachSuggest: no input element');
@@ -823,7 +823,7 @@ function attachSuggest(inputEl, isPozemek) {
   
   const key = (S.cfg && S.cfg.mapy_key) || "EreCyrH41se5wkNErc5JEWX2eMLqnpja5BUVxsvpqzM";
   
-  console.log('[Widget] Setting up Mapy.cz REST autocomplete, isPozemek:', isPozemek);
+  console.log('[Widget] Setting up Mapy.cz Geocoding autocomplete, isPozemek:', isPozemek);
   
   // Create suggestion container
   const suggestContainer = document.createElement('div');
@@ -856,88 +856,84 @@ function attachSuggest(inputEl, isPozemek) {
     });
   }
   
-  // Fetch suggestions from Mapy.cz API
+  // Fetch suggestions from Mapy.cz Geocoding API
   async function fetchSuggestions(query) {
-    if (!query || query.length < 2) {
+    if (!query || query.length < 3) {
       suggestContainer.style.display = 'none';
       return;
     }
     
     try {
-      const url = `https://api.mapy.cz/v1/suggest?lang=cs&limit=15&query=${encodeURIComponent(query)}&apikey=${key}`;
+      // Use Geocoding API with type filter
+      // For real addresses, we need to use 'geocode' endpoint with specific types
+      let url;
       
-      console.log('[Widget] Fetching suggestions for:', query);
+      if (isPozemek) {
+        // For land: only municipalities
+        url = `https://api.mapy.cz/v1/geocode?lang=cs&limit=10&type=municipality&query=${encodeURIComponent(query)}&apikey=${key}`;
+      } else {
+        // For apartments/houses: addresses (street + number)
+        url = `https://api.mapy.cz/v1/geocode?lang=cs&limit=10&type=address&query=${encodeURIComponent(query)}&apikey=${key}`;
+      }
+      
+      console.log('[Widget] Fetching geocoding results for:', query);
       
       const response = await fetch(url);
       if (!response.ok) {
-        console.error('[Widget] Suggest API error:', response.status, response.statusText);
+        console.error('[Widget] Geocoding API error:', response.status, response.statusText);
         return;
       }
       
       const data = await response.json();
-      let items = data.items || [];
+      const items = data.items || [];
       
-      console.log('[Widget] Raw API response:', items);
+      console.log('[Widget] Geocoding API returned:', items.length, 'results');
       
-      // Filter and format results
-      let filteredItems = [];
-      
-      if (isPozemek) {
-        // For land: only show municipalities (cities, towns, villages)
-        filteredItems = items.filter(item => {
-          const cat = (item.category || '').toLowerCase();
-          return cat.includes('municipality') || cat.includes('city') || 
-                 cat.includes('town') || cat.includes('village') ||
-                 (item.type && item.type.toLowerCase().includes('municipality'));
-        }).map(item => {
-          // Get full location name
-          const location = item.location || {};
-          const name = location.municipality || item.name || item.label;
-          return {
-            display: name,
-            full: name
-          };
-        });
-      } else {
-        // For apartments/houses: show streets with city
-        filteredItems = items.filter(item => {
-          const cat = (item.category || '').toLowerCase();
-          const hasComma = (item.label || item.name || '').includes(',');
-          return cat.includes('address') || cat.includes('street') || hasComma;
-        }).map(item => {
-          const location = item.location || {};
-          const name = item.name || '';
-          const municipality = location.municipality || '';
-          
-          // Format: "Street, City"
-          let display = item.label || item.name || '';
-          
-          // If we have both street and municipality, format it nicely
-          if (name && municipality && !name.includes(',')) {
+      // Format results
+      const formattedItems = items.map(item => {
+        const name = item.name || '';
+        const location = item.location || {};
+        const municipality = location.municipality || location.municipalityPart || '';
+        const region = location.region || '';
+        
+        let display = '';
+        
+        if (isPozemek) {
+          // For land: just municipality name
+          display = municipality || name;
+        } else {
+          // For apartments/houses: "Street Number, City"
+          if (municipality && name) {
             display = `${name}, ${municipality}`;
+          } else if (name) {
+            display = name;
+          } else {
+            display = municipality;
           }
-          
-          return {
-            display: display,
-            full: display
-          };
-        });
-      }
+        }
+        
+        return {
+          display: display,
+          full: display,
+          raw: item
+        };
+      });
       
       // Remove duplicates
       const uniqueItems = [];
       const seen = new Set();
       
-      for (const item of filteredItems) {
-        if (!seen.has(item.display.toLowerCase())) {
-          seen.add(item.display.toLowerCase());
+      for (const item of formattedItems) {
+        const key = item.display.toLowerCase().trim();
+        if (key && !seen.has(key)) {
+          seen.add(key);
           uniqueItems.push(item);
         }
       }
       
       currentResults = uniqueItems;
       
-      console.log('[Widget] Filtered to', currentResults.length, 'unique suggestions');
+      console.log('[Widget] Showing', currentResults.length, 'unique addresses');
       
       if (currentResults.length > 0) {
         renderSuggestions(currentResults);
@@ -946,7 +942,7 @@ function attachSuggest(inputEl, isPozemek) {
       }
       
     } catch (e) {
-      console.error('[Widget] Suggest fetch error:', e);
+      console.error('[Widget] Geocoding fetch error:', e);
       suggestContainer.style.display = 'none';
     }
   }
@@ -994,13 +990,13 @@ function attachSuggest(inputEl, isPozemek) {
     console.log('[Widget] Input value:', value);
     debounceTimer = setTimeout(() => {
       fetchSuggestions(value);
-    }, 300);
+    }, 400); // Slightly longer delay for geocoding
   });
   
   // Focus handler
   inputEl.addEventListener('focus', () => {
     updatePosition();
-    if (inputEl.value.trim().length >= 2) {
+    if (inputEl.value.trim().length >= 3) {
       fetchSuggestions(inputEl.value.trim());
     }
   });
@@ -1023,7 +1019,7 @@ function attachSuggest(inputEl, isPozemek) {
   // Update position on window resize
   window.addEventListener('resize', updatePosition, { passive: true });
   
-  console.log('[Widget] ✅ Mapy.cz REST autocomplete ready');
+  console.log('[Widget] ✅ Mapy.cz Geocoding autocomplete ready');
 }
 
   window.CG_Estimator = window.CG_Estimator || {
