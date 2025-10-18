@@ -1,324 +1,154 @@
-// Cogniterra embed loader (opravená verze v8 - DESKTOP FIX)
+// Cogniterra embed loader (v6)
 (function(){
-  console.log("[Cogniterra] Initializing embed loader v8");
   const tag = document.currentScript;
-  const CFG = tag.getAttribute('data-config') || './data/v1/widget_config.json';
-  const WIDGET = tag.getAttribute('data-widget') || './cogniterra-widget-safe.v6.js';
+  const CFG = tag.getAttribute('data-config');
+  const WIDGET = tag.getAttribute('data-widget');
   const STYLES = tag.getAttribute('data-styles');
 
-  // Vyčistit všechny existující instance
-  try {
-    document.querySelectorAll('.cg-launcher, .cg-panel, .chat-bubble, [data-chatbot="bubble"]').forEach(el => {
-      if(el && el.parentNode) el.parentNode.removeChild(el);
-    });
-    
-    // Reset globálních příznaků
-    window.__CG_WIDGET_INIT__ = false;
-    window.__CG_WIDGET_LOADED__ = false;
-  } catch(e) {
-    console.error("[Cogniterra] Error cleaning up previous instances:", e);
-  }
+  if(!CFG || !WIDGET){ console.error('[Cogniterra] Missing data-config or data-widget'); return; }
 
-  // Vytvořit tlačítko chatbota s INLINE styly jako pojistka
-  const btn = document.createElement('div');
-  btn.className = 'cg-launcher';
-  btn.id = 'cg-launcher-btn';
-  btn.title = 'Otevřít chat';
-  btn.innerHTML = '💬';
-  btn.style.cssText = `
-    position: fixed !important;
-    right: 20px !important;
-    bottom: 20px !important;
-    width: 56px !important;
-    height: 56px !important;
-    border-radius: 50% !important;
-    background: linear-gradient(135deg, #6E7BFF, #9B6BFF) !important;
-    color: #fff !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    cursor: pointer !important;
-    z-index: 2147483647 !important;
-    font-size: 24px !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,.25) !important;
-  `;
-  document.body.appendChild(btn);
-  
-  // Vytvořit panel s INLINE styly jako pojistka
-  const panel = document.createElement('div');
-  panel.className = 'cg-panel';
-  panel.id = 'cg-panel';
-  panel.style.cssText = `
-    position: fixed !important;
+  window.CGTR = { configUrl: CFG, widgetUrl: WIDGET, containerId: 'chatbot-container' };
+
+  const css = `.cg-launcher{position:fixed;right:20px;bottom:20px;width:56px;height:56px;border-radius:999px;
+    background:linear-gradient(135deg,#6E7BFF,#9B6BFF);box-shadow:0 10px 30px rgba(0,0,0,.35);
+    border:1px solid rgba(255,255,255,.15);color:#EAF2FF;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;z-index:2147483000;font:600 14px/1 Inter,system-ui}
+  .cg-panel{position:fixed;right:20px;bottom:90px;width:420px;height:650px;z-index:2147483001;border-radius:18px;
+    overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.35);border:none;background:transparent;display:none;padding:0;}
+  .cg-close{position:absolute;right:8px;top:8px;z-index:2;background:rgba(0,0,0,.35);color:#EAF2FF;border:1px solid rgba(255,255,255,.12);
+    border-radius:10px;padding:4px 8px;cursor:pointer;font:500 12px Inter,system-ui}`;
+  const style=document.createElement('style'); style.innerHTML = css; document.head.appendChild(style);
+  if(STYLES){ const link=document.createElement('link'); link.rel='stylesheet'; link.href=STYLES; document.head.appendChild(link); }
+
+  const btn=document.createElement('div'); btn.className='cg-launcher'; btn.title='Otevřít chat'; btn.innerHTML = '💬'; document.body.appendChild(btn);
+  const panel=document.createElement('div'); panel.className='cg-panel';
+  const close=document.createElement('button'); close.className='cg-close'; close.innerHTML = 'Zavřít'; panel.appendChild(close);
+  const cont=document.createElement('div'); 
+  cont.id='chatbot-container'; 
+  cont.style.width='100%'; 
+  cont.style.height='100%';
+  cont.style.position='absolute'; 
+  cont.style.inset='0';
+  panel.appendChild(cont);
+  document.body.appendChild(panel);
+  // Ensure widget host exists for bubble-only build
+  const host=document.createElement('div'); 
+  host.setAttribute('data-cogniterra-widget',''); 
+  host.style.width='100%'; 
+  host.style.height='100%';
+  host.style.position='absolute';
+  host.style.inset='0';
+  cont.appendChild(host);
+
+  const sc=document.createElement('script'); sc.src=WIDGET+'?v='+Date.now(); sc.setAttribute('data-config',CFG); document.body.appendChild(sc);
+
+  let open=false; const show=()=>{panel.style.display='block';open=true}; const hide=()=>{panel.style.display='none';open=false};
+  btn.addEventListener('click',()=> open?hide():show()); close.addEventListener('click',hide);
+})();
+
+// === Mobile viewport helper (vh fix) ===
+(function cgSetVH() {
+  try {
+    const set = () => {
+      const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      document.documentElement.style.setProperty('--vh', h + 'px');
+    };
+    set();
+    window.addEventListener('resize', set, { passive: true });
+  } catch(e){}
+})();
+
+//== CG Inject: responsive overrides & body lock ==
+(function() {
+  try {
+    var style = document.createElement('style');
+    style.id = 'cg-responsive-override';
+    style.textContent = `
+/* === CG: Lock background scroll when chat open === */
+html.cg-open, body.cg-open {
+  overflow: hidden !important;
+  touch-action: none !important;
+  overscroll-behavior: contain !important;
+}
+\n
+/* === CG: Responsive overrides for launcher & panel === */
+.cg-launcher {
+  -webkit-tap-highlight-color: transparent;
+}
+@media (min-width: 768px) {
+  .cg-panel {
+    width: clamp(360px, 34vw, 420px) !important;
+    height: clamp(520px, 72vh, 650px) !important;
     right: 20px !important;
     bottom: 90px !important;
-    width: 420px !important;
-    height: 650px !important;
-    max-height: 80vh !important;
-    z-index: 2147483646 !important;
+    left: auto !important;
     border-radius: 18px !important;
+    max-height: 92vh !important;
     overflow: hidden !important;
-    background: white !important;
-    box-shadow: 0 12px 40px rgba(0,0,0,.35) !important;
-    display: none !important;
-  `;
-  
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'cg-close';
-  closeBtn.innerHTML = 'Zavřít';
-  closeBtn.id = 'cg-close-btn';
-  panel.appendChild(closeBtn);
-  
-  const container = document.createElement('div');
-  container.id = 'chatbot-container';
-  container.style.width = '100%';
-  container.style.height = '100%';
-  container.style.background = '#ffffff';
-  container.style.position = 'absolute';
-  container.style.inset = '0';
-  container.style.zIndex = '2147483040';
-  container.style.visibility = 'visible';
-  container.style.opacity = '1';
-  panel.appendChild(container);
-  
-  // Přidat panel do dokumentu
-  document.body.appendChild(panel);
-  
-  // KRITICKÉ: Vytvořit host element pro chatbot
-  const host = document.createElement('div');
-  host.setAttribute('data-cogniterra-widget', '');
-  host.style.width = '100%';
-  host.style.height = '100%';
-  host.style.background = '#ffffff';
-  host.style.position = 'absolute';
-  host.style.inset = '0';
-  host.style.zIndex = '2147483050';
-  host.style.visibility = 'visible';
-  host.style.opacity = '1';
-  container.appendChild(host);
-  
-  // Stav
-  let isOpen = false;
-  let scriptLoaded = false;
-  
-  function toggleChat() {
-    if (isOpen) {
-      hideChat();
-    } else {
-      showChat();
-    }
   }
-  
-  function showChat() {
-    console.log("[Cogniterra] Showing chat");
-    panel.style.display = 'block';
-    panel.classList.add('cg-visible');
-    document.documentElement.classList.add('cg-open');
-    document.body.classList.add('cg-open');
-    isOpen = true;
-    
-    if (!scriptLoaded) {
-      loadScript();
-    } else if (typeof window.__CG_WIDGET_RESET_FN__ === 'function') {
-      try {
-        window.__CG_WIDGET_RESET_FN__();
-      } catch(e) {
-        console.error("[Cogniterra] Error resetting widget:", e);
-        scriptLoaded = false;
-        loadScript();
-      }
-    }
-  }
-  
-  function hideChat() {
-    console.log("[Cogniterra] Hiding chat");
-    panel.style.display = 'none';
-    panel.classList.remove('cg-visible');
-    document.documentElement.classList.remove('cg-open');
-    document.body.classList.remove('cg-open');
-    isOpen = false;
-  }
-  
-  function loadScript() {
-    console.log("[Cogniterra] Loading widget script");
-    const script = document.createElement('script');
-    script.src = WIDGET + '?v=' + Date.now();
-    script.setAttribute('data-config', CFG);
-    script.onload = function() {
-      scriptLoaded = true;
-      console.log("[Cogniterra] Widget script loaded successfully");
-      
-      // Vynutit viditelnost po načtení
-      setTimeout(function() {
-        try {
-          const chatContainer = document.querySelector('[data-cogniterra-widget] .chat-container');
-          if (chatContainer) {
-            chatContainer.style.visibility = 'visible';
-            chatContainer.style.opacity = '1';
-            chatContainer.style.display = 'flex';
-          }
-        } catch(e) {
-          console.error("[Cogniterra] Error enforcing visibility:", e);
-        }
-      }, 200);
-    };
-    document.body.appendChild(script);
-  }
-  
-  // Event listeners
-  btn.addEventListener('click', toggleChat);
-  closeBtn.addEventListener('click', hideChat);
-  
-  // Globální funkce
-  window.CGTR = {
-    showChat: showChat,
-    hideChat: hideChat,
-    resetChat: function() {
-      if (typeof window.__CG_WIDGET_RESET_FN__ === 'function') {
-        window.__CG_WIDGET_RESET_FN__();
-      }
-    }
-  };
-  
-  // Přidat základní styly DO HLAVIČKY (jako backup)
-  const style = document.createElement('style');
-  style.textContent = `
-  .cg-launcher {
-    position: fixed !important;
-    right: 20px !important;
-    bottom: 20px !important;
-    width: 56px !important;
-    height: 56px !important;
-    border-radius: 50% !important;
-    background: linear-gradient(135deg, #6E7BFF, #9B6BFF) !important;
-    box-shadow: 0 10px 30px rgba(0,0,0,.35) !important;
-    border: 1px solid rgba(255,255,255,.15) !important;
-    color: #EAF2FF !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    cursor: pointer !important;
-    z-index: 2147483647 !important;
-    font: 600 24px/1 system-ui !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-  }
-  
+}
+@media (max-width: 767.98px) {
   .cg-panel {
     position: fixed !important;
-    right: 20px !important;
-    bottom: 90px !important;
-    width: 420px !important;
-    height: 650px !important;
-    max-height: 80vh !important;
-    z-index: 2147483646 !important;
-    border-radius: 18px !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    top: auto !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border-radius: 16px 16px 0 0 !important;
+    padding-bottom: env(safe-area-inset-bottom) !important;
+    padding-top: env(safe-area-inset-top) !important;
     overflow: hidden !important;
-    box-shadow: 0 12px 40px rgba(0,0,0,.35) !important;
-    border: none !important;
-    background: white !important;
-    display: none !important;
-    padding: 0 !important;
+    box-sizing: border-box !important;
+    transform: translateY(0);
+    transition: transform 0.2s ease-out;
   }
-  
-  .cg-panel.cg-visible {
-    display: block !important;
-  }
-  
-  .cg-close {
-    position: absolute !important;
-    right: 8px !important;
-    top: 8px !important;
-    z-index: 2147483100 !important;
-    background: rgba(0,0,0,.35) !important;
-    color: #EAF2FF !important;
-    border: 1px solid rgba(255,255,255,.12) !important;
-    border-radius: 10px !important;
-    padding: 4px 8px !important;
-    cursor: pointer !important;
-    font: 500 12px system-ui !important;
-  }
-  
-  @media (max-width: 480px) {
-    .cg-panel {
-      width: 100% !important;
-      height: 100% !important;
-      right: 0 !important;
-      left: 0 !important;
-      bottom: 0 !important;
-      top: 0 !important;
-      border-radius: 0 !important;
-      max-height: none !important;
-    }
-  }
-  
-  [data-cogniterra-widget] {
-    position: absolute !important;
-    inset: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    background: white !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    display: block !important;
-    z-index: 2147483010 !important;
-  }
-  
-  .chat-container {
-    display: flex !important;
-    flex-direction: column !important;
-    height: 100% !important;
-    width: 100% !important;
-    background: #fff !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-  }
-  
-  .chat-header {
-    visibility: visible !important;
-    opacity: 1 !important;
-    z-index: 10 !important;
-  }
-  
-  .chat-messages {
-    visibility: visible !important;
-    opacity: 1 !important;
-    z-index: 5 !important;
-    flex: 1 !important;
-  }
-  
-  .chat-input-area {
-    visibility: visible !important;
-    opacity: 1 !important;
-    z-index: 10 !important;
-  }
-  
-  .chat-msg.ai a {
-    color: #2c5282 !important;
-    text-decoration: underline !important;
-    font-weight: 500 !important;
-  }`;
-  
-  document.head.appendChild(style);
-  
-  // Přidat externí styly, pokud jsou určeny
-  if(STYLES) {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = STYLES;
-    document.head.appendChild(link);
-  }
-  
-  // Mobile viewport helper
-  function updateVH() {
-    const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-    document.documentElement.style.setProperty('--vh', vh + 'px');
-  }
-  updateVH();
-  window.addEventListener('resize', updateVH, {passive:true});
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', updateVH, {passive:true});
-  }
-  
-  console.log("[Cogniterra] Embed loader initialized successfully");
+}
+`;
+    document.head.appendChild(style);
+  } catch(e) { console.warn('CG: style inject failed', e); }
+})();
+
+
+//== CG Inject: observe panel visibility to lock background ==
+(function(){
+  try {
+    var panel = document.querySelector('.cg-panel');
+    if (!panel) return;
+    var on = function(){ document.documentElement.classList.add('cg-open'); document.body.classList.add('cg-open'); };
+    var off = function(){ document.documentElement.classList.remove('cg-open'); document.body.classList.remove('cg-open'); };
+    var lastDisplay = getComputedStyle(panel).display;
+    var obs = new MutationObserver(function(){
+      var d = getComputedStyle(panel).display;
+      if (d !== lastDisplay) {
+        lastDisplay = d;
+        if (d !== 'none') on(); else off();
+      }
+    });
+    obs.observe(panel, { attributes: true, attributeFilter: ['style', 'class'] });
+    // initialize
+    if (getComputedStyle(panel).display !== 'none') on(); else off();
+  } catch(e){ console.warn('CG: observer failed', e); }
+})();
+
+
+//== CG Inject: visualViewport height sync on mobile ==
+(function(){
+  try {
+    var panel = document.querySelector('.cg-panel');
+    if (!panel || !window.visualViewport) return;
+    var isMobile = function(){ return Math.max(window.innerWidth, window.innerHeight) < 768; };
+    var apply = function(){
+      if (!isMobile()) { panel.style.removeProperty('height'); return; }
+      var vh = Math.round(window.visualViewport.height);
+      if (getComputedStyle(panel).display !== 'none') {
+        panel.style.height = vh + 'px';
+      }
+    };
+    window.visualViewport.addEventListener('resize', apply);
+    window.addEventListener('orientationchange', apply);
+    apply();
+  } catch(e){ console.warn('CG: viewport sync failed', e); }
 })();
