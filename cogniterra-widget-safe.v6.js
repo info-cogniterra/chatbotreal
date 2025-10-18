@@ -9,7 +9,7 @@
 })();
 
 // cogniterra-widget-safe.v6.js — BUBBLE-ONLY, SINGLE INSTANCE - VERZE S UP DETEKCÍ
-// Build v6.bubble.6 — Fixed UP search: KU priority, simple location detection
+// Build v6.bubble.7 — Fixed AI vs UP detection
 
 (function () {
   "use strict";
@@ -89,7 +89,7 @@
     },
     fetchJson(url) { return fetch(url, { credentials: "omit" }).then(r => r.json()); },
     
-    // ==== FIXED: Prioritize KU (katastrální území) over obec ====
+    // ==== Prioritize KU (katastrální území) over obec ====
     searchUP(query, upData) {
       if (!upData || !upData.map) return [];
       const q = U.norm(query);
@@ -133,21 +133,21 @@
       return obecPartial.slice(0, 10);
     },
     
-    // ==== FIXED: Simple location extraction - just get the longest capitalized word ====
+    // ==== Simple location extraction ====
     extractLocation(text) {
       const normalized = U.norm(text);
       
       // Remove obvious non-location words
       const stopWords = ['hledam', 'potrebuji', 'uzemni', 'plan', 'pro', 'v', 've', 'na', 'u', 
                         'chci', 'vedet', 'o', 'pozemku', 'stavbe', 'kde', 'najdu', 'mam', 
-                        'ma', 'stavet', 'koupit', 'prodat', 'jaky', 'jake'];
+                        'ma', 'stavet', 'koupit', 'prodat', 'jaky', 'jake', 'co', 'dela',
+                        'jak', 'se', 'mas', 'kdo', 'jsi', 'jsem'];
       
       const words = normalized.split(/\s+/)
         .filter(w => w.length > 2 && !stopWords.includes(w));
       
       console.log('[Widget] Extracted location candidates:', words);
       
-      // Return all candidates for searching
       return words.length > 0 ? words : [];
     },
     
@@ -724,21 +724,32 @@
     estimatePozemek(m,p){ return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; }
   };
 
-  // ==== FIXED: UP Detection - broader, simpler ====
+  // ==== FIXED: Better UP vs AI detection ====
   function needsUP(q) {
     const s = U.norm(q);
     console.log('[Widget] Checking UP need for:', q, '-> normalized:', s);
     
-    // FIXED: More aggressive detection - if it's just a location name, treat as UP query
+    // FIXED: Don't treat conversational questions as UP queries
+    const isConversational = /^(jak|co|kdo|proc|kdy|kde|jaky|jaka|jake)\s+(se|jsi|jste|mas|mate|dela|delate|je|jsou)/i.test(s);
+    if (isConversational) {
+      console.log('[Widget] Detected conversational question, not UP');
+      return false;
+    }
+    
+    // Has explicit UP keywords
     const hasUPKeyword = /(uzemni|plan|katastr|pozemek|stavba|zastavitelnost|regulacni|vyuziti|uzemi|parcela)/i.test(s);
     
-    // If no UP keywords but looks like a simple location query (short, capitalized-looking)
-    const words = s.split(/\s+/).filter(w => w.length > 2);
-    const isSimpleLocation = words.length <= 3 && words.length > 0;
+    if (hasUPKeyword) {
+      console.log('[Widget] Has UP keyword');
+      return true;
+    }
     
-    const result = hasUPKeyword || isSimpleLocation;
-    console.log('[Widget] UP detection - hasKeyword:', hasUPKeyword, 'isSimple:', isSimpleLocation, 'result:', result);
-    return result;
+    // FIXED: Only treat as location if it's very short AND not a question
+    const words = s.split(/\s+/).filter(w => w.length > 2);
+    const isSimpleLocation = words.length <= 2 && words.length > 0 && !s.includes('?');
+    
+    console.log('[Widget] isSimpleLocation:', isSimpleLocation, 'words:', words);
+    return isSimpleLocation;
   }
   
   function handleUPQuery(q) {
@@ -760,7 +771,7 @@
       return;
     }
     
-    // FIXED: Try all extracted words, prefer longer ones first
+    // Try all extracted words, prefer longer ones first
     let allResults = [];
     const sortedLocations = locations.sort((a, b) => b.length - a.length);
     
@@ -768,7 +779,7 @@
       const results = U.searchUP(loc, upData);
       if (results.length > 0) {
         allResults = results;
-        break; // Use first successful search
+        break;
       }
     }
     
@@ -1141,13 +1152,16 @@
     if (!q) return;
     addME(q);
     
-    // Check for territorial plan queries first
+    // FIXED: Check pricing first, then UP, then AI
+    if (needPricing(q)) { 
+      startPricing(); 
+      return; 
+    }
+    
     if (needsUP(q)) {
       handleUPQuery(q);
       return;
     }
-    
-    if (needPricing(q)) { startPricing(); return; }
     
     const url = (S.cfg && (S.cfg.proxy_url || S.cfg.chat_url)) || null;
     if (!url) { 
