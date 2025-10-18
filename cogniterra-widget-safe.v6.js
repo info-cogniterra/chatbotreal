@@ -9,7 +9,7 @@
 })();
 
 // cogniterra-widget-safe.v6.js — BUBBLE-ONLY, SINGLE INSTANCE - VERZE S UP DETEKCÍ
-// Build v6.bubble.8-fix — Fixed syntax error
+// Build v6.bubble.9 — Fixed UP detection - only explicit requests
 
 (function () {
   "use strict";
@@ -133,22 +133,32 @@
       return obecPartial.slice(0, 10);
     },
     
-    // ==== Simple location extraction ====
-    extractLocation(text) {
+    // ==== Extract location from explicit UP request ====
+    extractLocationFromUP(text) {
       const normalized = U.norm(text);
       
-      // Remove obvious non-location words
-      const stopWords = ['hledam', 'potrebuji', 'uzemni', 'plan', 'pro', 'v', 've', 'na', 'u', 
-                        'chci', 'vedet', 'o', 'pozemku', 'stavbe', 'kde', 'najdu', 'mam', 
-                        'ma', 'stavet', 'koupit', 'prodat', 'jaky', 'jake', 'co', 'dela',
-                        'jak', 'se', 'mas', 'kdo', 'jsi', 'jsem', 'ano', 'ne', 'jo', 'ok'];
+      // Try to extract location after "pro", "v", "ve", etc.
+      const patterns = [
+        /(?:uzemni\s*plan|up)\s+(?:pro|v|ve|na)\s+([a-z\s-]+?)(?:\s|$)/i,
+        /(?:pro|v|ve|na)\s+([a-z\s-]+?)\s+(?:uzemni\s*plan|up)/i,
+        /(?:uzemni\s*plan|up)\s+([a-z\s-]+?)(?:\s|$)/i
+      ];
       
+      for (const pattern of patterns) {
+        const match = text.match(pattern);
+        if (match && match[1]) {
+          const location = match[1].trim();
+          console.log('[Widget] Extracted location from UP request:', location);
+          return [location];
+        }
+      }
+      
+      // Fallback: take words after UP keywords
       const words = normalized.split(/\s+/)
-        .filter(w => w.length > 2 && !stopWords.includes(w));
+        .filter(w => w.length > 2 && !['uzemni', 'plan', 'pro', 'v', 've', 'na', 'chci', 'potrebuji', 'poslat', 'zaslat'].includes(w));
       
-      console.log('[Widget] Extracted location candidates:', words);
-      
-      return words.length > 0 ? words : [];
+      console.log('[Widget] Fallback location extraction:', words);
+      return words.length > 0 ? [words[0]] : [];
     },
     
     mentionsProperty(text) {
@@ -655,9 +665,16 @@
       const tt = String(t).toLowerCase();
       const offer1 = /(mohu|můžu|rád|ráda)\s+(vám\s+)?(ote[vw]ř[ií]t|zobrazit|spustit)\s+(kontaktn[íi]\s+formul[aá][řr])/i.test(tt);
       const offer2 = /chcete\s+(ote[vw]ř[ií]t|zobrazit|spustit)\s+(formul[aá][řr])/i.test(tt);
+      // NEW: Detect UP offer
+      const offerUP = /(chcete|potrebujete|mam\s+poslat|poslat\s+vam|najit\s+vam).*?(uzemni\s*plan|up)/i.test(tt);
+      
       if (offer1 || offer2) { 
         console.log('[Widget] AI offered contact form');
         S.intent.contactOffer = true; 
+      }
+      if (offerUP) {
+        console.log('[Widget] AI offered UP');
+        S.intent.upOffer = true;
       }
     } catch (e) {}
   }
@@ -678,13 +695,8 @@
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
-  // ==== Proactive UP offer ====
-  function offerUPSearch() {
-    const box = U.el("div", { class: "up-offer" }, [
-      "💡 Tip: Pokud potřebujete územní plán pro konkrétní lokalitu, stačí mi napsat název obce nebo katastrálního území a já vám najdu odkaz."
-    ]);
-    addPanel(box);
-  }
+  // ==== Proactive UP offer - REMOVED from automatic display ====
+  // UP will only be shown on explicit request or after AI offers it
 
   // ==== Mapy.cz Suggest ====
   let MAPY_PROMISE = null;
@@ -727,51 +739,34 @@
     estimatePozemek(m,p){ return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; }
   };
 
-  // ==== Better UP vs AI detection with context awareness ====
+  // ==== COMPLETELY REWRITTEN: Only explicit UP requests ====
   function needsUP(q) {
     const s = U.norm(q);
     console.log('[Widget] Checking UP need for:', q, '-> normalized:', s);
     
-    // If contact form was just offered, don't treat "ano" as UP query
-    if (S.intent.contactOffer) {
-      console.log('[Widget] Contact form offered, skipping UP detection');
-      return false;
-    }
+    // EXPLICIT UP request patterns
+    const explicitUP = [
+      /uzemni\s*plan(?:\s+pro|\s+v|\s+ve|\s+na|\s+)?\s*[a-z]/i,  // "územní plán pro X", "územní plán Brno"
+      /(?:chci|potrebuji|poslat|zaslat|najit|hledam)\s+(?:mi\s+)?uzemni\s*plan/i,  // "chci územní plán", "pošli mi UP"
+      /(?:uzemni\s*plan|up)(?:\s+pro|\s+v|\s+ve)?\s+[a-z]/i,  // "UP pro Brno", "UP Brno"
+      /(?:mam|mate|muzes|muzete)\s+(?:mi\s+)?(?:poslat|zaslat|najit)\s+(?:uzemni\s*plan|up)/i  // "můžete mi poslat UP"
+    ];
     
-    // Don't treat conversational questions as UP queries
-    const isConversational = /^(jak|co|kdo|proc|kdy|kde|jaky|jaka|jake)\s+(se|jsi|jste|mas|mate|dela|delate|je|jsou)/i.test(s);
-    if (isConversational) {
-      console.log('[Widget] Detected conversational question, not UP');
-      return false;
-    }
+    const isExplicitUP = explicitUP.some(pattern => pattern.test(s));
     
-    // Don't treat common affirmative/negative words as locations
-    const isAffirmation = /^(ano|ne|jo|ok|okej|dobre|jasne|souhlasim|nesouhlasim)$/i.test(s);
-    if (isAffirmation) {
-      console.log('[Widget] Detected affirmation/negation, not UP');
-      return false;
-    }
-    
-    // Has explicit UP keywords
-    const hasUPKeyword = /(uzemni|plan|katastr|pozemek|stavba|zastavitelnost|regulacni|vyuziti|uzemi|parcela)/i.test(s);
-    
-    if (hasUPKeyword) {
-      console.log('[Widget] Has UP keyword');
+    if (isExplicitUP) {
+      console.log('[Widget] EXPLICIT UP request detected');
       return true;
     }
     
-    // Only treat as location if it's very short AND not a question AND not affirmation
-    const words = s.split(/\s+/).filter(w => w.length > 2);
-    const isSimpleLocation = words.length <= 2 && words.length > 0 && !s.includes('?');
-    
-    console.log('[Widget] isSimpleLocation:', isSimpleLocation, 'words:', words);
-    return isSimpleLocation;
+    console.log('[Widget] NOT an UP request');
+    return false;
   }
   
   function handleUPQuery(q) {
     console.log('[Widget] Handling UP query:', q);
     
-    const locations = U.extractLocation(q);
+    const locations = U.extractLocationFromUP(q);
     
     console.log('[Widget] Extracted locations:', locations);
     
@@ -787,11 +782,9 @@
       return;
     }
     
-    // Try all extracted words, prefer longer ones first
+    // Search for the location
     let allResults = [];
-    const sortedLocations = locations.sort((a, b) => b.length - a.length);
-    
-    for (const loc of sortedLocations) {
+    for (const loc of locations) {
       const results = U.searchUP(loc, upData);
       if (results.length > 0) {
         allResults = results;
@@ -870,7 +863,7 @@
         ]),
         U.el("button", { class: "cg-card", type: "button", onclick: () => startHelp(), "aria-label":"Potřebuji pomoct" }, [
           U.el("h3", {}, ["Potřebuji pomoct"]),
-          U.el("p", {}, ["Zeptejte se na postup, dokumenty, pravidla nebo územní plány."])
+          U.el("p", {}, ["Zeptejte se na postup, dokumenty nebo pravidla."])
         ])
       ])
     ]);
@@ -881,11 +874,8 @@
   function startHelp() { 
     chatInputArea.style.display='flex'; 
     try{chatTextarea.focus();}catch(e){}
-    addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod.");
-    
-    setTimeout(() => {
-      offerUPSearch();
-    }, 800);
+    addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS apod.");
+    // REMOVED: Automatic UP offer
   }
 
   function startPricing() {
@@ -1150,7 +1140,7 @@
   }
   
   function ask(q) {
-    // Check contact offer intent FIRST before anything else
+    // PRIORITY 1: Check contact offer intent
     try {
       if (S.intent.contactOffer) {
         console.log('[Widget] Contact offer active, checking response');
@@ -1167,28 +1157,62 @@
           addAI("Dobře, pokud budete potřebovat později, dejte mi vědět!");
           return;
         }
-        // If it's neither yes nor no, clear the flag and continue normally
         S.intent.contactOffer = false;
+      }
+    } catch(_) {}
+
+    // PRIORITY 2: Check UP offer intent (after AI suggested it)
+    try {
+      if (S.intent.upOffer) {
+        console.log('[Widget] UP offer active, checking response');
+        const yesRe = /^(ano|jo|ok|okej|jasne|prosim|dobre|poslat|zaslat)(\b|!|\.)/i;
+        const noRe  = /^(ne|radeji\s+ne|pozdeji|ted\s+ne|neni)(\b|!|\.)/i;
+        if (yesRe.test(q.trim())) {
+          addME(q);
+          // Ask for location
+          addAI("Pro jakou lokalitu (obec nebo katastrální území) potřebujete územní plán?");
+          S.intent.upOffer = false;
+          S.intent.waitingForLocation = true;
+          return;
+        } else if (noRe.test(q.trim())) {
+          S.intent.upOffer = false;
+          addME(q);
+          addAI("Dobře, pokud budete potřebovat později, dejte mi vědět!");
+          return;
+        }
+        S.intent.upOffer = false;
+      }
+    } catch(_) {}
+
+    // PRIORITY 3: If waiting for location after UP offer
+    try {
+      if (S.intent.waitingForLocation) {
+        addME(q);
+        S.intent.waitingForLocation = false;
+        handleUPQuery("územní plán " + q);  // Prepend to trigger UP search
+        return;
       }
     } catch(_) {}
 
     if (!q) return;
     addME(q);
     
-    // Check pricing first, then UP, then AI
+    // PRIORITY 4: Check pricing
     if (needPricing(q)) { 
       startPricing(); 
       return; 
     }
     
+    // PRIORITY 5: Check EXPLICIT UP request
     if (needsUP(q)) {
       handleUPQuery(q);
       return;
     }
     
+    // PRIORITY 6: Default to AI
     const url = (S.cfg && (S.cfg.proxy_url || S.cfg.chat_url)) || null;
     if (!url) { 
-      addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod."); 
+      addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS apod."); 
       return; 
     }
 
@@ -1254,16 +1278,8 @@
           txt = await resp.text(); 
         }
         
-        txt = (txt && String(txt).trim()) || "Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod.";
+        txt = (txt && String(txt).trim()) || "Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS apod.";
         addAI(txt);
-        
-        // After AI response, check if we should offer UP
-        if (U.mentionsProperty(q) && !needsUP(q) && !S.intent.upOffered) {
-          setTimeout(() => {
-            offerUPSearch();
-            S.intent.upOffered = true;
-          }, 1200);
-        }
       } catch (e) { 
         addAI("Omlouvám se, došlo k chybě při komunikaci s AI. Zkuste to prosím znovu."); 
         console.error("[Widget] AI chat error:", e); 
