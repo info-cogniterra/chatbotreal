@@ -9,7 +9,7 @@
 })();
 
 // cogniterra-widget-safe.v6.js — BUBBLE-ONLY, SINGLE INSTANCE - VERZE S UP DETEKCÍ
-// Build v6.bubble.7 — Fixed AI vs UP detection
+// Build v6.bubble.8 — Fixed "ano" triggering UP instead of contact form
 
 (function () {
   "use strict";
@@ -75,7 +75,7 @@
     },
     select(name, options) {
       const s = U.el("select", { id: name, name, class: "cg-select" });
-      options.forEach((o) => s.appendChild(U.el("option", { value: o }, [o])));
+      options.forEach((o) => s.appendChild(U.el("option", { value: o }, [o]));
       return s;
     },
     emailOk(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v || ""); },
@@ -141,7 +141,7 @@
       const stopWords = ['hledam', 'potrebuji', 'uzemni', 'plan', 'pro', 'v', 've', 'na', 'u', 
                         'chci', 'vedet', 'o', 'pozemku', 'stavbe', 'kde', 'najdu', 'mam', 
                         'ma', 'stavet', 'koupit', 'prodat', 'jaky', 'jake', 'co', 'dela',
-                        'jak', 'se', 'mas', 'kdo', 'jsi', 'jsem'];
+                        'jak', 'se', 'mas', 'kdo', 'jsi', 'jsem', 'ano', 'ne', 'jo', 'ok'];
       
       const words = normalized.split(/\s+/)
         .filter(w => w.length > 2 && !stopWords.includes(w));
@@ -655,7 +655,10 @@
       const tt = String(t).toLowerCase();
       const offer1 = /(mohu|můžu|rád|ráda)\s+(vám\s+)?(ote[vw]ř[ií]t|zobrazit|spustit)\s+(kontaktn[íi]\s+formul[aá][řr])/i.test(tt);
       const offer2 = /chcete\s+(ote[vw]ř[ií]t|zobrazit|spustit)\s+(formul[aá][řr])/i.test(tt);
-      if (offer1 || offer2) { S.intent.contactOffer = true; }
+      if (offer1 || offer2) { 
+        console.log('[Widget] AI offered contact form');
+        S.intent.contactOffer = true; 
+      }
     } catch (e) {}
   }
 
@@ -724,15 +727,28 @@
     estimatePozemek(m,p){ return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; }
   };
 
-  // ==== FIXED: Better UP vs AI detection ====
+  // ==== FIXED: Better UP vs AI detection with context awareness ====
   function needsUP(q) {
     const s = U.norm(q);
     console.log('[Widget] Checking UP need for:', q, '-> normalized:', s);
     
-    // FIXED: Don't treat conversational questions as UP queries
+    // FIXED: If contact form was just offered, don't treat "ano" as UP query
+    if (S.intent.contactOffer) {
+      console.log('[Widget] Contact form offered, skipping UP detection');
+      return false;
+    }
+    
+    // Don't treat conversational questions as UP queries
     const isConversational = /^(jak|co|kdo|proc|kdy|kde|jaky|jaka|jake)\s+(se|jsi|jste|mas|mate|dela|delate|je|jsou)/i.test(s);
     if (isConversational) {
       console.log('[Widget] Detected conversational question, not UP');
+      return false;
+    }
+    
+    // FIXED: Don't treat common affirmative/negative words as locations
+    const isAffirmation = /^(ano|ne|jo|ok|okej|dobre|jasne|souhlasim|nesouhlasim)$/i.test(s);
+    if (isAffirmation) {
+      console.log('[Widget] Detected affirmation/negation, not UP');
       return false;
     }
     
@@ -744,7 +760,7 @@
       return true;
     }
     
-    // FIXED: Only treat as location if it's very short AND not a question
+    // Only treat as location if it's very short AND not a question AND not affirmation
     const words = s.split(/\s+/).filter(w => w.length > 2);
     const isSimpleLocation = words.length <= 2 && words.length > 0 && !s.includes('?');
     
@@ -1134,8 +1150,10 @@
   }
   
   function ask(q) {
+    // FIXED: Check contact offer intent FIRST before anything else
     try {
       if (S.intent.contactOffer) {
+        console.log('[Widget] Contact offer active, checking response');
         const yesRe = /^(ano|jo|ok|okej|jasne|prosim|dobre|spustit|otevrit|zobraz(it)?|muzete|urcite)(\b|!|\.)/i;
         const noRe  = /^(ne|radeji\s+ne|pozdeji|ted\s+ne|neni)(\b|!|\.)/i;
         if (yesRe.test(q.trim())) {
@@ -1145,14 +1163,19 @@
           return;
         } else if (noRe.test(q.trim())) {
           S.intent.contactOffer = false;
+          addME(q);
+          addAI("Dobře, pokud budete potřebovat později, dejte mi vědět!");
+          return;
         }
+        // If it's neither yes nor no, clear the flag and continue normally
+        S.intent.contactOffer = false;
       }
     } catch(_) {}
 
     if (!q) return;
     addME(q);
     
-    // FIXED: Check pricing first, then UP, then AI
+    // Check pricing first, then UP, then AI
     if (needPricing(q)) { 
       startPricing(); 
       return; 
