@@ -8,14 +8,15 @@
   window.addEventListener('resize', updateVH, {passive:true});
 })();
 
-// cogniterra-widget-safe.v6.js — BUBBLE-ONLY, SINGLE INSTANCE
-// Build v6.bubble.2 — FIXED: working estimator + accessibility + mobile viewport
+// cogniterra-widget-safe.v6.js — BUBBLE-ONLY, SINGLE INSTANCE - OPRAVENÁ VERZE
+// Build v6.bubble.1  — intro + 2 cards; pricing via contact; Mapy.cz suggest; no auto-create
 
 (function () {
   "use strict";
 
   // ==== single-instance guard ====
   if (window.__CG_WIDGET_INIT__) {
+    // Pokud již existuje, vyčistíme starou instanci
     try {
       const existingHost = document.querySelector("[data-cogniterra-widget]");
       if (existingHost && existingHost.shadowRoot) {
@@ -29,9 +30,9 @@
   }
   window.__CG_WIDGET_INIT__ = true;
 
-  // ==== mount only if host exists ====
+  // ==== mount only if host exists (bubble creates it); do NOTHING otherwise ====
   const host = document.querySelector("[data-cogniterra-widget]");
-  if (!host) return;
+  if (!host) return; // bubble not opened yet / or embed missing
 
   // ==== state/config ====
   const S = {
@@ -59,213 +60,51 @@
       return n;
     },
     input(name, placeholder, type = "text") {
-      return U.el("input", { id: name, name, placeholder, type, class: "cg-input", "aria-label": placeholder });
+      return U.el("input", { id: name, name, placeholder, type, class: "cg-input" });
     },
     select(name, options) {
-      const s = U.el("select", { id: name, name, class: "cg-select", "aria-label": "Vyberte možnost" });
+      const s = U.el("select", { id: name, name, class: "cg-select" });
       options.forEach((o) => s.appendChild(U.el("option", { value: o }, [o])));
       return s;
     },
     emailOk(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v || ""); },
     phoneOk(v) { return /^\+?[0-9\s\-()]{7,}$/.test(v || ""); },
     norm(v) { return (v || "").normalize("NFKD").toLowerCase(); },
-    fetchJson(url) { return fetch(url, { credentials: "omit" }).then(r => r.json()).catch(e => { console.error("fetchJson error:", e); return null; }); },
+    fetchJson(url) { return fetch(url, { credentials: "omit" }).then(r => r.json()); },
   };
 
-  // ==== Real Estimator (integrated from estimator.v1.js) ====
-  if (!window.CG_Estimator) {
-    window.CG_Estimator = (function() {
-      const cfg = {
-        koefStav: {
-          "Novostavba": 1.30,
-          "Po rekonstrukci": 1.15,
-          "Dobrý": 1.00,
-          "Špatný": 0.85
-        },
-        koefVlastnictvi: {
-          "osobní": 1.00,
-          "Osobní": 1.00,
-          "družstevní": 0.85,
-          "Družstevní": 0.85
-        }
-      };
-
-      function confidence(n, fallbackSteps){
-        if(n >= 20 && fallbackSteps === 0) return "vysoká";
-        if(n >= 5 && fallbackSteps <= 1) return "střední";
-        return "nízká";
-      }
-
-      function fallbackByt(map, obec, dispozice, stav, vlast){
-        let steps=0;
-        const node = map && map[obec];
-        if(!node){ return {median:null, n:0, steps:3}; }
-        
-        let v = (((node||{})[dispozice]||{}))[stav];
-        v = (v||{})[vlast];
-        if(v && v.median) return {median:v.median, n:v.n||0, steps};
-        
-        v = (((node||{})[dispozice]||{}))[stav];
-        if(v){
-          const any = Object.values(v)[0];
-          if(any && any.median){ return {median:any.median, n:any.n||0, steps:++steps}; }
-        }
-        
-        v = ((node||{})[dispozice]);
-        if(v){
-          for(const st of Object.values(v)){
-            for(const own of Object.values(st)){
-              if(own && own.median){ return {median:own.median, n:own.n||0, steps:steps+1}; }
-            }
-          }
-        }
-        
-        for(const disp of Object.values(node)){
-          for(const st of Object.values(disp)){
-            for(const own of Object.values(st)){
-              if(own && own.median){ return {median:own.median, n:own.n||0, steps:steps+2}; }
-            }
-          }
-        }
-        return {median:null, n:0, steps:3};
-      }
-
-      function estimateByt(map, params){
-        try {
-          const { obec, dispozice, stav, vlastnictvi, vymera } = params;
-          const res = fallbackByt(map, obec, dispozice, stav, vlastnictvi);
-          if(!res.median){ 
-            return { ok:false, low:0, mid:0, high:0, per_m2:0, note:"Pro tuto lokalitu nemáme dost dat." }; 
-          }
-          const kStav = cfg.koefStav[stav] || 1.0;
-          const kVlast = cfg.koefVlastnictvi[vlastnictvi] || 1.0;
-          const mid_m2 = res.median * kStav * kVlast;
-          const mid = mid_m2 * vymera;
-          const spread = 0.12;
-          return {
-            ok:true,
-            mid: Math.round(mid),
-            low: Math.round(mid*(1-spread)),
-            high: Math.round(mid*(1+spread)),
-            per_m2: Math.round(mid_m2),
-            m2: Math.round(mid_m2),
-            n: res.n||0,
-            confidence: confidence(res.n||0, res.steps||0),
-            notes: res.steps>0 ? "Použit částečný odhad." : "Přímá shoda."
-          };
-        } catch(e) {
-          console.error("CG Estimator Byt error:", e);
-          return {ok:false, low:0, mid:0, high:0, per_m2:0, note:"Chyba výpočtu."};
-        }
-      }
-
-      function fallbackDum(map, obec, typ){
-        const node = map && map[obec]; 
-        if(!node) return {median:null,n:0,steps:2};
-        let v = (node[typ]||{})['nan'] || Object.values(node[typ]||{})[0];
-        if(v && v.median) return {median:v.median,n:v.n||0,steps:0};
-        for(const item of Object.values(node)){
-          const leaf = Object.values(item||{})[0];
-          if(leaf && leaf.median) return {median:leaf.median,n:leaf.n||0,steps:1};
-        }
-        return {median:null,n:0,steps:2};
-      }
-
-      function estimateDum(map, params){
-        try {
-          const { obec, typ_stavby, stav, vymera } = params;
-          const res = fallbackDum(map, obec, typ_stavby);
-          if(!res.median){ 
-            return {ok:false, low:0, mid:0, high:0, per_m2:0, note:"Pro tuto lokalitu nemáme dost dat."}; 
-          }
-          const kStav = cfg.koefStav[stav] || 1.0;
-          const mid_m2 = res.median * kStav;
-          const mid = mid_m2 * vymera;
-          const spread = 0.12;
-          return { 
-            ok:true, 
-            mid:Math.round(mid), 
-            low:Math.round(mid*(1-spread)), 
-            high:Math.round(mid*(1+spread)),
-            per_m2:Math.round(mid_m2),
-            m2:Math.round(mid_m2), 
-            n:res.n||0, 
-            confidence:confidence(res.n||0,res.steps||0), 
-            notes: res.steps? "Použit částečný odhad.":"Přímá shoda."
-          };
-        } catch(e) {
-          console.error("CG Estimator Dům error:", e);
-          return {ok:false, low:0, mid:0, high:0, per_m2:0, note:"Chyba výpočtu."};
-        }
-      }
-
-      function fallbackPoz(map, obec, kategorie){
-        const node = map && map[obec]; 
-        if(!node) return {median:null,n:0,steps:1};
-        let v = node[kategorie];
-        if(v && v.median) return {median:v.median, n:v.n||0, steps:0};
-        v = Object.values(node||{})[0];
-        if(v && v.median) return {median:v.median, n:v.n||0, steps:1};
-        return {median:null,n:0,steps:2};
-      }
-
-      function estimatePozemek(map, params){
-        try {
-          const { obec, kategorie, vymera } = params;
-          const res = fallbackPoz(map, obec, kategorie);
-          if(!res.median){ 
-            return {ok:false, low:0, mid:0, high:0, per_m2:0, note:"Pro tuto lokalitu nemáme dost dat."}; 
-          }
-          const mid_m2 = res.median;
-          const mid = mid_m2 * vymera;
-          const spread = 0.12;
-          return { 
-            ok:true, 
-            mid:Math.round(mid), 
-            low:Math.round(mid*(1-spread)), 
-            high:Math.round(mid*(1+spread)),
-            per_m2:Math.round(mid_m2),
-            m2:Math.round(mid_m2), 
-            n:res.n||0, 
-            confidence:confidence(res.n||0,res.steps||0),
-            notes: res.steps? "Použit částečný odhad.":"Přímá shoda."
-          };
-        } catch(e) {
-          console.error("CG Estimator Pozemek error:", e);
-          return {ok:false, low:0, mid:0, high:0, per_m2:0, note:"Chyba výpočtu."};
-        }
-      }
-
-      return { cfg, estimateByt, estimateDum, estimatePozemek };
-    })();
-  }
-
-  // Cleanup old close buttons
+  // Odstraníme všechny existující elementy s třídou .cg-close v document
   try {
     const oldCloseButtons = document.querySelectorAll('.cg-close');
     oldCloseButtons.forEach(btn => btn.remove());
   } catch(e) {}
 
   // ==== shadow root & UI skeleton ====
+  // Odstraníme všechny potomky z host elementu
   while (host.firstChild) {
     host.removeChild(host.firstChild);
   }
   
+  // Odstraníme jakýkoliv existující shadowRoot
   if (host.shadowRoot) {
     try {
+      // Pokusíme se odstranit shadowRoot
       host.attachShadow({ mode: "open" });
     } catch(e) {
+      // Pokud nelze přímo odstranit, alespoň vyčistíme obsah
       while (host.shadowRoot.firstChild) {
         host.shadowRoot.removeChild(host.shadowRoot.firstChild);
       }
     }
   }
 
+  // Vytvoříme nový shadowRoot
   const shadow = host.shadowRoot || host.attachShadow({ mode: "open" });
 
-  // === Styles with fixed fonts and mobile viewport ===
+  // === Kompletně nový styl s důrazem na izolaci ===
   const style = document.createElement("style");
   style.textContent = `
+  /* Základní reset a izolace */
   :host {
     all: initial;
     display: block;
@@ -283,8 +122,9 @@
     padding: 0;
   }
   
+  /* Widget kontejner - bez černého pozadí */
   .chat-container {
-    font: 15px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font: 15px/1.5 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
     color: #2d3748;
     background: #fff;
     border-radius: 12px;
@@ -299,6 +139,7 @@
     inset: 0;
   }
   
+  /* Header */
   .chat-header {
     background: #2c5282;
     color: #fff;
@@ -332,6 +173,7 @@
     opacity: 1;
   }
   
+  /* Oblast zpráv */
   .chat-messages {
     flex: 1;
     padding: 16px;
@@ -341,6 +183,7 @@
     flex-direction: column;
   }
   
+  /* Zprávy */
   .chat-msg {
     max-width: 86%;
     margin: 10px 0;
@@ -368,6 +211,7 @@
     align-self: flex-end;
   }
   
+  /* Panel pro další obsah */
   .chat-panel {
     background: transparent;
     padding: 0;
@@ -375,6 +219,7 @@
     width: 100%;
   }
   
+  /* Oblast vstupu */
   .chat-input-area {
     display: flex;
     gap: 10px;
@@ -416,6 +261,7 @@
     background: #1a365d;
   }
   
+  /* Karty úvodní obrazovky */
   .cg-start {
     display: flex;
     flex-direction: column;
@@ -462,6 +308,7 @@
     color: #4a5568;
   }
   
+  /* Formulář */
   .cg-step {
     background: #fff;
     border-radius: 8px;
@@ -550,12 +397,11 @@
     margin-top: 6px;
   }
   
-  /* Mobile with fallback for older browsers */
+  /* Mobilní styly */
   @media (max-width: 480px) {
     .chat-container {
       width: 100%;
-      height: 100vh;
-      height: var(--vh, 100vh);
+      height: 100%;
       max-width: 100%;
       border-radius: 0;
     }
@@ -564,20 +410,13 @@
       font-size: 16px;
     }
   }
-  
-  @supports (height: 100dvh) {
-    @media (max-width: 480px) {
-      .chat-container {
-        height: 100dvh;
-      }
-    }
-  }
   `;
   shadow.appendChild(style);
 
-  // Build UI
+  // Vytvořit zcela novou strukturu widgetu s novými názvy tříd
   const chatContainer = U.el("div", { class: "chat-container" });
   
+  // Záhlaví
   const chatHeader = U.el("div", { class: "chat-header" });
   const chatTitle = U.el("div", { class: "chat-header-title" }, ["Asistent Cogniterra"]);
   const chatCloseBtn = U.el("button", { 
@@ -585,19 +424,19 @@
     type: "button",
     "aria-label": "Zavřít chat",
     onclick: () => {
-      if (window.parent) {
+      // Simply call global hide function
+      if (window.CGTR && typeof window.CGTR.hide === 'function') {
+        window.CGTR.hide();
+      } else {
+        // Fallback: try to find and click the close button
         try {
-          const parentClose = window.parent.document.querySelector('.cg-close');
-          if (parentClose) {
-            parentClose.click();
-          } else {
-            host.style.display = 'none';
+          const closeBtn = document.querySelector('.cg-close');
+          if (closeBtn) {
+            closeBtn.click();
           }
         } catch(e) {
-          host.style.display = 'none';
+          console.warn('Cannot close chat', e);
         }
-      } else {
-        host.style.display = 'none';
       }
     }
   }, ["✕"]);
@@ -606,43 +445,45 @@
   chatHeader.appendChild(chatCloseBtn);
   chatContainer.appendChild(chatHeader);
   
-  const chatMessages = U.el("div", { class: "chat-messages", "role": "log", "aria-live": "polite", "aria-atomic": "false" });
+  // Oblast zpráv
+  const chatMessages = U.el("div", { class: "chat-messages" });
   chatContainer.appendChild(chatMessages);
   
+  // Oblast vstupu
   const chatInputArea = U.el("div", { class: "chat-input-area" });
   const chatTextarea = document.createElement("textarea");
   chatTextarea.placeholder = "Napište zprávu…";
-  chatTextarea.setAttribute("aria-label", "Napište zprávu");
-  chatTextarea.setAttribute("role", "textbox");
-  chatTextarea.setAttribute("aria-multiline", "true");
   
   const chatSendBtn = document.createElement("button");
   chatSendBtn.textContent = "Odeslat";
-  chatSendBtn.setAttribute("aria-label", "Odeslat zprávu");
-  chatSendBtn.setAttribute("type", "button");
   
   chatInputArea.appendChild(chatTextarea);
   chatInputArea.appendChild(chatSendBtn);
   chatContainer.appendChild(chatInputArea);
   
+  // Přidáme celou strukturu do shadow DOM
   shadow.appendChild(chatContainer);
   
+  // Inicializace stavu
   S.chat = S.chat || {messages:[]};
   S.intent = S.intent || {};
 
   // ==== message helpers ====
   function addAI(t, extra) {
+    // render assistant bubble
     const b = U.el("div", { class: "chat-msg ai" }, [t]);
     if (extra) b.appendChild(extra);
     chatMessages.appendChild(b);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
+    // record to conversation
     try { 
       S.chat = S.chat || { messages: [] }; 
       S.intent = S.intent || {}; 
       S.chat.messages.push({ role: "assistant", content: String(t) }); 
-    } catch (e) { console.error("addAI error:", e); }
+    } catch (e) {}
 
+    // detect assistant's offer to open the contact form (arms a one-turn confirmation)
     try {
       const tt = String(t).toLowerCase();
       const offer1 = /(mohu|můžu|rád|ráda)\s+(vám\s+)?(ote[vw]ř[ií]t|zobrazit|spustit)\s+(kontaktn[íi]\s+formul[aá][řr])/i.test(tt);
@@ -656,7 +497,7 @@
       S.chat = S.chat || {messages:[]}; 
       S.intent = S.intent || {}; 
       S.chat.messages.push({ role:"user", content: String(t) }); 
-    } catch(e){ console.error("addME error:", e); }
+    } catch(_){}
     
     const b = U.el("div", { class: "chat-msg me" }, [t]);
     chatMessages.appendChild(b);
@@ -687,7 +528,6 @@
           });
         } else resolve(false);
       };
-      s.onerror = function() { resolve(false); };
       document.head.appendChild(s);
     });
     return MAPY_PROMISE;
@@ -701,13 +541,19 @@
         inputEl.setAttribute("placeholder", (inputEl.placeholder || "") + " (našeptávač nedostupný)");
         return;
       }
-      try { if (window.SMap && SMap.Suggest) new SMap.Suggest(inputEl); } catch (e) { console.error("Suggest error:", e); }
+      try { if (window.SMap && SMap.Suggest) new SMap.Suggest(inputEl); } catch (_) {}
     });
   }
 
+  // ==== Estimator stubs (nahraď svými výpočty) ====
+  window.CG_Estimator = window.CG_Estimator || {
+    estimateByt(m, p)   { return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; },
+    estimateDum(m, p)   { return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; },
+    estimatePozemek(m,p){ return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; }
+  };
+
   // ==== START SCREEN ====
-  function renderStart() { 
-    try{chatTextarea.focus();}catch(e){}
+  function renderStart() { try{chatTextarea.focus();}catch(e){}
     addAI("Dobrý den, rád vám pomohu s vaší nemovitostí. Vyberte, co potřebujete.");
 
     const cards = U.el("div", { class: "cg-start" }, [
@@ -726,9 +572,8 @@
     addPanel(cards);
   }
 
-  function startHelp() { 
-    chatInputArea.style.display='flex'; 
-    try{chatTextarea.focus();}catch(e){}
+  function startHelp() { chatInputArea.style.display='flex'; try{chatTextarea.focus();}catch(e){}
+    chatInputArea.style.display = "flex";
     addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod.");
   }
 
@@ -739,9 +584,9 @@
 
   // ==== Pricing flow ====
   function stepChooseType() {
-    const byt = U.el("button", { class: "cg-btn", type: "button", onclick: () => stepLocation("Byt"), "aria-label":"Vybrat byt" }, ["Byt"]);
-    const dum = U.el("button", { class: "cg-btn", type: "button", onclick: () => stepLocation("Dům"), "aria-label":"Vybrat dům" }, ["Dům"]);
-    const poz = U.el("button", { class: "cg-btn", type: "button", onclick: () => stepLocation("Pozemek"), "aria-label":"Vybrat pozemek" }, ["Pozemek"]);
+    const byt = U.el("button", { class: "cg-btn", type: "button", onclick: () => stepLocation("Byt") }, ["Byt"]);
+    const dum = U.el("button", { class: "cg-btn", type: "button", onclick: () => stepLocation("Dům") }, ["Dům"]);
+    const poz = U.el("button", { class: "cg-btn", type: "button", onclick: () => stepLocation("Pozemek") }, ["Pozemek"]);
     const box = U.el("div", { class: "cg-step" }, [
       U.el("label", {}, ["Vyberte typ nemovitosti"]),
       U.el("div", { class: "cg-cta" }, [byt, dum, poz])
@@ -759,7 +604,7 @@
       if (typ === "Byt") return stepParamsByt(obec);
       if (typ === "Dům") return stepParamsDum(obec);
       return stepParamsPozemek(obec);
-    }, "aria-label":"Pokračovat na parametry" }, ["Pokračovat"]);
+    }}, ["Pokračovat"]);
     const inner = [U.el("label", {}, [`Lokalita – ${typ}`])];
     if (street) inner.push(street);
     inner.push(town, hint, U.el("div", { class: "cg-cta" }, [nxt]));
@@ -779,7 +624,7 @@
     const go = U.el("button", { class: "cg-btn", type: "button", onclick: () => {
       const params = { typ:"Byt", obec, dispozice:disp.value, stav:stav.value, vlastnictvi:vlast.value, vymera:parseFloat(area.value||0) };
       renderLeadBoxPricing(params);
-    }, "aria-label":"Pokračovat k odhadu" }, ["Pokračovat k odhadu"]);
+    }}, ["Pokračovat k odhadu"]);
 
     const box = U.el("div", { class: "cg-step" }, [
       U.el("label", {}, ["Parametry bytu – ", obec]),
@@ -797,7 +642,7 @@
     const go = U.el("button", { class: "cg-btn", type: "button", onclick: () => {
       const params = { typ:"Dům", obec, typ_stavby:typS.value, stav:stav.value, vymera:parseFloat(area.value||0) };
       renderLeadBoxPricing(params);
-    }, "aria-label":"Pokračovat k odhadu" }, ["Pokračovat k odhadu"]);
+    }}, ["Pokračovat k odhadu"]);
 
     const box = U.el("div", { class: "cg-step" }, [
       U.el("label", {}, ["Parametry domu – ", obec]),
@@ -814,7 +659,7 @@
     const go = U.el("button", { class: "cg-btn", type: "button", onclick: () => {
       const params = { typ:"Pozemek", obec, kategorie:kat.value, vymera:parseFloat(area.value||0) };
       renderLeadBoxPricing(params);
-    }, "aria-label":"Pokračovat k odhadu" }, ["Pokračovat k odhadu"]);
+    }}, ["Pokračovat k odhadu"]);
 
     const box = U.el("div", { class: "cg-step" }, [
       U.el("label", {}, ["Parametry pozemku – ", obec]),
@@ -824,22 +669,22 @@
     addAI("Nacenění – krok 3/3", box);
   }
 
-  // ==== Lead form → save → estimate ====
+  // ==== Kontakt → ulož → potom odhad ====
   function renderLeadBoxPricing(params) {
     S.tempPricing = params;
     const consentId = "cgConsent_" + Math.random().toString(36).slice(2);
 
     const box = U.el("div", { class: "leadbox" }, [
       U.el("div", {}, ["Pro ověření, že nejste robot, prosíme o zadání vašich kontaktů."]),
-      U.el("input", { id: "lead_name",  name:"name",  placeholder:"Jméno", "aria-label":"Jméno" }),
-      U.el("input", { id: "lead_email", name:"email", type:"email", placeholder:"E-mail", "aria-label":"E-mail" }),
-      U.el("input", { id: "lead_phone", name:"phone", placeholder:"Telefon (+420…)", "aria-label":"Telefon" }),
+      U.el("input", { id: "lead_name",  name:"name",  placeholder:"Jméno" }),
+      U.el("input", { id: "lead_email", name:"email", type:"email", placeholder:"E-mail" }),
+      U.el("input", { id: "lead_phone", name:"phone", placeholder:"Telefon (+420…)" }),
       U.el("label", {}, [
-        U.el("input", { id: consentId, type:"checkbox", "aria-label":"Souhlas se zpracováním údajů" }),
+        U.el("input", { id: consentId, type:"checkbox" }),
         " Odesláním souhlasím se zásadami zpracování osobních údajů."
       ]),
       U.el("div", { class: "cg-cta" }, [
-        U.el("button", { class: "cg-btn", type: "button", onclick: () => saveLeadPricing(consentId), "aria-label":"Odeslat a zobrazit odhad" }, ["Odeslat a zobrazit odhad"])
+        U.el("button", { class: "cg-btn", type: "button", onclick: () => saveLeadPricing(consentId) }, ["Odeslat a zobrazit odhad"])
       ])
     ]);
     addAI("Kontaktní ověření", box);
@@ -878,6 +723,7 @@
       pricing_params: JSON.stringify(S.tempPricing || {}),
     };
 
+    // send
     try {
       if (S.cfg && S.cfg.lead_url) {
         const body = new URLSearchParams(Object.entries(payload)).toString();
@@ -889,13 +735,13 @@
             body
           });
           ok = !!resp.ok;
-        } catch (e) { console.error("Lead save error:", e); ok = false; }
+        } catch (_) { ok = false; }
         if (!ok) {
+          // fallback fire-and-forget
           fetch(S.cfg.lead_url, { method:"POST", mode:"no-cors", headers:{ "Content-Type":"application/x-www-form-urlencoded"}, body }).catch(()=>{});
         }
       }
     } catch (e) {
-      console.error("Lead form error:", e);
       addAI("Nepodařilo se uložit kontakt. Zkuste to prosím znovu.");
       if (btn) { btn.disabled = false; btn.textContent = "Odeslat a zobrazit odhad"; }
       return;
@@ -903,39 +749,39 @@
 
     if (btn) { btn.disabled = false; btn.textContent = "Odesláno"; }
 
-    // compute estimate with real estimator
+    // compute after lead saved
     const P = S.tempPricing || {};
     let res = null;
     if (P.typ === "Byt")       res = window.CG_Estimator.estimateByt(window.PRICES ? window.PRICES.byty : null, P);
     else if (P.typ === "Dům")  res = window.CG_Estimator.estimateDum(window.PRICES ? window.PRICES.domy : null, P);
     else                       res = window.CG_Estimator.estimatePozemek(window.PRICES ? window.PRICES.pozemky : null, P);
 
-    renderEstimate(res || {low:"-",high:"-",per_m2:"-",notes:""}, P.typ || "Nemovitost");
+    renderEstimate(res || {low:"-",high:"-",per_m2:"-",note:""}, P.typ || "Nemovitost");
   }
 
   function renderEstimate(res, typ) {
     const box = U.el("div", { class: "cg-step" }, [
       U.el("label", {}, [`${typ}: předběžný odhad`]),
       U.el("div", {}, [`Rozpětí: ${res.low?.toLocaleString?.("cs-CZ") || res.low || "-"} – ${res.high?.toLocaleString?.("cs-CZ") || res.high || "-" } Kč`]),
-      U.el("div", {}, [`Orientační cena za m²: ${res.per_m2 || res.m2 || "-"} Kč/m²`]),
-      U.el("div", { class: "hint" }, [res.notes || res.note || "Odhad je orientační."]),
+      U.el("div", {}, [`Orientační cena za m²: ${res.per_m2 || "-"} Kč/m²`]),
+      U.el("div", { class: "hint" }, [res.note || "Odhad je orientační."]),
       U.el("div", { class: "cg-cta" }, [
-        U.el("button", { class: "cg-btn", type: "button", onclick: () => addAI("Děkujeme, kolegové se vám ozvou s přesným odhadem."), "aria-label":"Přesný odhad zdarma" }, ["Přesný odhad zdarma"]),
+        U.el("button", { class: "cg-btn", type: "button", onclick: () => addAI("Děkujeme, kolegové se vám ozvou s přesným odhadem.") }, ["Přesný odhad zdarma"]),
       ]),
     ]);
     addAI("Výsledek odhadu", box);
   }
 
-  // ==== Contact lead ====
+  // ==== Contact lead (from chat intent) ====
   function stepContactVerify() {
     const consentId = "cgConsent_" + Math.random().toString(36).slice(2);
     const box = U.el("div", { class: "leadbox" }, [
       U.el("div", {}, ["Zanechte na sebe kontakt, ozvu se vám co nejdříve."]),
-      U.el("input", { id: "c_name",  name:"name",  placeholder:"Jméno", "aria-label":"Jméno" }),
-      U.el("input", { id: "c_email", name:"email", type:"email", placeholder:"E-mail", "aria-label":"E-mail" }),
-      U.el("input", { id: "c_phone", name:"phone", placeholder:"Telefon (+420…)", "aria-label":"Telefon" }),
-      U.el("label", {}, [ U.el("input", { id: consentId, type:"checkbox", "aria-label":"Souhlas se zpracováním údajů" }), " Souhlasím se zpracováním osobních údajů." ]),
-      U.el("div", { class: "cg-cta" }, [ U.el("button", { class:"cg-btn", type:"button", onclick: () => saveLeadContact(consentId), "aria-label":"Odeslat kontakt" }, ["Odeslat"]) ])
+      U.el("input", { id: "c_name",  name:"name",  placeholder:"Jméno" }),
+      U.el("input", { id: "c_email", name:"email", type:"email", placeholder:"E-mail" }),
+      U.el("input", { id: "c_phone", name:"phone", placeholder:"Telefon (+420…)" }),
+      U.el("label", {}, [ U.el("input", { id: consentId, type:"checkbox" }), " Souhlasím se zpracováním osobních údajů." ]),
+      U.el("div", { class: "cg-cta" }, [ U.el("button", { class:"cg-btn", type:"button", onclick: () => saveLeadContact(consentId) }, ["Odeslat"]) ])
     ]);
     addAI("Kontaktní formulář", box);
   }
@@ -976,14 +822,13 @@
         try {
           const resp = await fetch(S.cfg.lead_url, { method: "POST", headers:{ "Content-Type":"application/x-www-form-urlencoded" }, body });
           ok = !!resp.ok;
-        } catch (e) { console.error("Contact save error:", e); ok = false; }
+        } catch (_) { ok = false; }
         if (!ok) {
           fetch(S.cfg.lead_url, { method:"POST", mode:"no-cors", headers:{ "Content-Type":"application/x-www-form-urlencoded"}, body }).catch(()=>{});
         }
       }
       addAI("Děkuji, mám vše zapsané. Ozveme se vám co nejdříve.");
     } catch (e) {
-      console.error("Contact form error:", e);
       addAI("Nepodařilo se uložit kontakt. Zkuste to prosím znovu.");
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = "Odeslat"; }
@@ -997,20 +842,23 @@
   }
   
   function ask(q) {
+    // Intercept confirmation if assistant just offered to open contact form
     try {
       if (S.intent && S.intent.contactOffer) {
         const yesRe = /^(ano|jo|ok|okej|jasn[eě]|pros[íi]m|dob[rř]e|spus[tť]it|ote[vw][řr][ií]t|zobraz(it)?|m[oů]žete|ur[cč]it[ěe])(\b|!|\.)/i;
         const noRe  = /^(ne|rad[ěe]ji\s+ne|pozd[eě]ji|te[dď]\s+ne|nen[ií])(\b|!|\.)/i;
         if (yesRe.test(q.trim())) {
+          // consume message locally, open contact form, clear flag
           addME(q);
           stepContactVerify();
           S.intent.contactOffer = false;
           return;
         } else if (noRe.test(q.trim())) {
+          // user declined; clear flag and continue to backend
           S.intent.contactOffer = false;
         }
       }
-    } catch(e){ console.error("Intent check error:", e); }
+    } catch(_) {}
 
     if (!q) return;
     addME(q);
@@ -1019,6 +867,7 @@
     const url = (S && S.cfg && (S.cfg.proxy_url || S.cfg.chat_url)) || null;
     if (!url) { addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod."); return; }
 
+    // Contact intent (CZ variants) -> open lead form immediately
     const wantContact = /(^|\b)(chci ?být ?kontaktov[aá]n|kontaktuj(te)? m[ěe]|zavolejte|napi[sš]te|nechte kontakt|ozv[eu] se|m[ůu]žete m[ěě] kontaktovat)/i.test(q);
     if (wantContact) { stepContactVerify(); return; }
     
@@ -1034,13 +883,12 @@
         try {
           const msgs = (S.chat && S.chat.messages) ? S.chat.messages.slice(-12) : [{role:"user", content:q}];
           form.set("messages", JSON.stringify(msgs));
-        } catch(e) {
-          console.error("Messages prep error:", e);
+        } catch(_) {
           form.set("messages", JSON.stringify([{role:"user", content:q}]));
         }
         
         let resp = null;
-        try { resp = await fetch(url, { method: "POST", body: form }); } catch(e) { console.error("Fetch POST error:", e); resp = null; }
+        try { resp = await fetch(url, { method: "POST", body: form }); } catch(_) { resp = null; }
         
         typing.remove();
         
@@ -1051,18 +899,15 @@
             try { 
               const msgs=(S.chat&&S.chat.messages)?S.chat.messages.slice(-12):[{role:"user",content:q}]; 
               u.searchParams.set("messages", JSON.stringify(msgs)); 
-            } catch(e) { 
-              console.error("Messages prep GET error:", e);
+            } catch { 
               u.searchParams.set("messages", JSON.stringify([{role:"user", content:q}])); 
             } 
             try { 
               resp = await fetch(u.toString(), { method: "GET" }); 
-            } catch(e) { 
-              console.error("Fetch GET error:", e);
+            } catch { 
               resp = null; 
             } 
-          } catch(e) { 
-            console.error("URL construct error:", e);
+          } catch { 
             resp = null; 
           }
           
@@ -1078,8 +923,7 @@
           try { 
             const j = await resp.json(); 
             txt = j.message || j.reply || j.text || j.answer || JSON.stringify(j); 
-          } catch(e) { 
-            console.error("JSON parse error:", e);
+          } catch { 
             txt = await resp.text(); 
           } 
         } else { 
@@ -1095,7 +939,7 @@
     })();
   }
 
-  // ==== Config / data preload ====
+  // ==== Config / data preload (optional) ====
   (async () => {
     try {
       const scriptEl = document.currentScript || document.querySelector('script[data-config]');
@@ -1115,22 +959,21 @@
         window.PRICES = { byty, domy, pozemky };
       }
     } catch (e) {
-      console.error("Config/data load error:", e);
       addAI("Chyba načítání konfigurace/dat: " + String(e));
     }
   })();
 
-  // ==== Init ====
+  // ==== Init (only when host exists) ====
   function cgSafeStart() {
     try {
       if (!chatMessages) return setTimeout(cgSafeStart, 40);
       renderStart();
     } catch (e) {
-      console.error("Start error:", e);
       setTimeout(cgSafeStart, 40);
     }
   }
 
+  // kick it
   cgSafeStart();
 
   // input handlers
