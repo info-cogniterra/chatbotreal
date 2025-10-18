@@ -9,7 +9,7 @@
 })();
 
 // cogniterra-widget-safe.v6.js — BUBBLE-ONLY, SINGLE INSTANCE - VERZE S UP DETEKCÍ
-// Build v6.bubble.3 — Added territorial plan detection
+// Build v6.bubble.4 — Fixed UP detection with diacritics and exact matching
 
 (function () {
   "use strict";
@@ -81,48 +81,79 @@
     },
     emailOk(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v || ""); },
     phoneOk(v) { return /^\+?[0-9\s\-()]{7,}$/.test(v || ""); },
-    norm(v) { return (v || "").normalize("NFKD").toLowerCase(); },
+    norm(v) { 
+      return (v || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+    },
     fetchJson(url) { return fetch(url, { credentials: "omit" }).then(r => r.json()); },
     
-    // ==== NEW: Territorial plan utilities ====
+    // ==== FIXED: Territorial plan utilities ====
     searchUP(query, upData) {
       if (!upData || !upData.map) return [];
       const q = U.norm(query);
-      const results = [];
+      
+      console.log('[Widget] Searching UP for:', query, '-> normalized:', q);
+      
+      const exactMatches = [];
+      const partialMatches = [];
       
       for (const item of upData.map) {
         const kuNorm = U.norm(item.ku || "");
         const obecNorm = U.norm(item.obec || "");
         
-        // Exact match gets priority
+        // Exact match
         if (kuNorm === q || obecNorm === q) {
-          results.unshift(item);
+          exactMatches.push(item);
         }
-        // Partial match
-        else if (kuNorm.includes(q) || obecNorm.includes(q) || q.includes(kuNorm) || q.includes(obecNorm)) {
-          results.push(item);
+        // Partial match - contains
+        else if (kuNorm.includes(q) || obecNorm.includes(q)) {
+          partialMatches.push(item);
+        }
+        // Partial match - query contains location name (for longer queries)
+        else if (q.includes(kuNorm) || q.includes(obecNorm)) {
+          partialMatches.push(item);
         }
       }
       
-      return results.slice(0, 10); // Return max 10 results
+      console.log('[Widget] Found exact:', exactMatches.length, 'partial:', partialMatches.length);
+      
+      // If we have exact matches, return only those
+      if (exactMatches.length > 0) {
+        return exactMatches;
+      }
+      
+      return partialMatches.slice(0, 10);
     },
     
     extractLocation(text) {
       // Try to extract location from text using common patterns
-      const patterns = [
-        /(?:v|ve|pro|na|u)\s+([A-ZČŘŠŽÝÁÍÉĎŤŇÚŮ][a-zčřšžýáíéďťňúů]+(?:\s+(?:nad|pod|u)\s+[A-ZČŘŠŽÝÁÍÉĎŤŇÚŮ][a-zčřšžýáíéďťňúů]+)?)/gi,
-        /(?:území|plán|pozemek|stavba)\s+(?:v|ve|pro|na)\s+([A-ZČŘŠŽÝÁÍÉĎŤŇÚŮ][a-zčřšžýáíéďťňúů]+(?:\s+(?:nad|pod|u)\s+[A-ZČŘŠŽÝÁÍÉĎŤŇÚŮ][a-zčřšžýáíéďťňúů]+)?)/gi,
-        /([A-ZČŘŠŽÝÁÍÉĎŤŇÚŮ][a-zčřšžýáíéďťňúů]+(?:\s+(?:nad|pod|u)\s+[A-ZČŘŠŽÝÁÍÉĎŤŇÚŮ][a-zčřšžýáíéďťňúů]+)?)/g
-      ];
+      const normalized = U.norm(text);
       
-      for (const pattern of patterns) {
-        const matches = [...text.matchAll(pattern)];
-        if (matches.length > 0) {
-          return matches.map(m => m[1]).filter(Boolean);
+      // Remove common words to isolate location names
+      const commonWords = ['hledam', 'potrebuji', 'uzemni', 'plan', 'pro', 'v', 've', 'na', 'u', 'chci', 'vedet', 'o', 'pozemku', 'stavbe'];
+      let words = normalized.split(/\s+/).filter(w => w.length > 2 && !commonWords.includes(w));
+      
+      console.log('[Widget] Extracted words:', words);
+      
+      // Try to match against database directly
+      const upData = S.data.up || window.PRICES?.up;
+      if (upData && upData.map) {
+        for (const word of words) {
+          for (const item of upData.map) {
+            const kuNorm = U.norm(item.ku || "");
+            const obecNorm = U.norm(item.obec || "");
+            
+            if (kuNorm === word || obecNorm === word || kuNorm.includes(word) || obecNorm.includes(word)) {
+              return [item.ku, item.obec];
+            }
+          }
         }
       }
       
-      return [];
+      return words;
     }
   };
 
@@ -644,27 +675,36 @@
     estimatePozemek(m,p){ return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; }
   };
 
-  // ==== NEW: Territorial Plan Detection & Display ====
+  // ==== FIXED: Territorial Plan Detection & Display ====
   function needsUP(q) {
     const s = U.norm(q);
+    console.log('[Widget] Checking UP need for:', q, '-> normalized:', s);
+    
+    // FIXED: Keywords without diacritics since we normalize
     const keywords = [
-      'uzem(ni|ního)\\s*plan',
-      'katastr(al|ální)(ni|ního)?\\s*(uzemi|území)',
+      'uzemni\\s*plan',
+      'katastr',
       'pozemek',
       'stavba',
       'zastavitelnost',
       'regulacni\\s*plan',
       'vyuziti\\s*uzemi',
       'parcela',
-      'stavební\\s*pozemek'
+      'stavebni\\s*pozemek'
     ];
     
     const pattern = new RegExp(keywords.join('|'), 'i');
-    return pattern.test(s);
+    const result = pattern.test(s);
+    console.log('[Widget] UP detection result:', result);
+    return result;
   }
   
   function handleUPQuery(q) {
+    console.log('[Widget] Handling UP query:', q);
+    
     const locations = U.extractLocation(q);
+    
+    console.log('[Widget] Extracted locations:', locations);
     
     if (locations.length === 0) {
       addAI("Pro vyhledání územního plánu potřebuji znát obec nebo katastrální území. Můžete mi prosím uvést konkrétní lokalitu?");
@@ -678,27 +718,15 @@
       return;
     }
     
-    // Search for all mentioned locations
-    let allResults = [];
-    for (const loc of locations) {
-      const results = U.searchUP(loc, upData);
-      allResults = allResults.concat(results);
-    }
+    // Search for the first location with exact priority
+    const firstLocation = locations[0];
+    const results = U.searchUP(firstLocation, upData);
     
-    // Remove duplicates
-    const uniqueResults = [];
-    const seen = new Set();
-    for (const item of allResults) {
-      const key = item.ku + '|' + item.obec;
-      if (!seen.has(key)) {
-        seen.add(key);
-        uniqueResults.push(item);
-      }
-    }
+    console.log('[Widget] Search results for', firstLocation, ':', results.length);
     
-    if (uniqueResults.length === 0) {
+    if (results.length === 0) {
       const box = U.el("div", { class: "up-no-result" }, [
-        `Pro "${locations.join(', ')}" jsem bohužel nenašel územní plán v databázi. Zkuste prosím upřesnit název obce nebo katastrálního území, případně vás mohu spojit s odborníkem.`
+        `Pro "${firstLocation}" jsem bohužel nenašel územní plán v databázi. Zkuste prosím upřesnit název obce nebo katastrálního území, případně vás mohu spojit s odborníkem.`
       ]);
       addPanel(box);
       
@@ -711,8 +739,9 @@
       return;
     }
     
-    if (uniqueResults.length === 1) {
-      const item = uniqueResults[0];
+    // FIXED: If we have results, show them appropriately
+    if (results.length === 1) {
+      const item = results[0];
       const box = U.el("div", { class: "up-result" }, [
         U.el("h4", {}, [`Územní plán: ${item.obec}`]),
         U.el("p", {}, [`Katastrální území: ${item.ku}`]),
@@ -723,18 +752,11 @@
       ]);
       addAI("Našel jsem územní plán pro vaši lokalitu:", box);
       
-      const ctaBox = U.el("div", { class: "cg-step" }, [
-        U.el("p", {}, ["Potřebujete s tím pomoct nebo máte další dotazy?"]),
-        U.el("div", { class: "cg-cta" }, [
-          U.el("button", { class: "cg-btn", type: "button", onclick: () => stepContactVerify() }, ["Kontaktovat odborníka"])
-        ])
-      ]);
-      addPanel(ctaBox);
-      
     } else {
-      addAI(`Našel jsem ${uniqueResults.length} územních plánů pro vaši oblast:`);
+      // Multiple results - show up to 5
+      addAI(`Našel jsem ${results.length} výsledků pro "${firstLocation}":`);
       
-      uniqueResults.slice(0, 5).forEach(item => {
+      results.slice(0, 5).forEach(item => {
         const box = U.el("div", { class: "up-result" }, [
           U.el("h4", {}, [`${item.obec}`]),
           U.el("p", {}, [`KÚ: ${item.ku}`]),
@@ -745,18 +767,19 @@
         addPanel(box);
       });
       
-      if (uniqueResults.length > 5) {
-        addAI(`... a dalších ${uniqueResults.length - 5} výsledků. Pro přesnější vyhledávání upřesněte prosím lokalitu.`);
+      if (results.length > 5) {
+        addAI(`... a dalších ${results.length - 5} výsledků. Pro přesnější vyhledávání upřesněte prosím lokalitu.`);
       }
-      
-      const ctaBox = U.el("div", { class: "cg-step" }, [
-        U.el("p", {}, ["Potřebujete další pomoc s územním plánováním?"]),
-        U.el("div", { class: "cg-cta" }, [
-          U.el("button", { class: "cg-btn", type: "button", onclick: () => stepContactVerify() }, ["Kontaktovat odborníka"])
-        ])
-      ]);
-      addPanel(ctaBox);
     }
+    
+    // Always offer expert contact
+    const ctaBox = U.el("div", { class: "cg-step" }, [
+      U.el("p", {}, ["Potřebujete další pomoc s územním plánováním?"]),
+      U.el("div", { class: "cg-cta" }, [
+        U.el("button", { class: "cg-btn", type: "button", onclick: () => stepContactVerify() }, ["Kontaktovat odborníka"])
+      ])
+    ]);
+    addPanel(ctaBox);
   }
 
   // ==== START SCREEN ====
@@ -1044,14 +1067,14 @@
   // ==== Intent routing ====
   function needPricing(q) {
     const s = U.norm(q);
-    return /(nacenit|naceněn|ocenit|odhad(\s*ceny)?|cena\s+nemovitosti|spočítat\s*cenu|kolik\s+to\s*stojí)/i.test(s);
+    return /(nacenit|nacenen|ocenit|odhad(\s*ceny)?|cena\s+nemovitosti|spocitat\s*cenu|kolik\s+to\s*stoji)/i.test(s);
   }
   
   function ask(q) {
     try {
       if (S.intent.contactOffer) {
-        const yesRe = /^(ano|jo|ok|okej|jasn[eě]|pros[íi]m|dob[rř]e|spus[tť]it|ote[vw][řr][ií]t|zobraz(it)?|m[oů]žete|ur[cč]it[ěe])(\b|!|\.)/i;
-        const noRe  = /^(ne|rad[ěe]ji\s+ne|pozd[eě]ji|te[dď]\s+ne|nen[ií])(\b|!|\.)/i;
+        const yesRe = /^(ano|jo|ok|okej|jasne|prosim|dobre|spustit|otevrit|zobraz(it)?|muzete|urcite)(\b|!|\.)/i;
+        const noRe  = /^(ne|radeji\s+ne|pozdeji|ted\s+ne|neni)(\b|!|\.)/i;
         if (yesRe.test(q.trim())) {
           addME(q);
           stepContactVerify();
@@ -1066,7 +1089,7 @@
     if (!q) return;
     addME(q);
     
-    // NEW: Check for territorial plan queries first
+    // Check for territorial plan queries first
     if (needsUP(q)) {
       handleUPQuery(q);
       return;
@@ -1077,7 +1100,7 @@
     const url = (S.cfg && (S.cfg.proxy_url || S.cfg.chat_url)) || null;
     if (!url) { addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod."); return; }
 
-    const wantContact = /(^|\b)(chci ?být ?kontaktov[aá]n|kontaktuj(te)? m[ěe]|zavolejte|napi[sš]te|nechte kontakt|ozv[eu] se|m[ůu]žete m[ěě] kontaktovat)/i.test(q);
+    const wantContact = /(^|\b)(chci ?byt ?kontaktovan|kontaktuj(te)? me|zavolejte|napiste|nechte kontakt|ozve se|muzete me kontaktovat)/i.test(U.norm(q));
     if (wantContact) { stepContactVerify(); return; }
     
     (async () => {
@@ -1166,9 +1189,10 @@
         ]);
         window.PRICES = { byty, domy, pozemky, up };
         S.data.up = up;
-        console.log('[Widget] UP data loaded:', up ? 'OK' : 'FAILED');
+        console.log('[Widget] UP data loaded:', up ? `${up.map?.length || 0} entries` : 'FAILED');
       }
     } catch (e) {
+      console.error('[Widget] Config/data loading error:', e);
       addAI("Chyba načítání konfigurace/dat: " + String(e));
     }
   })();
