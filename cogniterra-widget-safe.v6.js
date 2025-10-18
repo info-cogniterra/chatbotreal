@@ -9,7 +9,7 @@
 })();
 
 // cogniterra-widget-safe.v6.js — BUBBLE-ONLY, SINGLE INSTANCE - VERZE S UP DETEKCÍ
-// Build v6.bubble.10 — Fixed contact form offer detection
+// Build v6.bubble.11 — Fixed UP location extraction and detection
 
 (function () {
   "use strict";
@@ -133,15 +133,18 @@
       return obecPartial.slice(0, 10);
     },
     
-    // ==== Extract location from explicit UP request ====
+    // ==== FIXED: Extract location from explicit UP request ====
     extractLocationFromUP(text) {
       const normalized = U.norm(text);
       
-      // Try to extract location after "pro", "v", "ve", etc.
+      // Try to extract location after keywords with proper regex groups
       const patterns = [
-        /(?:uzemni\s*plan|up)\s+(?:pro|v|ve|na)\s+([a-z\s-]+?)(?:\s|$)/i,
-        /(?:pro|v|ve|na)\s+([a-z\s-]+?)\s+(?:uzemni\s*plan|up)/i,
-        /(?:uzemni\s*plan|up)\s+([a-z\s-]+?)(?:\s|$)/i
+        // "pro Brno", "v Brně", "na Prahu"
+        /(?:uzemni\s*plan|up)\s+(?:pro|v|ve|na)\s+([a-z\u00e1\u010d\u010f\u00e9\u011b\u00ed\u0148\u00f3\u0159\u0161\u0165\u00fa\u016f\u00fd\u017e-]+)/i,
+        // "územní plán Brno"
+        /(?:uzemni\s*plan|up)\s+([a-z\u00e1\u010d\u010f\u00e9\u011b\u00ed\u0148\u00f3\u0159\u0161\u0165\u00fa\u016f\u00fd\u017e-]+?)(?:\s|$)/i,
+        // "pro Brno územní plán"
+        /(?:pro|v|ve|na)\s+([a-z\u00e1\u010d\u010f\u00e9\u011b\u00ed\u0148\u00f3\u0159\u0161\u0165\u00fa\u016f\u00fd\u017e-]+?)\s+(?:uzemni\s*plan|up)/i
       ];
       
       for (const pattern of patterns) {
@@ -153,12 +156,8 @@
         }
       }
       
-      // Fallback: take words after UP keywords
-      const words = normalized.split(/\s+/)
-        .filter(w => w.length > 2 && !['uzemni', 'plan', 'pro', 'v', 've', 'na', 'chci', 'potrebuji', 'poslat', 'zaslat'].includes(w));
-      
-      console.log('[Widget] Fallback location extraction:', words);
-      return words.length > 0 ? [words[0]] : [];
+      console.log('[Widget] No location extracted');
+      return [];
     },
     
     mentionsProperty(text) {
@@ -182,7 +181,7 @@
   // === Kompletně nový styl s důrazem na izolaci ===
   const style = document.createElement("style");
   style.textContent = `
-  /* Základní reset a izolace */
+  /* ... (celý CSS zůstává stejný) ... */
   :host {
     all: initial;
     display: block;
@@ -200,7 +199,6 @@
     padding: 0;
   }
   
-  /* Widget kontejner */
   .chat-container {
     font: 15px/1.5 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
     color: #2d3748;
@@ -217,7 +215,6 @@
     inset: 0;
   }
   
-  /* Header */
   .chat-header {
     background: #2c5282;
     color: #fff;
@@ -257,7 +254,6 @@
     opacity: 1;
   }
   
-  /* Oblast zpráv */
   .chat-messages {
     flex: 1;
     padding: 16px;
@@ -267,7 +263,6 @@
     flex-direction: column;
   }
   
-  /* Zprávy */
   .chat-msg {
     max-width: 86%;
     margin: 10px 0;
@@ -295,7 +290,6 @@
     align-self: flex-end;
   }
   
-  /* Panel pro další obsah */
   .chat-panel {
     background: transparent;
     padding: 0;
@@ -303,7 +297,6 @@
     width: 100%;
   }
   
-  /* Oblast vstupu */
   .chat-input-area {
     display: flex;
     gap: 10px;
@@ -350,7 +343,6 @@
     background: #1a365d;
   }
   
-  /* Karty úvodní obrazovky */
   .cg-start {
     display: flex;
     flex-direction: column;
@@ -410,7 +402,6 @@
     background: #e6ffed;
   }
   
-  /* Formulář */
   .cg-step {
     background: #fff;
     border-radius: 8px;
@@ -519,7 +510,6 @@
     margin-top: 6px;
   }
   
-  /* UP results styling */
   .up-result {
     background: #fff;
     border: 1px solid #e2e8f0;
@@ -573,7 +563,6 @@
     color: #22543d;
   }
   
-  /* Mobilní styly */
   @media (max-width: 480px) {
     .chat-container {
       width: 100%;
@@ -603,7 +592,6 @@
   // Vytvořit strukturu widgetu
   const chatContainer = U.el("div", { class: "chat-container" });
   
-  // Záhlaví
   const chatHeader = U.el("div", { class: "chat-header" });
   const chatTitle = U.el("div", { class: "chat-header-title" }, ["Asistent Cogniterra"]);
   const chatCloseBtn = U.el("button", { 
@@ -631,11 +619,9 @@
   chatHeader.appendChild(chatCloseBtn);
   chatContainer.appendChild(chatHeader);
   
-  // Oblast zpráv
   const chatMessages = U.el("div", { class: "chat-messages" });
   chatContainer.appendChild(chatMessages);
   
-  // Oblast vstupu
   const chatInputArea = U.el("div", { class: "chat-input-area" });
   const chatTextarea = document.createElement("textarea");
   chatTextarea.placeholder = "Napište zprávu…";
@@ -664,13 +650,11 @@
     try {
       const tt = String(t).toLowerCase();
       
-      // FIXED: Broader contact form offer detection
       const offerContact = /(mohu|můžu|mám|rád|ráda)\s+(také\s+)?(vám\s+)?(ote[vw]ř[ií]t|zobrazit|spustit|poslat|zaslat)\s+(kontaktn[íi]\s+formul[aá][řr]|formul[aá][řr])/i.test(tt) ||
                            /chcete\s+(ote[vw]ř[ií]t|zobrazit|spustit)\s+(kontaktn[íi]\s+)?formul[aá][řr]/i.test(tt) ||
                            /zadat\s+sv[eé]\s+(jm[eé]no|kontakt|[uú]daje)/i.test(tt) ||
                            /(?:abyste|aby|abych)\s+(?:mohl[ai]?)?\s*zadat\s+sv[eé]/i.test(tt);
       
-      // Detect UP offer
       const offerUP = /(chcete|potrebujete|mam\s+poslat|poslat\s+vam|najit\s+vam).*?(uzemni\s*plan|up)/i.test(tt);
       
       if (offerContact) { 
@@ -741,28 +725,32 @@
     estimatePozemek(m,p){ return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; }
   };
 
-  // ==== Only explicit UP requests ====
+  // ==== FIXED: Only explicit UP requests with keyword present ====
   function needsUP(q) {
     const s = U.norm(q);
     console.log('[Widget] Checking UP need for:', q, '-> normalized:', s);
     
-    // EXPLICIT UP request patterns
-    const explicitUP = [
-      /uzemni\s*plan(?:\s+pro|\s+v|\s+ve|\s+na|\s+)?\s*[a-z]/i,
-      /(?:chci|potrebuji|poslat|zaslat|najit|hledam)\s+(?:mi\s+)?uzemni\s*plan/i,
-      /(?:uzemni\s*plan|up)(?:\s+pro|\s+v|\s+ve)?\s+[a-z]/i,
+    // MUST contain "uzemni plan" or "up" keyword
+    const hasUPKeyword = /\b(uzemni\s*plan|up)\b/i.test(s);
+    
+    if (!hasUPKeyword) {
+      console.log('[Widget] No UP keyword found');
+      return false;
+    }
+    
+    // Additional patterns for explicit requests
+    const explicitPatterns = [
+      /uzemni\s*plan.*(?:pro|v|ve|na)\s+[a-z]/i,     // "UP pro X"
+      /(?:pro|v|ve|na)\s+[a-z].*uzemni\s*plan/i,     // "pro X UP"
+      /uzemni\s*plan\s+[a-z]/i,                       // "UP Brno"
+      /(?:chci|potrebuji|poslat|zaslat|najit|hledam|posli|poslete)\s+(?:mi\s+)?(?:uzemni\s*plan|up)/i,
       /(?:mam|mate|muzes|muzete)\s+(?:mi\s+)?(?:poslat|zaslat|najit)\s+(?:uzemni\s*plan|up)/i
     ];
     
-    const isExplicitUP = explicitUP.some(pattern => pattern.test(s));
+    const isExplicit = explicitPatterns.some(pattern => pattern.test(s));
     
-    if (isExplicitUP) {
-      console.log('[Widget] EXPLICIT UP request detected');
-      return true;
-    }
-    
-    console.log('[Widget] NOT an UP request');
-    return false;
+    console.log('[Widget] Has UP keyword:', hasUPKeyword, 'Is explicit:', isExplicit);
+    return isExplicit;
   }
   
   function handleUPQuery(q) {
@@ -842,7 +830,6 @@
       }
     }
     
-    // Always offer expert contact
     const ctaBox = U.el("div", { class: "cg-step" }, [
       U.el("p", {}, ["Potřebujete další pomoc s územním plánováním?"]),
       U.el("div", { class: "cg-cta" }, [
@@ -884,7 +871,7 @@
     stepChooseType();
   }
 
-  // ==== Pricing flow ====
+  // ==== Pricing flow ==== 
   function stepChooseType() {
     const byt = U.el("button", { class: "cg-btn", type: "button", onclick: () => stepLocation("Byt") }, ["Byt"]);
     const dum = U.el("button", { class: "cg-btn", type: "button", onclick: () => stepLocation("Dům") }, ["Dům"]);
@@ -971,7 +958,6 @@
     addAI("Nacenění – krok 3/3", box);
   }
 
-  // ==== Kontakt → ulož → potom odhad ====
   function renderLeadBoxPricing(params) {
     S.tempPricing = params;
     const consentId = "cgConsent_" + Math.random().toString(36).slice(2);
@@ -1071,7 +1057,6 @@
     addAI("Výsledek odhadu", box);
   }
 
-  // ==== Contact lead (from chat intent) ====
   function stepContactVerify() {
     const consentId = "cgConsent_" + Math.random().toString(36).slice(2);
     const box = U.el("div", { class: "leadbox" }, [
@@ -1134,14 +1119,12 @@
     }
   }
 
-  // ==== Intent routing ====
   function needPricing(q) {
     const s = U.norm(q);
     return /(nacenit|nacenen|ocenit|odhad(\s*ceny)?|cena\s+nemovitosti|spocitat\s*cenu|kolik\s+to\s*stoji)/i.test(s);
   }
   
   function ask(q) {
-    // PRIORITY 1: Check contact offer intent
     try {
       if (S.intent.contactOffer) {
         console.log('[Widget] Contact offer active, checking response');
@@ -1169,7 +1152,6 @@
       console.error('[Widget] Contact offer check error:', e);
     }
 
-    // PRIORITY 2: Check UP offer intent (after AI suggested it)
     try {
       if (S.intent.upOffer) {
         console.log('[Widget] UP offer active, checking response');
@@ -1191,7 +1173,6 @@
       }
     } catch(_) {}
 
-    // PRIORITY 3: If waiting for location after UP offer
     try {
       if (S.intent.waitingForLocation) {
         addME(q);
@@ -1204,19 +1185,16 @@
     if (!q) return;
     addME(q);
     
-    // PRIORITY 4: Check pricing
     if (needPricing(q)) { 
       startPricing(); 
       return; 
     }
     
-    // PRIORITY 5: Check EXPLICIT UP request
     if (needsUP(q)) {
       handleUPQuery(q);
       return;
     }
     
-    // PRIORITY 6: Default to AI
     const url = (S.cfg && (S.cfg.proxy_url || S.cfg.chat_url)) || null;
     if (!url) { 
       addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS apod."); 
@@ -1267,44 +1245,4 @@
           }
           
           if (!resp || !resp.ok) { 
-            addAI("Omlouvám se, teď se mi nedaří získat odpověď od AI. Zkuste to prosím za chvíli."); 
-            return; 
-          }
-        }
-        
-        const ct = (resp.headers.get("content-type")||"").toLowerCase();
-        let txt = ""; 
-        if (ct.includes("application/json")) { 
-          try { 
-            const j = await resp.json(); 
-            txt = j.message || j.reply || j.text || j.answer || JSON.stringify(j); 
-          } catch { 
-            txt = await resp.text(); 
-          } 
-        } else { 
-          txt = await resp.text(); 
-        }
-        
-        txt = (txt && String(txt).trim()) || "Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS apod.";
-        addAI(txt);
-      } catch (e) { 
-        addAI("Omlouvám se, došlo k chybě při komunikaci s AI. Zkuste to prosím znovu."); 
-        console.error("[Widget] AI chat error:", e); 
-      }
-    })();
-  }
-
-  // ==== Config / data preload ====
-  (async () => {
-    try {
-      const scriptEl = document.currentScript || document.querySelector('script[data-config]');
-      const CFG_URL = scriptEl ? scriptEl.getAttribute("data-config") : null;
-      if (CFG_URL) {
-        S.cfg = await U.fetchJson(CFG_URL);
-      }
-      if (S.cfg && S.cfg.data_urls) {
-        const d = S.cfg.data_urls;
-        const [byty, domy, pozemky, up] = await Promise.all([
-          d.byty ? U.fetchJson(d.byty) : null,
-          d.domy ? U.fetchJson(d.domy) : null,
-          d.pozemky ? U.fetchJson(d.pozemky) : null,
+            addAI("Omlouvám se, teď se mi nedaří
