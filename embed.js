@@ -1,12 +1,12 @@
-// Cogniterra embed loader (opravená verze)
+// Cogniterra embed loader (opravená verze v8 - DESKTOP FIX)
 (function(){
-  console.log("[Cogniterra] Initializing embed loader");
+  console.log("[Cogniterra] Initializing embed loader v8");
   const tag = document.currentScript;
   const CFG = tag.getAttribute('data-config') || './data/v1/widget_config.json';
   const WIDGET = tag.getAttribute('data-widget') || './cogniterra-widget-safe.v6.js';
   const STYLES = tag.getAttribute('data-styles');
 
-  // Vyčistit všechny existující instance, včetně chat-bubble z HTML
+  // Vyčistit všechny existující instance
   try {
     document.querySelectorAll('.cg-launcher, .cg-panel, .chat-bubble, [data-chatbot="bubble"]').forEach(el => {
       if(el && el.parentNode) el.parentNode.removeChild(el);
@@ -19,18 +19,49 @@
     console.error("[Cogniterra] Error cleaning up previous instances:", e);
   }
 
-  // Vytvořit tlačítko chatbota
+  // Vytvořit tlačítko chatbota s INLINE styly jako pojistka
   const btn = document.createElement('div');
   btn.className = 'cg-launcher';
+  btn.id = 'cg-launcher-btn';
   btn.title = 'Otevřít chat';
   btn.innerHTML = '💬';
-  btn.id = 'cg-launcher-btn';
+  btn.style.cssText = `
+    position: fixed !important;
+    right: 20px !important;
+    bottom: 20px !important;
+    width: 56px !important;
+    height: 56px !important;
+    border-radius: 50% !important;
+    background: linear-gradient(135deg, #6E7BFF, #9B6BFF) !important;
+    color: #fff !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    z-index: 2147483647 !important;
+    font-size: 24px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,.25) !important;
+  `;
   document.body.appendChild(btn);
   
-  // Vytvořit panel pro chat
+  // Vytvořit panel s INLINE styly jako pojistka
   const panel = document.createElement('div');
   panel.className = 'cg-panel';
   panel.id = 'cg-panel';
+  panel.style.cssText = `
+    position: fixed !important;
+    right: 20px !important;
+    bottom: 90px !important;
+    width: 420px !important;
+    height: 650px !important;
+    max-height: 80vh !important;
+    z-index: 2147483646 !important;
+    border-radius: 18px !important;
+    overflow: hidden !important;
+    background: white !important;
+    box-shadow: 0 12px 40px rgba(0,0,0,.35) !important;
+    display: none !important;
+  `;
   
   const closeBtn = document.createElement('button');
   closeBtn.className = 'cg-close';
@@ -53,7 +84,7 @@
   // Přidat panel do dokumentu
   document.body.appendChild(panel);
   
-  // KRITICKÉ: Vytvořit host element pro chatbot - MUSÍ EXISTOVAT
+  // KRITICKÉ: Vytvořit host element pro chatbot
   const host = document.createElement('div');
   host.setAttribute('data-cogniterra-widget', '');
   host.style.width = '100%';
@@ -80,6 +111,7 @@
   
   function showChat() {
     console.log("[Cogniterra] Showing chat");
+    panel.style.display = 'block';
     panel.classList.add('cg-visible');
     document.documentElement.classList.add('cg-open');
     document.body.classList.add('cg-open');
@@ -100,6 +132,7 @@
   
   function hideChat() {
     console.log("[Cogniterra] Hiding chat");
+    panel.style.display = 'none';
     panel.classList.remove('cg-visible');
     document.documentElement.classList.remove('cg-open');
     document.body.classList.remove('cg-open');
@@ -109,7 +142,7 @@
   function loadScript() {
     console.log("[Cogniterra] Loading widget script");
     const script = document.createElement('script');
-    script.src = WIDGET + '?v=' + Date.now(); // Cache-busting
+    script.src = WIDGET + '?v=' + Date.now();
     script.setAttribute('data-config', CFG);
     script.onload = function() {
       scriptLoaded = true;
@@ -147,7 +180,7 @@
     }
   };
   
-  // Přidat základní styly
+  // Přidat základní styly DO HLAVIČKY (jako backup)
   const style = document.createElement('style');
   style.textContent = `
   .cg-launcher {
@@ -156,7 +189,7 @@
     bottom: 20px !important;
     width: 56px !important;
     height: 56px !important;
-    border-radius: 999px !important;
+    border-radius: 50% !important;
     background: linear-gradient(135deg, #6E7BFF, #9B6BFF) !important;
     box-shadow: 0 10px 30px rgba(0,0,0,.35) !important;
     border: 1px solid rgba(255,255,255,.15) !important;
@@ -165,7 +198,7 @@
     align-items: center !important;
     justify-content: center !important;
     cursor: pointer !important;
-    z-index: 2147483000 !important;
+    z-index: 2147483647 !important;
     font: 600 24px/1 system-ui !important;
     visibility: visible !important;
     opacity: 1 !important;
@@ -178,7 +211,7 @@
     width: 420px !important;
     height: 650px !important;
     max-height: 80vh !important;
-    z-index: 2147483001 !important;
+    z-index: 2147483646 !important;
     border-radius: 18px !important;
     overflow: hidden !important;
     box-shadow: 0 12px 40px rgba(0,0,0,.35) !important;
@@ -231,7 +264,6 @@
     z-index: 2147483010 !important;
   }
   
-  /* Zlepšení viditelnosti a konzistence */
   .chat-container {
     display: flex !important;
     flex-direction: column !important;
@@ -261,7 +293,6 @@
     z-index: 10 !important;
   }
   
-  /* Zajištění správných odkazů */
   .chat-msg.ai a {
     color: #2c5282 !important;
     text-decoration: underline !important;
@@ -285,6 +316,9 @@
   }
   updateVH();
   window.addEventListener('resize', updateVH, {passive:true});
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', updateVH, {passive:true});
+  }
   
   console.log("[Cogniterra] Embed loader initialized successfully");
 })();
