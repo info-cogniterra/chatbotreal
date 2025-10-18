@@ -8,31 +8,39 @@
   window.addEventListener('resize', updateVH, {passive:true});
 })();
 
-// cogniterra-widget-safe.v6.js — BUBBLE-ONLY, SINGLE INSTANCE
-// Build v6.bubble.1  — intro + 2 cards; pricing via contact; Mapy.cz suggest; no auto-create
+// cogniterra-widget-safe.v6.js — BUBBLE-ONLY, SINGLE INSTANCE - PLNĚ OPRAVENÁ VERZE
+// Build v6.bubble.2 — Fixed mobile reopen issue
 
 (function () {
   "use strict";
 
-  // ==== single-instance guard ====
-  if (window.__CG_WIDGET_INIT__) {
-    // Pokud již existuje, vyčistíme starou instanci
-    try {
-      const existingHost = document.querySelector("[data-cogniterra-widget]");
-      if (existingHost && existingHost.shadowRoot) {
-        while (existingHost.shadowRoot.firstChild) {
-          existingHost.shadowRoot.removeChild(existingHost.shadowRoot.firstChild);
-        }
-      }
-    } catch (e) {
-      console.error("Chyba při čištění staré instance widgetu:", e);
-    }
-  }
-  window.__CG_WIDGET_INIT__ = true;
+  console.log('[Widget] Initialization started...');
 
-  // ==== mount only if host exists (bubble creates it); do NOTHING otherwise ====
+  // ==== mount only if host exists ====
   const host = document.querySelector("[data-cogniterra-widget]");
-  if (!host) return; // bubble not opened yet / or embed missing
+  if (!host) {
+    console.warn('[Widget] Host element not found');
+    return;
+  }
+
+  // ==== Clean and recreate shadow DOM every time ====
+  let shadow;
+  try {
+    // Remove existing shadow root content if exists
+    if (host.shadowRoot) {
+      console.log('[Widget] Cleaning existing shadow root...');
+      while (host.shadowRoot.firstChild) {
+        host.shadowRoot.removeChild(host.shadowRoot.firstChild);
+      }
+      shadow = host.shadowRoot;
+    } else {
+      console.log('[Widget] Creating new shadow root...');
+      shadow = host.attachShadow({ mode: "open" });
+    }
+  } catch (e) {
+    console.error('[Widget] Shadow DOM error:', e);
+    return;
+  }
 
   // ==== state/config ====
   const S = {
@@ -41,7 +49,11 @@
     cfg: null,
     data: {},
     tempPricing: null,
+    chat: { messages: [] },
+    intent: {}
   };
+
+  console.log('[Widget] Session:', S.session);
 
   // ==== utils ====
   const U = {
@@ -73,34 +85,6 @@
     fetchJson(url) { return fetch(url, { credentials: "omit" }).then(r => r.json()); },
   };
 
-  // Odstraníme všechny existující elementy s třídou .cg-close v document
-  try {
-    const oldCloseButtons = document.querySelectorAll('.cg-close');
-    oldCloseButtons.forEach(btn => btn.remove());
-  } catch(e) {}
-
-  // ==== shadow root & UI skeleton ====
-  // Odstraníme všechny potomky z host elementu
-  while (host.firstChild) {
-    host.removeChild(host.firstChild);
-  }
-  
-  // Odstraníme jakýkoliv existující shadowRoot
-  if (host.shadowRoot) {
-    try {
-      // Pokusíme se odstranit shadowRoot
-      host.attachShadow({ mode: "open" });
-    } catch(e) {
-      // Pokud nelze přímo odstranit, alespoň vyčistíme obsah
-      while (host.shadowRoot.firstChild) {
-        host.shadowRoot.removeChild(host.shadowRoot.firstChild);
-      }
-    }
-  }
-
-  // Vytvoříme nový shadowRoot
-  const shadow = host.shadowRoot || host.attachShadow({ mode: "open" });
-
   // === Kompletně nový styl s důrazem na izolaci ===
   const style = document.createElement("style");
   style.textContent = `
@@ -122,7 +106,7 @@
     padding: 0;
   }
   
-  /* Widget kontejner - bez černého pozadí */
+  /* Widget kontejner */
   .chat-container {
     font: 15px/1.5 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
     color: #2d3748;
@@ -160,16 +144,22 @@
     border: none;
     color: #fff;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 18px;
     opacity: 0.8;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
   
-  .chat-close-btn:hover {
+  .chat-close-btn:hover,
+  .chat-close-btn:active {
     opacity: 1;
   }
   
@@ -238,6 +228,7 @@
     color: #2d3748;
     padding: 12px;
     font-family: inherit;
+    font-size: 15px;
   }
   
   .chat-input-area textarea:focus {
@@ -255,9 +246,13 @@
     font-weight: 600;
     cursor: pointer;
     transition: background 0.2s;
+    min-height: 46px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
   
-  .chat-input-area button:hover {
+  .chat-input-area button:hover,
+  .chat-input-area button:active {
     background: #1a365d;
   }
   
@@ -288,9 +283,12 @@
     color: #2d3748;
     font-family: inherit;
     transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
   
-  .cg-card:hover {
+  .cg-card:hover,
+  .cg-card:active {
     box-shadow: 0 4px 12px rgba(0,0,0,.08);
     border-left-color: #1a365d;
   }
@@ -332,6 +330,7 @@
     background: #fff;
     color: #2d3748;
     font-family: inherit;
+    font-size: 15px;
   }
   
   .cg-input:focus, .cg-select:focus {
@@ -356,10 +355,19 @@
     font-weight: 600;
     cursor: pointer;
     transition: background 0.2s;
+    min-height: 44px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
   
-  .cg-btn:hover {
+  .cg-btn:hover,
+  .cg-btn:active {
     background: #1a365d;
+  }
+  
+  .cg-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
   
   .leadbox {
@@ -378,6 +386,7 @@
     background: #fff;
     color: #2d3748;
     font-family: inherit;
+    font-size: 15px;
   }
   
   .leadbox input:focus {
@@ -406,14 +415,25 @@
       border-radius: 0;
     }
     
-    .chat-input-area textarea {
+    .chat-input-area textarea,
+    .cg-input,
+    .cg-select,
+    .leadbox input {
       font-size: 16px;
+    }
+    
+    .chat-close-btn {
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      min-height: 44px;
+      font-size: 20px;
     }
   }
   `;
   shadow.appendChild(style);
 
-  // Vytvořit zcela novou strukturu widgetu s novými názvy tříd
+  // Vytvořit strukturu widgetu
   const chatContainer = U.el("div", { class: "chat-container" });
   
   // Záhlaví
@@ -423,24 +443,21 @@
     class: "chat-close-btn",
     type: "button",
     "aria-label": "Zavřít chat",
-    onclick: () => {
-      if (window.parent) {
-        try {
-          // Najít nadřazené tlačítko zavřít, ale v rodičovském okně
-          const parentClose = window.parent.document.querySelector('.cg-close');
-          if (parentClose) {
-            parentClose.click();
-          } else {
-            // Pokud nenajdeme rodičovské tlačítko, alespoň skryjeme tento element
-            host.style.display = 'none';
-          }
-        } catch(e) {
-          // Fallback pro případ, kdy nemáme přístup k rodičovskému oknu
-          host.style.display = 'none';
-        }
+    onclick: (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('[Widget] Close button clicked');
+      // Simply call global hide function
+      if (window.CGTR && typeof window.CGTR.hide === 'function') {
+        window.CGTR.hide();
       } else {
-        // Pokud není v iframe, alespoň skryjeme tento element
-        host.style.display = 'none';
+        // Fallback
+        try {
+          const closeBtn = document.querySelector('.cg-close');
+          if (closeBtn) closeBtn.click();
+        } catch(e) {
+          console.warn('[Widget] Cannot close chat', e);
+        }
       }
     }
   }, ["✕"]);
@@ -460,6 +477,7 @@
   
   const chatSendBtn = document.createElement("button");
   chatSendBtn.textContent = "Odeslat";
+  chatSendBtn.type = "button";
   
   chatInputArea.appendChild(chatTextarea);
   chatInputArea.appendChild(chatSendBtn);
@@ -468,41 +486,29 @@
   // Přidáme celou strukturu do shadow DOM
   shadow.appendChild(chatContainer);
   
-  // Inicializace stavu
-  S.chat = S.chat || {messages:[]};
-  S.intent = S.intent || {};
+  console.log('[Widget] UI created successfully');
 
   // ==== message helpers ====
   function addAI(t, extra) {
-    // render assistant bubble
     const b = U.el("div", { class: "chat-msg ai" }, [t]);
     if (extra) b.appendChild(extra);
     chatMessages.appendChild(b);
     chatMessages.scrollTop = chatMessages.scrollHeight;
-
-    // record to conversation
     try { 
-      S.chat = S.chat || { messages: [] }; 
-      S.intent = S.intent || {}; 
       S.chat.messages.push({ role: "assistant", content: String(t) }); 
     } catch (e) {}
-
-    // detect assistant's offer to open the contact form (arms a one-turn confirmation)
     try {
       const tt = String(t).toLowerCase();
       const offer1 = /(mohu|můžu|rád|ráda)\s+(vám\s+)?(ote[vw]ř[ií]t|zobrazit|spustit)\s+(kontaktn[íi]\s+formul[aá][řr])/i.test(tt);
       const offer2 = /chcete\s+(ote[vw]ř[ií]t|zobrazit|spustit)\s+(formul[aá][řr])/i.test(tt);
-      if (offer1 || offer2) { S.intent = S.intent || {}; S.intent.contactOffer = true; }
+      if (offer1 || offer2) { S.intent.contactOffer = true; }
     } catch (e) {}
   }
 
   function addME(t) {
     try { 
-      S.chat = S.chat || {messages:[]}; 
-      S.intent = S.intent || {}; 
       S.chat.messages.push({ role:"user", content: String(t) }); 
     } catch(_){}
-    
     const b = U.el("div", { class: "chat-msg me" }, [t]);
     chatMessages.appendChild(b);
     chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -549,7 +555,7 @@
     });
   }
 
-  // ==== Estimator stubs (nahraď svými výpočty) ====
+  // ==== Estimator stubs ====
   window.CG_Estimator = window.CG_Estimator || {
     estimateByt(m, p)   { return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; },
     estimateDum(m, p)   { return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; },
@@ -557,7 +563,8 @@
   };
 
   // ==== START SCREEN ====
-  function renderStart() { try{chatTextarea.focus();}catch(e){}
+  function renderStart() { 
+    try{chatTextarea.focus();}catch(e){}
     addAI("Dobrý den, rád vám pomohu s vaší nemovitostí. Vyberte, co potřebujete.");
 
     const cards = U.el("div", { class: "cg-start" }, [
@@ -576,8 +583,9 @@
     addPanel(cards);
   }
 
-  function startHelp() { chatInputArea.style.display='flex'; try{chatTextarea.focus();}catch(e){}
-    chatInputArea.style.display = "flex";
+  function startHelp() { 
+    chatInputArea.style.display='flex'; 
+    try{chatTextarea.focus();}catch(e){}
     addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod.");
   }
 
@@ -727,7 +735,6 @@
       pricing_params: JSON.stringify(S.tempPricing || {}),
     };
 
-    // send
     try {
       if (S.cfg && S.cfg.lead_url) {
         const body = new URLSearchParams(Object.entries(payload)).toString();
@@ -741,7 +748,6 @@
           ok = !!resp.ok;
         } catch (_) { ok = false; }
         if (!ok) {
-          // fallback fire-and-forget
           fetch(S.cfg.lead_url, { method:"POST", mode:"no-cors", headers:{ "Content-Type":"application/x-www-form-urlencoded"}, body }).catch(()=>{});
         }
       }
@@ -753,7 +759,6 @@
 
     if (btn) { btn.disabled = false; btn.textContent = "Odesláno"; }
 
-    // compute after lead saved
     const P = S.tempPricing || {};
     let res = null;
     if (P.typ === "Byt")       res = window.CG_Estimator.estimateByt(window.PRICES ? window.PRICES.byty : null, P);
@@ -816,7 +821,7 @@
       source: "chat_widget_contact",
       timestamp: new Date().toISOString(),
       path: "/lead",
-      transcript: JSON.stringify((S.chat && S.chat.messages) ? S.chat.messages.slice(-12) : [])
+      transcript: JSON.stringify(S.chat.messages.slice(-12))
     };
 
     try {
@@ -846,19 +851,16 @@
   }
   
   function ask(q) {
-    // Intercept confirmation if assistant just offered to open contact form
     try {
-      if (S.intent && S.intent.contactOffer) {
+      if (S.intent.contactOffer) {
         const yesRe = /^(ano|jo|ok|okej|jasn[eě]|pros[íi]m|dob[rř]e|spus[tť]it|ote[vw][řr][ií]t|zobraz(it)?|m[oů]žete|ur[cč]it[ěe])(\b|!|\.)/i;
         const noRe  = /^(ne|rad[ěe]ji\s+ne|pozd[eě]ji|te[dď]\s+ne|nen[ií])(\b|!|\.)/i;
         if (yesRe.test(q.trim())) {
-          // consume message locally, open contact form, clear flag
           addME(q);
           stepContactVerify();
           S.intent.contactOffer = false;
           return;
         } else if (noRe.test(q.trim())) {
-          // user declined; clear flag and continue to backend
           S.intent.contactOffer = false;
         }
       }
@@ -867,11 +869,10 @@
     if (!q) return;
     addME(q);
     if (needPricing(q)) { startPricing(); return; }
-    S.chat = S.chat || { messages: [] };
-    const url = (S && S.cfg && (S.cfg.proxy_url || S.cfg.chat_url)) || null;
+    
+    const url = (S.cfg && (S.cfg.proxy_url || S.cfg.chat_url)) || null;
     if (!url) { addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod."); return; }
 
-    // Contact intent (CZ variants) -> open lead form immediately
     const wantContact = /(^|\b)(chci ?být ?kontaktov[aá]n|kontaktuj(te)? m[ěe]|zavolejte|napi[sš]te|nechte kontakt|ozv[eu] se|m[ůu]žete m[ěě] kontaktovat)/i.test(q);
     if (wantContact) { stepContactVerify(); return; }
     
@@ -885,7 +886,7 @@
         if (S.cfg && S.cfg.secret) form.set("secret", S.cfg.secret);
         
         try {
-          const msgs = (S.chat && S.chat.messages) ? S.chat.messages.slice(-12) : [{role:"user", content:q}];
+          const msgs = S.chat.messages.slice(-12);
           form.set("messages", JSON.stringify(msgs));
         } catch(_) {
           form.set("messages", JSON.stringify([{role:"user", content:q}]));
@@ -901,7 +902,7 @@
             const u = new URL(url); 
             if (S.cfg && S.cfg.secret) u.searchParams.set("secret", S.cfg.secret); 
             try { 
-              const msgs=(S.chat&&S.chat.messages)?S.chat.messages.slice(-12):[{role:"user",content:q}]; 
+              const msgs = S.chat.messages.slice(-12);
               u.searchParams.set("messages", JSON.stringify(msgs)); 
             } catch { 
               u.searchParams.set("messages", JSON.stringify([{role:"user", content:q}])); 
@@ -938,20 +939,18 @@
         addAI(txt);
       } catch (e) { 
         addAI("Omlouvám se, došlo k chybě při komunikaci s AI. Zkuste to prosím znovu."); 
-        console.error("AI chat error:", e); 
+        console.error("[Widget] AI chat error:", e); 
       }
     })();
   }
 
-  // ==== Config / data preload (optional) ====
+  // ==== Config / data preload ====
   (async () => {
     try {
       const scriptEl = document.currentScript || document.querySelector('script[data-config]');
       const CFG_URL = scriptEl ? scriptEl.getAttribute("data-config") : null;
       if (CFG_URL) {
         S.cfg = await U.fetchJson(CFG_URL);
-      } else {
-        S.cfg = S.cfg || {};
       }
       if (S.cfg && S.cfg.data_urls) {
         const d = S.cfg.data_urls;
@@ -967,17 +966,18 @@
     }
   })();
 
-  // ==== Init (only when host exists) ====
+  // ==== Init ====
   function cgSafeStart() {
     try {
       if (!chatMessages) return setTimeout(cgSafeStart, 40);
+      console.log('[Widget] Rendering start screen...');
       renderStart();
     } catch (e) {
+      console.error('[Widget] Start error:', e);
       setTimeout(cgSafeStart, 40);
     }
   }
 
-  // kick it
   cgSafeStart();
 
   // input handlers
@@ -993,5 +993,7 @@
       chatSendBtn.click(); 
     } 
   });
+
+  console.log('[Widget] Initialization complete');
 
 })();
