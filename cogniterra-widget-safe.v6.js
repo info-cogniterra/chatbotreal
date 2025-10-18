@@ -9,7 +9,7 @@
 })();
 
 // cogniterra-widget-safe.v6.js — BUBBLE-ONLY, SINGLE INSTANCE - VERZE S UP DETEKCÍ
-// Build v6.bubble.12 — Fixed waitingForLocation flag
+// Build v6.bubble.13 — Fixed extractLocationFromUP regex
 
 (function () {
   "use strict";
@@ -124,12 +124,13 @@
     },
     
     extractLocationFromUP(text) {
-      const normalized = U.norm(text);
-      
       const patterns = [
-        /(?:uzemni\s*plan|up)\s+(?:pro|v|ve|na)\s+([a-z\u00e1\u010d\u010f\u00e9\u011b\u00ed\u0148\u00f3\u0159\u0161\u0165\u00fa\u016f\u00fd\u017e-]+)/i,
-        /(?:uzemni\s*plan|up)\s+([a-z\u00e1\u010d\u010f\u00e9\u011b\u00ed\u0148\u00f3\u0159\u0161\u0165\u00fa\u016f\u00fd\u017e-]+?)(?:\s|$)/i,
-        /(?:pro|v|ve|na)\s+([a-z\u00e1\u010d\u010f\u00e9\u011b\u00ed\u0148\u00f3\u0159\u0161\u0165\u00fa\u016f\u00fd\u017e-]+?)\s+(?:uzemni\s*plan|up)/i
+        // "pro Brno", "v Brně", "na Prahu"
+        /(?:uzemni\s*plan|up)\s+(?:pro|v|ve|na)\s+([^\s]+)/i,
+        // "územní plán Brno"
+        /(?:uzemni\s*plan|up)\s+([^\s]+)/i,
+        // "pro Brno územní plán"
+        /(?:pro|v|ve|na)\s+([^\s]+)\s+(?:uzemni\s*plan|up)/i
       ];
       
       for (const pattern of patterns) {
@@ -141,7 +142,7 @@
         }
       }
       
-      console.log('[Widget] No location extracted');
+      console.log('[Widget] No location extracted from:', text);
       return [];
     },
     
@@ -738,7 +739,7 @@
     
     if (locations.length === 0) {
       addAI("Pro vyhledání územního plánu potřebuji znát obec nebo katastrální území. Můžete mi prosím uvést konkrétní lokalitu?");
-      S.intent.waitingForLocation = true; // ✅ FIXED: Added this line
+      S.intent.waitingForLocation = true;
       return;
     }
     
