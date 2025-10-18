@@ -9,7 +9,7 @@
 })();
 
 // cogniterra-widget-safe.v6.js — BUBBLE-ONLY, SINGLE INSTANCE - VERZE S UP DETEKCÍ
-// Build v6.bubble.13 — Fixed extractLocationFromUP regex
+// Build v6.bubble.14 — Fixed normalization in extractLocationFromUP + debug logs
 
 (function () {
   "use strict";
@@ -124,25 +124,30 @@
     },
     
     extractLocationFromUP(text) {
+      console.log('[Widget] extractLocationFromUP INPUT:', text);
+      
+      const normalized = U.norm(text);
+      console.log('[Widget] extractLocationFromUP NORMALIZED:', normalized);
+      
       const patterns = [
-        // "pro Brno", "v Brně", "na Prahu"
-        /(?:uzemni\s*plan|up)\s+(?:pro|v|ve|na)\s+([^\s]+)/i,
-        // "územní plán Brno"
-        /(?:uzemni\s*plan|up)\s+([^\s]+)/i,
-        // "pro Brno územní plán"
-        /(?:pro|v|ve|na)\s+([^\s]+)\s+(?:uzemni\s*plan|up)/i
+        /(?:uzemni\s+plan|up)\s+(?:pro|v|ve|na)\s+([^\s]+)/i,
+        /(?:uzemni\s+plan|up)\s+([^\s]+)/i,
+        /(?:pro|v|ve|na)\s+([^\s]+)\s+(?:uzemni\s+plan|up)/i
       ];
       
-      for (const pattern of patterns) {
-        const match = text.match(pattern);
+      for (let i = 0; i < patterns.length; i++) {
+        const pattern = patterns[i];
+        const match = normalized.match(pattern);
+        console.log(`[Widget] Pattern ${i} test:`, pattern.toString(), '→ match:', match);
+        
         if (match && match[1]) {
           const location = match[1].trim();
-          console.log('[Widget] Extracted location from UP request:', location);
+          console.log('[Widget] ✅ Extracted location:', location);
           return [location];
         }
       }
       
-      console.log('[Widget] No location extracted from:', text);
+      console.log('[Widget] ❌ No location extracted');
       return [];
     },
     
@@ -1150,12 +1155,15 @@
 
     try {
       if (S.intent.waitingForLocation) {
+        console.log('[Widget] waitingForLocation active, user input:', q);
         addME(q);
         S.intent.waitingForLocation = false;
         handleUPQuery("územní plán " + q);
         return;
       }
-    } catch(_) {}
+    } catch(e) {
+      console.error('[Widget] waitingForLocation check error:', e);
+    }
 
     if (!q) return;
     addME(q);
