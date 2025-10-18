@@ -9,13 +9,13 @@
 })();
 
 // cogniterra-widget-safe.v6.js — BUBBLE-ONLY, SINGLE INSTANCE - VERZE S UP DETEKCÍ
-// Build v6.21-GEOCODING-FINAL — Working Mapy.cz Geocoding API with fixed click handlers
+// Build v6.22-FINAL — Complete with interactive disposition buttons
 // Date: 2025-01-18 | Author: info-cogniterra
 
 (function () {
   "use strict";
 
-  console.log('[Widget] Initialization started... (v6.21-GEOCODING-FINAL)');
+  console.log('[Widget] Initialization started... (v6.22-FINAL)');
 
   const host = document.querySelector("[data-cogniterra-widget]");
   if (!host) {
@@ -566,6 +566,34 @@
     background: #38a169;
   }
   
+  .cg-btn-disp {
+    border: 2px solid #cbd5e0;
+    background: #fff;
+    color: #2d3748;
+    padding: 10px;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-height: 44px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    font-size: 15px;
+    font-family: inherit;
+  }
+  
+  .cg-btn-disp:hover {
+    border-color: #2c5282;
+    background: #f8fafc;
+  }
+  
+  .cg-btn-disp:active,
+  .cg-btn-disp.selected {
+    background: #2c5282 !important;
+    border-color: #2c5282 !important;
+    color: #fff !important;
+  }
+  
   .leadbox {
     border: 1px solid #e2e8f0;
     padding: 16px;
@@ -822,266 +850,263 @@
     return b;
   }
 
- // FINAL FIX: Simplified logic for pozemek (use name directly)
-function attachSuggest(inputEl, isPozemek) {
-  if (!inputEl) {
-    console.warn('[Widget] attachSuggest: no input element');
-    return;
-  }
-  
-  const key = (S.cfg && S.cfg.mapy_key) || "EreCyrH41se5wkNErc5JEWX2eMLqnpja5BUVxsvpqzM";
-  
-  console.log('[Widget] Setting up Mapy.cz Geocoding autocomplete, isPozemek:', isPozemek);
-  
-  const suggestContainer = document.createElement('div');
-  suggestContainer.className = 'mapy-suggest-container';
-  
-  let parentStep = inputEl.parentElement;
-  while (parentStep && !parentStep.classList.contains('cg-step')) {
-    parentStep = parentStep.parentElement;
-  }
-  
-  if (parentStep) {
-    parentStep.style.position = 'relative';
-    parentStep.appendChild(suggestContainer);
-  }
-  
-  let debounceTimer = null;
-  let isSelecting = false;
-  
-  function updatePosition() {
-    const inputRect = inputEl.getBoundingClientRect();
-    const parentRect = parentStep.getBoundingClientRect();
-    
-    Object.assign(suggestContainer.style, {
-      width: inputRect.width + 'px',
-      left: (inputRect.left - parentRect.left) + 'px',
-      top: (inputRect.bottom - parentRect.top) + 'px',
-      marginTop: '-1px'
-    });
-  }
-  
-  async function fetchSuggestions(query) {
-    if (!query || query.length < 2) {
-      suggestContainer.style.display = 'none';
+  // FINAL WORKING VERSION: Mapy.cz Geocoding API with fixed click handlers
+  function attachSuggest(inputEl, isPozemek) {
+    if (!inputEl) {
+      console.warn('[Widget] attachSuggest: no input element');
       return;
     }
     
-    if (isSelecting) {
-      console.log('[Widget] Skipping fetch - user is selecting');
-      return;
+    const key = (S.cfg && S.cfg.mapy_key) || "EreCyrH41se5wkNErc5JEWX2eMLqnpja5BUVxsvpqzM";
+    
+    console.log('[Widget] Setting up Mapy.cz Geocoding autocomplete, isPozemek:', isPozemek);
+    
+    const suggestContainer = document.createElement('div');
+    suggestContainer.className = 'mapy-suggest-container';
+    
+    let parentStep = inputEl.parentElement;
+    while (parentStep && !parentStep.classList.contains('cg-step')) {
+      parentStep = parentStep.parentElement;
     }
     
-    try {
-      const type = isPozemek ? 'regional.municipality' : 'regional.address';
-      const url = `https://api.mapy.cz/v1/geocode?lang=cs&limit=10&type=${type}&query=${encodeURIComponent(query)}&apikey=${key}`;
+    if (parentStep) {
+      parentStep.style.position = 'relative';
+      parentStep.appendChild(suggestContainer);
+    }
+    
+    let debounceTimer = null;
+    let isSelecting = false;
+    
+    function updatePosition() {
+      const inputRect = inputEl.getBoundingClientRect();
+      const parentRect = parentStep.getBoundingClientRect();
       
-      console.log('[Widget] Fetching geocoding for:', query, 'type:', type);
-      
-      const response = await fetch(url);
-      if (!response.ok) {
-        console.error('[Widget] Geocoding API error:', response.status);
+      Object.assign(suggestContainer.style, {
+        width: inputRect.width + 'px',
+        left: (inputRect.left - parentRect.left) + 'px',
+        top: (inputRect.bottom - parentRect.top) + 'px',
+        marginTop: '-1px'
+      });
+    }
+    
+    async function fetchSuggestions(query) {
+      if (!query || query.length < 2) {
+        suggestContainer.style.display = 'none';
         return;
       }
       
-      const data = await response.json();
-      const items = data.items || [];
-      
-      console.log('[Widget] Geocoding returned', items.length, 'results');
-      if (items.length > 0) {
-        console.log('[Widget] First geocoding item:', items[0]);
+      if (isSelecting) {
+        console.log('[Widget] Skipping fetch - user is selecting');
+        return;
       }
       
-      const results = [];
+      try {
+        const type = isPozemek ? 'regional.municipality' : 'regional.address';
+        const url = `https://api.mapy.cz/v1/geocode?lang=cs&limit=10&type=${type}&query=${encodeURIComponent(query)}&apikey=${key}`;
+        
+        console.log('[Widget] Fetching geocoding for:', query, 'type:', type);
+        
+        const response = await fetch(url);
+        if (!response.ok) {
+          console.error('[Widget] Geocoding API error:', response.status);
+          return;
+        }
+        
+        const data = await response.json();
+        const items = data.items || [];
+        
+        console.log('[Widget] Geocoding returned', items.length, 'results');
+        if (items.length > 0) {
+          console.log('[Widget] First geocoding item:', items[0]);
+        }
+        
+        const results = [];
+        
+        for (const item of items) {
+          const name = String(item.name || '').trim();
+          
+          let displayText = '';
+          
+          if (isPozemek) {
+            displayText = name;
+            console.log('[Widget] Pozemek - using name:', name);
+          } else {
+            const locationStr = String(item.location || '').trim();
+            let municipality = '';
+            
+            if (locationStr) {
+              const cleanLocation = locationStr.replace(/,\s*(Česko|Czech Republic)\s*$/i, '').trim();
+              municipality = cleanLocation.split(',')[0].trim();
+            }
+            
+            console.log('[Widget] Address - Processing:', {name, locationStr, municipality});
+            
+            if (name && municipality) {
+              displayText = `${name}, ${municipality}`;
+            } else if (name) {
+              displayText = name;
+            } else if (municipality) {
+              displayText = municipality;
+            }
+          }
+          
+          if (displayText && displayText.length > 2) {
+            results.push(displayText);
+          }
+          
+          if (results.length >= 10) break;
+        }
+        
+        console.log('[Widget] Formatted results:', results);
+        
+        if (results.length > 0) {
+          renderSuggestions(results);
+        } else {
+          console.log('[Widget] No valid results found');
+          suggestContainer.style.display = 'none';
+        }
+        
+      } catch (e) {
+        console.error('[Widget] Geocoding fetch error:', e);
+        suggestContainer.style.display = 'none';
+      }
+    }
+    
+    function renderSuggestions(items) {
+      suggestContainer.innerHTML = '';
+      updatePosition();
+      
+      const unique = [];
+      const seen = new Set();
       
       for (const item of items) {
-        const name = String(item.name || '').trim();
-        
-        let displayText = '';
-        
-        if (isPozemek) {
-          // ✅ FIX: For pozemek, just use name directly (municipality name)
-          displayText = name;
-          console.log('[Widget] Pozemek - using name:', name);
-        } else {
-          // For addresses, parse location to get city
-          const locationStr = String(item.location || '').trim();
-          let municipality = '';
-          
-          if (locationStr) {
-            const cleanLocation = locationStr.replace(/,\s*(Česko|Czech Republic)\s*$/i, '').trim();
-            municipality = cleanLocation.split(',')[0].trim();
-          }
-          
-          console.log('[Widget] Address - Processing:', {name, locationStr, municipality});
-          
-          if (name && municipality) {
-            displayText = `${name}, ${municipality}`;
-          } else if (name) {
-            displayText = name;
-          } else if (municipality) {
-            displayText = municipality;
-          }
+        const text = String(item).trim();
+        const key = text.toLowerCase();
+        if (text && !seen.has(key)) {
+          seen.add(key);
+          unique.push(text);
         }
-        
-        // Only add valid, non-empty results
-        if (displayText && displayText.length > 2) {
-          results.push(displayText);
-        }
-        
-        if (results.length >= 10) break;
       }
       
-      console.log('[Widget] Formatted results:', results);
-      
-      if (results.length > 0) {
-        renderSuggestions(results);
-      } else {
-        console.log('[Widget] No valid results found');
-        suggestContainer.style.display = 'none';
-      }
-      
-    } catch (e) {
-      console.error('[Widget] Geocoding fetch error:', e);
-      suggestContainer.style.display = 'none';
-    }
-  }
-  
-  function renderSuggestions(items) {
-    suggestContainer.innerHTML = '';
-    updatePosition();
-    
-    const unique = [];
-    const seen = new Set();
-    
-    for (const item of items) {
-      const text = String(item).trim();
-      const key = text.toLowerCase();
-      if (text && !seen.has(key)) {
-        seen.add(key);
-        unique.push(text);
-      }
-    }
-    
-    unique.forEach((text) => {
-      const div = document.createElement('div');
-      div.className = 'mapy-suggest-item';
-      div.textContent = text;
-      div.setAttribute('data-value', text);
-      
-      div.addEventListener('mouseenter', () => {
-        div.style.background = '#f8fafc';
-      });
-      div.addEventListener('mouseleave', () => {
-        div.style.background = 'white';
-      });
-      
-      div.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
+      unique.forEach((text) => {
+        const div = document.createElement('div');
+        div.className = 'mapy-suggest-item';
+        div.textContent = text;
+        div.setAttribute('data-value', text);
         
-        const selectedValue = div.getAttribute('data-value');
-        console.log('[Widget] Mousedown on:', selectedValue);
+        div.addEventListener('mouseenter', () => {
+          div.style.background = '#f8fafc';
+        });
+        div.addEventListener('mouseleave', () => {
+          div.style.background = 'white';
+        });
         
-        isSelecting = true;
-        inputEl.value = selectedValue;
-        suggestContainer.style.display = 'none';
-        
-        setTimeout(() => {
-          inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-          inputEl.dispatchEvent(new Event('change', { bubbles: true }));
-          console.log('[Widget] Value set and events triggered:', selectedValue);
+        div.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          const selectedValue = div.getAttribute('data-value');
+          console.log('[Widget] Mousedown on:', selectedValue);
+          
+          isSelecting = true;
+          inputEl.value = selectedValue;
+          suggestContainer.style.display = 'none';
           
           setTimeout(() => {
-            isSelecting = false;
-            console.log('[Widget] Selection completed, autocomplete ready again');
-          }, 500);
-        }, 10);
-        
-        setTimeout(() => {
-          inputEl.focus();
-        }, 50);
-      });
-      
-      div.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        const selectedValue = div.getAttribute('data-value');
-        console.log('[Widget] Click fallback on:', selectedValue);
-        
-        isSelecting = true;
-        inputEl.value = selectedValue;
-        suggestContainer.style.display = 'none';
-        
-        setTimeout(() => {
-          inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-          inputEl.dispatchEvent(new Event('change', { bubbles: true }));
-          inputEl.focus();
+            inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+            inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+            console.log('[Widget] Value set and events triggered:', selectedValue);
+            
+            setTimeout(() => {
+              isSelecting = false;
+              console.log('[Widget] Selection completed, autocomplete ready again');
+            }, 500);
+          }, 10);
           
           setTimeout(() => {
-            isSelecting = false;
-          }, 500);
-        }, 10);
+            inputEl.focus();
+          }, 50);
+        });
+        
+        div.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          const selectedValue = div.getAttribute('data-value');
+          console.log('[Widget] Click fallback on:', selectedValue);
+          
+          isSelecting = true;
+          inputEl.value = selectedValue;
+          suggestContainer.style.display = 'none';
+          
+          setTimeout(() => {
+            inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+            inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+            inputEl.focus();
+            
+            setTimeout(() => {
+              isSelecting = false;
+            }, 500);
+          }, 10);
+        });
+        
+        suggestContainer.appendChild(div);
       });
       
-      suggestContainer.appendChild(div);
+      suggestContainer.style.display = 'block';
+      console.log('[Widget] Rendered', unique.length, 'geocoding suggestions');
+    }
+    
+    inputEl.addEventListener('input', (e) => {
+      clearTimeout(debounceTimer);
+      const value = (e.target.value || '').trim();
+      
+      if (isSelecting) {
+        console.log('[Widget] Input event ignored - user is selecting');
+        return;
+      }
+      
+      debounceTimer = setTimeout(() => {
+        fetchSuggestions(value);
+      }, 400);
     });
     
-    suggestContainer.style.display = 'block';
-    console.log('[Widget] Rendered', unique.length, 'geocoding suggestions');
-  }
-  
-  inputEl.addEventListener('input', (e) => {
-    clearTimeout(debounceTimer);
-    const value = (e.target.value || '').trim();
-    
-    if (isSelecting) {
-      console.log('[Widget] Input event ignored - user is selecting');
-      return;
-    }
-    
-    debounceTimer = setTimeout(() => {
-      fetchSuggestions(value);
-    }, 400);
-  });
-  
-  inputEl.addEventListener('focus', () => {
-    updatePosition();
-    const value = (inputEl.value || '').trim();
-    
-    if (value.length >= 2 && !isSelecting) {
-      fetchSuggestions(value);
-    }
-  });
-  
-  inputEl.addEventListener('blur', (e) => {
-    setTimeout(() => {
-      const rect = suggestContainer.getBoundingClientRect();
-      const isOverContainer = (
-        e.relatedTarget && 
-        suggestContainer.contains(e.relatedTarget)
-      );
+    inputEl.addEventListener('focus', () => {
+      updatePosition();
+      const value = (inputEl.value || '').trim();
       
-      if (!isOverContainer) {
-        suggestContainer.style.display = 'none';
-        console.log('[Widget] Hiding suggestions on blur');
+      if (value.length >= 2 && !isSelecting) {
+        fetchSuggestions(value);
       }
-    }, 350);
-  });
-  
-  inputEl.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      suggestContainer.style.display = 'none';
-      inputEl.blur();
-      isSelecting = false;
-    }
-  });
-  
-  window.addEventListener('resize', updatePosition, { passive: true });
-  
-  console.log('[Widget] ✅ Mapy.cz Geocoding autocomplete ready');
-}
+    });
+    
+    inputEl.addEventListener('blur', (e) => {
+      setTimeout(() => {
+        const rect = suggestContainer.getBoundingClientRect();
+        const isOverContainer = (
+          e.relatedTarget && 
+          suggestContainer.contains(e.relatedTarget)
+        );
+        
+        if (!isOverContainer) {
+          suggestContainer.style.display = 'none';
+          console.log('[Widget] Hiding suggestions on blur');
+        }
+      }, 350);
+    });
+    
+    inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        suggestContainer.style.display = 'none';
+        inputEl.blur();
+        isSelecting = false;
+      }
+    });
+    
+    window.addEventListener('resize', updatePosition, { passive: true });
+    
+    console.log('[Widget] ✅ Mapy.cz Geocoding autocomplete ready');
+  }
 
   window.CG_Estimator = window.CG_Estimator || {
     estimateByt(m, p)   { return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; },
@@ -1317,21 +1342,124 @@ function attachSuggest(inputEl, isPozemek) {
   }
 
   function stepParamsByt(obec) {
-    const disp  = U.input("dispozice", "Dispozice (např. 2+kk)");
-    const stav  = U.select("stav", ["Novostavba","Po rekonstrukci","Dobrý","Špatný"]);
-    const vlast = U.select("vlastnictvi", ["Osobní","Družstevní"]);
-    const area  = U.input("vymera", "Výměra (m²)", "number");
-
-    const go = U.el("button", { class: "cg-btn", type: "button", onclick: () => {
-      const params = { typ:"Byt", obec, dispozice:disp.value, stav:stav.value, vlastnictvi:vlast.value, vymera:parseFloat(area.value||0) };
-      renderLeadBoxPricing(params);
-    }}, ["Pokračovat k odhadu"]);
-
+    const dispositions = [
+      "1+kk", "1+1",
+      "2+kk", "2+1", 
+      "3+kk", "3+1",
+      "4+kk", "4+1",
+      "5+kk", "5+1",
+      "6+kk", "6+1"
+    ];
+    
+    let selectedDisposition = null;
+    let selectedStav = "Dobrý";
+    let selectedVlast = "Osobní";
+    
+    const dispGrid = U.el("div", { 
+      style: { 
+        display: "grid", 
+        gridTemplateColumns: "1fr 1fr", 
+        gap: "8px",
+        marginBottom: "16px"
+      } 
+    });
+    
+    const dispButtons = [];
+    
+    dispositions.forEach((disp) => {
+      const btn = U.el("button", { 
+        class: "cg-btn-disp", 
+        type: "button",
+        style: {
+          background: "#fff",
+          border: "2px solid #cbd5e0",
+          color: "#2d3748",
+          padding: "10px",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontWeight: "600",
+          transition: "all 0.2s",
+          minHeight: "44px"
+        },
+        onclick: (e) => {
+          e.preventDefault();
+          dispButtons.forEach(b => {
+            b.style.background = "#fff";
+            b.style.borderColor = "#cbd5e0";
+            b.style.color = "#2d3748";
+          });
+          btn.style.background = "#2c5282";
+          btn.style.borderColor = "#2c5282";
+          btn.style.color = "#fff";
+          selectedDisposition = disp;
+          console.log('[Widget] Selected disposition:', disp);
+        }
+      }, [disp]);
+      
+      dispButtons.push(btn);
+      dispGrid.appendChild(btn);
+    });
+    
+    const stavLabel = U.el("label", {}, ["Stav"]);
+    const stav = U.select("stav", ["Novostavba", "Po rekonstrukci", "Dobrý", "Špatný"]);
+    stav.value = "Dobrý";
+    stav.addEventListener("change", (e) => {
+      selectedStav = e.target.value;
+    });
+    
+    const vlastLabel = U.el("label", {}, ["Vlastnictví"]);
+    const vlast = U.select("vlastnictvi", ["Osobní", "Družstevní"]);
+    vlast.value = "Osobní";
+    vlast.addEventListener("change", (e) => {
+      selectedVlast = e.target.value;
+    });
+    
+    const areaLabel = U.el("label", {}, ["Výměra (m²)"]);
+    const area = U.input("vymera", "Výměra (m²)", "number");
+    
+    const go = U.el("button", { 
+      class: "cg-btn", 
+      type: "button", 
+      onclick: () => {
+        if (!selectedDisposition) {
+          addAI("⚠️ Prosím vyberte dispozici bytu.");
+          return;
+        }
+        
+        const vymera = parseFloat(area.value || 0);
+        if (!vymera || vymera <= 0) {
+          addAI("⚠️ Prosím zadejte platnou výměru v m².");
+          area.focus();
+          return;
+        }
+        
+        const params = { 
+          typ: "Byt", 
+          obec, 
+          dispozice: selectedDisposition, 
+          stav: selectedStav, 
+          vlastnictvi: selectedVlast, 
+          vymera: vymera 
+        };
+        
+        console.log('[Widget] Byt params:', params);
+        renderLeadBoxPricing(params);
+      }
+    }, ["Pokračovat k odhadu"]);
+    
     const box = U.el("div", { class: "cg-step" }, [
       U.el("label", {}, ["Parametry bytu – ", obec]),
-      disp, stav, vlast, area,
-      U.el("div", { class: "cg-cta" }, [go]),
+      U.el("label", { style: { marginTop: "12px" } }, ["Dispozice"]),
+      dispGrid,
+      stavLabel,
+      stav,
+      vlastLabel,
+      vlast,
+      areaLabel,
+      area,
+      U.el("div", { class: "cg-cta" }, [go])
     ]);
+    
     addAI("Nacenění – krok 3/3", box);
   }
 
@@ -1787,6 +1915,6 @@ function attachSuggest(inputEl, isPozemek) {
     } 
   });
 
-  console.log('[Widget] Initialization complete (v6.21-GEOCODING-FINAL)');
+  console.log('[Widget] Initialization complete (v6.22-FINAL)');
 
 })();
