@@ -5,6 +5,7 @@
     "pozemky": "./data/v1/prices_pozemky.v1.json",
     "up": "./data/v1/up.v1.json"
   },
+  "mapy_key": "EreCyrH41se5wkNErc5JEWX2eMLqnpja5BUVxsvpqzM",
   "lead_url": "https://script.google.com/macros/s/AKfycbyNLWmhYxwrUtxMDrE33bs8jUdiZNdJERL8CGgn8wB2cwttnPHXogXFtSEGh1q0EvE_sw/exec?path=/lead",
   "chat_url": "https://script.google.com/macros/s/AKfycbyNLWmhYxwrUtxMDrE33bs8jUdiZNdJERL8CGgn8wB2cwttnPHXogXFtSEGh1q0EvE_sw/exec?path=/chat",
   "secret": "cogniterra_secret_2398751098",
