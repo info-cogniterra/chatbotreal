@@ -797,164 +797,203 @@
     return b;
   }
 
-  // NEW: Mapy.cz REST API autocomplete (replacement for old Suggest SDK)
-  function attachSuggest(inputEl, isPozemek) {
-    if (!inputEl) {
-      console.warn('[Widget] attachSuggest: no input element');
+  // NEW: Fixed Mapy.cz REST API autocomplete with proper Shadow DOM handling
+function attachSuggest(inputEl, isPozemek) {
+  if (!inputEl) {
+    console.warn('[Widget] attachSuggest: no input element');
+    return;
+  }
+  
+  const key = (S.cfg && S.cfg.mapy_key) || "EreCyrH41se5wkNErc5JEWX2eMLqnpja5BUVxsvpqzM";
+  
+  console.log('[Widget] Setting up Mapy.cz REST autocomplete, isPozemek:', isPozemek);
+  
+  // Get input position and dimensions
+  function getInputBounds() {
+    const rect = inputEl.getBoundingClientRect();
+    const parentRect = inputEl.parentElement.getBoundingClientRect();
+    return {
+      width: rect.width,
+      left: rect.left - parentRect.left,
+      top: rect.bottom - parentRect.top
+    };
+  }
+  
+  // Create suggestion container
+  const suggestContainer = document.createElement('div');
+  suggestContainer.className = 'mapy-suggest-container';
+  
+  // Insert after input's parent (the wrapper div)
+  const wrapper = inputEl.parentElement;
+  if (wrapper && wrapper.parentElement) {
+    wrapper.parentElement.insertBefore(suggestContainer, wrapper.nextSibling);
+  }
+  
+  let debounceTimer = null;
+  let currentResults = [];
+  
+  // Update container position and styling
+  function updatePosition() {
+    const bounds = getInputBounds();
+    Object.assign(suggestContainer.style, {
+      position: 'absolute',
+      background: 'white',
+      border: '1px solid #cbd5e0',
+      borderTop: 'none',
+      borderRadius: '0 0 4px 4px',
+      boxShadow: '0 4px 6px rgba(0,0,0,.1)',
+      maxHeight: '200px',
+      overflowY: 'auto',
+      zIndex: '1000',
+      display: 'none',
+      width: bounds.width + 'px',
+      left: bounds.left + 'px',
+      top: bounds.top + 'px',
+      marginTop: '-1px'
+    });
+  }
+  
+  updatePosition();
+  
+  // Fetch suggestions from Mapy.cz REST API
+  async function fetchSuggestions(query) {
+    if (!query || query.length < 2) {
+      suggestContainer.style.display = 'none';
       return;
     }
     
-    const key = (S.cfg && S.cfg.mapy_key) || "EreCyrH41se5wkNErc5JEWX2eMLqnpja5BUVxsvpqzM";
-    
-    console.log('[Widget] Setting up Mapy.cz REST autocomplete, isPozemek:', isPozemek);
-    
-    // Create suggestion container
-    const suggestContainer = document.createElement('div');
-    suggestContainer.className = 'mapy-suggest-container';
-    suggestContainer.style.cssText = `
-      position: absolute;
-      background: white;
-      border: 1px solid #cbd5e0;
-      border-top: none;
-      border-radius: 0 0 4px 4px;
-      box-shadow: 0 4px 6px rgba(0,0,0,.1);
-      max-height: 200px;
-      overflow-y: auto;
-      z-index: 1000;
-      display: none;
-      width: 100%;
-      left: 0;
-      top: 100%;
-      margin-top: -1px;
-    `;
-    
-    // Insert suggestion container after input
-    if (inputEl.parentElement) {
-      inputEl.parentElement.style.position = 'relative';
-      inputEl.parentElement.appendChild(suggestContainer);
-    }
-    
-    let debounceTimer = null;
-    let currentResults = [];
-    
-    // Fetch suggestions from Mapy.cz REST API
-    async function fetchSuggestions(query) {
-      if (!query || query.length < 2) {
-        suggestContainer.style.display = 'none';
+    try {
+      const type = isPozemek ? 'municipality' : 'address';
+      const url = `https://api.mapy.cz/v1/suggest?lang=cs&limit=10&type=${type}&query=${encodeURIComponent(query)}&apikey=${key}`;
+      
+      console.log('[Widget] Fetching suggestions for:', query);
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.error('[Widget] Suggest API error:', response.status);
         return;
       }
       
-      try {
-        // Mapy.cz Geocoding API - suggest endpoint
-        const type = isPozemek ? 'municipality' : 'address';
-        const url = `https://api.mapy.cz/v1/suggest?lang=cs&limit=10&type=${type}&query=${encodeURIComponent(query)}&apikey=${key}`;
-        
-        console.log('[Widget] Fetching suggestions:', url);
-        
-        const response = await fetch(url);
-        if (!response.ok) {
-          console.error('[Widget] Suggest API error:', response.status);
-          return;
-        }
-        
-        const data = await response.json();
-        currentResults = data.items || [];
-        
-        console.log('[Widget] Got suggestions:', currentResults.length);
-        
-        if (currentResults.length > 0) {
-          renderSuggestions(currentResults);
-        } else {
-          suggestContainer.style.display = 'none';
-        }
-        
-      } catch (e) {
-        console.error('[Widget] Suggest fetch error:', e);
+      const data = await response.json();
+      currentResults = data.items || [];
+      
+      console.log('[Widget] Got', currentResults.length, 'suggestions');
+      
+      if (currentResults.length > 0) {
+        renderSuggestions(currentResults);
+      } else {
         suggestContainer.style.display = 'none';
       }
-    }
-    
-    // Render suggestion list
-    function renderSuggestions(items) {
-      suggestContainer.innerHTML = '';
       
-      items.forEach((item, index) => {
-        const div = document.createElement('div');
-        div.className = 'mapy-suggest-item';
-        div.style.cssText = `
-          padding: 10px 14px;
-          cursor: pointer;
-          border-bottom: 1px solid #f0f0f0;
-          font-size: 14px;
-          color: #2d3748;
-        `;
-        
-        // Format: "Street, City" or just "City" for municipalities
-        const name = item.name || '';
-        const municipality = item.location?.municipality || '';
-        const district = item.location?.district || '';
-        
-        let displayText = '';
-        if (isPozemek) {
-          // For land: show only municipality
-          displayText = municipality || name;
-        } else {
-          // For apartments/houses: show "Street, City"
-          if (name && municipality) {
-            displayText = `${name}, ${municipality}`;
-          } else if (municipality) {
-            displayText = municipality;
-          } else {
-            displayText = name;
-          }
-        }
-        
-        div.textContent = displayText;
-        
-        // Hover effect
-        div.addEventListener('mouseenter', () => {
-          div.style.background = '#f8fafc';
-        });
-        div.addEventListener('mouseleave', () => {
-          div.style.background = 'white';
-        });
-        
-        // Click handler
-        div.addEventListener('click', () => {
-          inputEl.value = displayText;
-          suggestContainer.style.display = 'none';
-          inputEl.focus();
-        });
-        
-        suggestContainer.appendChild(div);
+    } catch (e) {
+      console.error('[Widget] Suggest fetch error:', e);
+      suggestContainer.style.display = 'none';
+    }
+  }
+  
+  // Render suggestion list
+  function renderSuggestions(items) {
+    suggestContainer.innerHTML = '';
+    updatePosition(); // Update position before showing
+    
+    items.forEach((item) => {
+      const div = document.createElement('div');
+      div.className = 'mapy-suggest-item';
+      Object.assign(div.style, {
+        padding: '10px 14px',
+        cursor: 'pointer',
+        borderBottom: '1px solid #f0f0f0',
+        fontSize: '14px',
+        color: '#2d3748',
+        background: 'white',
+        transition: 'background 0.15s ease'
       });
       
-      suggestContainer.style.display = 'block';
+      // Format display text
+      const name = item.name || '';
+      const municipality = item.location?.municipality || '';
+      
+      let displayText = '';
+      if (isPozemek) {
+        displayText = municipality || name;
+      } else {
+        if (name && municipality) {
+          displayText = `${name}, ${municipality}`;
+        } else {
+          displayText = municipality || name;
+        }
+      }
+      
+      div.textContent = displayText;
+      
+      // Hover effect
+      div.addEventListener('mouseenter', () => {
+        div.style.background = '#f8fafc';
+      });
+      div.addEventListener('mouseleave', () => {
+        div.style.background = 'white';
+      });
+      
+      // Click handler
+      div.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        inputEl.value = displayText;
+        suggestContainer.style.display = 'none';
+        inputEl.focus();
+        console.log('[Widget] Selected:', displayText);
+      });
+      
+      suggestContainer.appendChild(div);
+    });
+    
+    // Remove border from last item
+    const lastItem = suggestContainer.lastElementChild;
+    if (lastItem) {
+      lastItem.style.borderBottom = 'none';
     }
     
-    // Input event handler with debounce
-    inputEl.addEventListener('input', (e) => {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        fetchSuggestions(e.target.value);
-      }, 300);
-    });
-    
-    // Close suggestions on blur (with delay for click handling)
-    inputEl.addEventListener('blur', () => {
-      setTimeout(() => {
-        suggestContainer.style.display = 'none';
-      }, 200);
-    });
-    
-    // Close on Escape
-    inputEl.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        suggestContainer.style.display = 'none';
-      }
-    });
-    
-    console.log('[Widget] ✅ Mapy.cz REST autocomplete ready');
+    suggestContainer.style.display = 'block';
+    console.log('[Widget] Suggestions displayed');
+  }
+  
+  // Input event handler with debounce
+  inputEl.addEventListener('input', (e) => {
+    clearTimeout(debounceTimer);
+    const value = e.target.value.trim();
+    console.log('[Widget] Input value:', value);
+    debounceTimer = setTimeout(() => {
+      fetchSuggestions(value);
+    }, 300);
+  });
+  
+  // Focus handler
+  inputEl.addEventListener('focus', () => {
+    updatePosition();
+    if (inputEl.value.trim().length >= 2) {
+      fetchSuggestions(inputEl.value.trim());
+    }
+  });
+  
+  // Close suggestions on blur (with delay for click handling)
+  inputEl.addEventListener('blur', () => {
+    setTimeout(() => {
+      suggestContainer.style.display = 'none';
+    }, 250);
+  });
+  
+  // Close on Escape
+  inputEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      suggestContainer.style.display = 'none';
+      inputEl.blur();
+    }
+  });
+  
+  // Update position on window resize
+  window.addEventListener('resize', updatePosition, { passive: true });
+  
+  console.log('[Widget] ✅ Mapy.cz REST autocomplete ready');
   }
 
   window.CG_Estimator = window.CG_Estimator || {
