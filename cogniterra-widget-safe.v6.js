@@ -814,7 +814,7 @@
     return b;
   }
 
-// FIXED: Extract municipality from location AND fix click handler
+// FINAL FIX: Parse location as STRING, not object!
 function attachSuggest(inputEl, isPozemek) {
   if (!inputEl) {
     console.warn('[Widget] attachSuggest: no input element');
@@ -882,18 +882,31 @@ function attachSuggest(inputEl, isPozemek) {
       
       for (const item of items) {
         const name = String(item.name || '').trim();
-        const location = item.location || {};
         
-        // FIXED: Extract municipality from multiple possible fields
-        const municipality = String(
-          location.municipality || 
-          location.municipalityPart || 
-          location.ward ||
-          location.region ||
-          ''
-        ).trim();
+        // FIXED: location is a STRING, not an object!
+        const locationStr = String(item.location || '').trim();
         
-        console.log('[Widget] Processing:', {name, municipality, location}); // DEBUG
+        // Parse municipality from location string
+        // Examples:
+        // "Teplice - Nová Ves, Česko" → "Teplice - Nová Ves"
+        // "Praha 5, Česko" → "Praha 5"
+        // "Brno, Česko" → "Brno"
+        let municipality = '';
+        
+        if (locationStr) {
+          // Remove ", Česko" or ", Czech Republic" from end
+          const cleanLocation = locationStr.replace(/,\s*(Česko|Czech Republic)\s*$/i, '').trim();
+          
+          // For pozemek, just use the clean location
+          if (isPozemek) {
+            municipality = cleanLocation;
+          } else {
+            // For addresses, extract first part (city/district)
+            municipality = cleanLocation.split(',')[0].trim();
+          }
+        }
+        
+        console.log('[Widget] Processing:', {name, locationStr, municipality}); // DEBUG
         
         let displayText = '';
         
@@ -903,9 +916,7 @@ function attachSuggest(inputEl, isPozemek) {
         } else {
           // For apartments/houses: format as "Street Number, City"
           if (name && municipality) {
-            // Remove municipality from name if it's already there
-            const cleanName = name.replace(new RegExp(`,?\\s*${municipality}\\s*$`, 'i'), '').trim();
-            displayText = `${cleanName}, ${municipality}`;
+            displayText = `${name}, ${municipality}`;
           } else if (name) {
             displayText = name;
           } else if (municipality) {
@@ -965,23 +976,22 @@ function attachSuggest(inputEl, isPozemek) {
         div.style.background = 'white';
       });
       
-      // FIXED: Use mousedown instead of click to prevent blur from hiding container first
+      // Prevent blur from hiding container before click fires
       div.addEventListener('mousedown', (e) => {
-        e.preventDefault(); // Prevent blur from firing
+        e.preventDefault();
       });
       
       div.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
         
-        // FIXED: Set value directly and trigger events
+        // Set value and trigger events
         inputEl.value = text;
         inputEl.dispatchEvent(new Event('input', { bubbles: true }));
         inputEl.dispatchEvent(new Event('change', { bubbles: true }));
         
         suggestContainer.style.display = 'none';
         
-        // Focus after a short delay
         setTimeout(() => {
           inputEl.focus();
         }, 10);
@@ -1015,7 +1025,7 @@ function attachSuggest(inputEl, isPozemek) {
   inputEl.addEventListener('blur', () => {
     setTimeout(() => {
       suggestContainer.style.display = 'none';
-    }, 300); // Increased delay to allow mousedown to fire first
+    }, 300);
   });
   
   inputEl.addEventListener('keydown', (e) => {
