@@ -9,7 +9,7 @@
 })();
 
 // cogniterra-widget-safe.v6.js — BUBBLE-ONLY, SINGLE INSTANCE - VERZE S UP DETEKCÍ
-// Build v6.bubble.5 — Added proactive UP offer
+// Build v6.bubble.6 — Fixed UP search: KU priority, simple location detection
 
 (function () {
   "use strict";
@@ -26,7 +26,6 @@
   // ==== Clean and recreate shadow DOM every time ====
   let shadow;
   try {
-    // Remove existing shadow root content if exists
     if (host.shadowRoot) {
       console.log('[Widget] Cleaning existing shadow root...');
       while (host.shadowRoot.firstChild) {
@@ -90,73 +89,68 @@
     },
     fetchJson(url) { return fetch(url, { credentials: "omit" }).then(r => r.json()); },
     
-    // ==== Territorial plan utilities ====
+    // ==== FIXED: Prioritize KU (katastrální území) over obec ====
     searchUP(query, upData) {
       if (!upData || !upData.map) return [];
       const q = U.norm(query);
       
       console.log('[Widget] Searching UP for:', query, '-> normalized:', q);
       
-      const exactMatches = [];
-      const partialMatches = [];
+      const kuExact = [];
+      const kuPartial = [];
+      const obecExact = [];
+      const obecPartial = [];
       
       for (const item of upData.map) {
         const kuNorm = U.norm(item.ku || "");
         const obecNorm = U.norm(item.obec || "");
         
-        // Exact match
-        if (kuNorm === q || obecNorm === q) {
-          exactMatches.push(item);
+        // PRIORITY 1: Exact KU match
+        if (kuNorm === q) {
+          kuExact.push(item);
         }
-        // Partial match - contains
-        else if (kuNorm.includes(q) || obecNorm.includes(q)) {
-          partialMatches.push(item);
+        // PRIORITY 2: Partial KU match
+        else if (kuNorm.includes(q) || q.includes(kuNorm)) {
+          kuPartial.push(item);
         }
-        // Partial match - query contains location name (for longer queries)
-        else if (q.includes(kuNorm) || q.includes(obecNorm)) {
-          partialMatches.push(item);
+        // PRIORITY 3: Exact obec match
+        else if (obecNorm === q) {
+          obecExact.push(item);
+        }
+        // PRIORITY 4: Partial obec match
+        else if (obecNorm.includes(q) || q.includes(obecNorm)) {
+          obecPartial.push(item);
         }
       }
       
-      console.log('[Widget] Found exact:', exactMatches.length, 'partial:', partialMatches.length);
+      console.log('[Widget] Found - KU exact:', kuExact.length, 'KU partial:', kuPartial.length, 
+                  'Obec exact:', obecExact.length, 'Obec partial:', obecPartial.length);
       
-      // If we have exact matches, return only those
-      if (exactMatches.length > 0) {
-        return exactMatches;
-      }
-      
-      return partialMatches.slice(0, 10);
+      // Return in priority order, KU first!
+      if (kuExact.length > 0) return kuExact;
+      if (kuPartial.length > 0) return kuPartial.slice(0, 10);
+      if (obecExact.length > 0) return obecExact;
+      return obecPartial.slice(0, 10);
     },
     
+    // ==== FIXED: Simple location extraction - just get the longest capitalized word ====
     extractLocation(text) {
-      // Try to extract location from text using common patterns
       const normalized = U.norm(text);
       
-      // Remove common words to isolate location names
-      const commonWords = ['hledam', 'potrebuji', 'uzemni', 'plan', 'pro', 'v', 've', 'na', 'u', 'chci', 'vedet', 'o', 'pozemku', 'stavbe'];
-      let words = normalized.split(/\s+/).filter(w => w.length > 2 && !commonWords.includes(w));
+      // Remove obvious non-location words
+      const stopWords = ['hledam', 'potrebuji', 'uzemni', 'plan', 'pro', 'v', 've', 'na', 'u', 
+                        'chci', 'vedet', 'o', 'pozemku', 'stavbe', 'kde', 'najdu', 'mam', 
+                        'ma', 'stavet', 'koupit', 'prodat', 'jaky', 'jake'];
       
-      console.log('[Widget] Extracted words:', words);
+      const words = normalized.split(/\s+/)
+        .filter(w => w.length > 2 && !stopWords.includes(w));
       
-      // Try to match against database directly
-      const upData = S.data.up || window.PRICES?.up;
-      if (upData && upData.map) {
-        for (const word of words) {
-          for (const item of upData.map) {
-            const kuNorm = U.norm(item.ku || "");
-            const obecNorm = U.norm(item.obec || "");
-            
-            if (kuNorm === word || obecNorm === word || kuNorm.includes(word) || obecNorm.includes(word)) {
-              return [item.ku, item.obec];
-            }
-          }
-        }
-      }
+      console.log('[Widget] Extracted location candidates:', words);
       
-      return words;
+      // Return all candidates for searching
+      return words.length > 0 ? words : [];
     },
     
-    // NEW: Check if message mentions land/property context
     mentionsProperty(text) {
       const s = U.norm(text);
       const keywords = [
@@ -681,7 +675,7 @@
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
-  // ==== NEW: Proactive UP offer ====
+  // ==== Proactive UP offer ====
   function offerUPSearch() {
     const box = U.el("div", { class: "up-offer" }, [
       "💡 Tip: Pokud potřebujete územní plán pro konkrétní lokalitu, stačí mi napsat název obce nebo katastrálního území a já vám najdu odkaz."
@@ -730,26 +724,20 @@
     estimatePozemek(m,p){ return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; }
   };
 
-  // ==== Territorial Plan Detection & Display ====
+  // ==== FIXED: UP Detection - broader, simpler ====
   function needsUP(q) {
     const s = U.norm(q);
     console.log('[Widget] Checking UP need for:', q, '-> normalized:', s);
     
-    const keywords = [
-      'uzemni\\s*plan',
-      'katastr',
-      'pozemek',
-      'stavba',
-      'zastavitelnost',
-      'regulacni\\s*plan',
-      'vyuziti\\s*uzemi',
-      'parcela',
-      'stavebni\\s*pozemek'
-    ];
+    // FIXED: More aggressive detection - if it's just a location name, treat as UP query
+    const hasUPKeyword = /(uzemni|plan|katastr|pozemek|stavba|zastavitelnost|regulacni|vyuziti|uzemi|parcela)/i.test(s);
     
-    const pattern = new RegExp(keywords.join('|'), 'i');
-    const result = pattern.test(s);
-    console.log('[Widget] UP detection result:', result);
+    // If no UP keywords but looks like a simple location query (short, capitalized-looking)
+    const words = s.split(/\s+/).filter(w => w.length > 2);
+    const isSimpleLocation = words.length <= 3 && words.length > 0;
+    
+    const result = hasUPKeyword || isSimpleLocation;
+    console.log('[Widget] UP detection - hasKeyword:', hasUPKeyword, 'isSimple:', isSimpleLocation, 'result:', result);
     return result;
   }
   
@@ -772,15 +760,23 @@
       return;
     }
     
-    // Search for the first location with exact priority
-    const firstLocation = locations[0];
-    const results = U.searchUP(firstLocation, upData);
+    // FIXED: Try all extracted words, prefer longer ones first
+    let allResults = [];
+    const sortedLocations = locations.sort((a, b) => b.length - a.length);
     
-    console.log('[Widget] Search results for', firstLocation, ':', results.length);
+    for (const loc of sortedLocations) {
+      const results = U.searchUP(loc, upData);
+      if (results.length > 0) {
+        allResults = results;
+        break; // Use first successful search
+      }
+    }
     
-    if (results.length === 0) {
+    console.log('[Widget] Search results:', allResults.length);
+    
+    if (allResults.length === 0) {
       const box = U.el("div", { class: "up-no-result" }, [
-        `Pro "${firstLocation}" jsem bohužel nenašel územní plán v databázi. Zkuste prosím upřesnit název obce nebo katastrálního území, případně vás mohu spojit s odborníkem.`
+        `Pro "${locations[0]}" jsem bohužel nenašel územní plán v databázi. Zkuste prosím upřesnit název obce nebo katastrálního území, případně vás mohu spojit s odborníkem.`
       ]);
       addPanel(box);
       
@@ -793,8 +789,8 @@
       return;
     }
     
-    if (results.length === 1) {
-      const item = results[0];
+    if (allResults.length === 1) {
+      const item = allResults[0];
       const box = U.el("div", { class: "up-result" }, [
         U.el("h4", {}, [`Územní plán: ${item.obec}`]),
         U.el("p", {}, [`Katastrální území: ${item.ku}`]),
@@ -806,9 +802,9 @@
       addAI("Našel jsem územní plán pro vaši lokalitu:", box);
       
     } else {
-      addAI(`Našel jsem ${results.length} výsledků pro "${firstLocation}":`);
+      addAI(`Našel jsem ${allResults.length} výsledků:`);
       
-      results.slice(0, 5).forEach(item => {
+      allResults.slice(0, 5).forEach(item => {
         const box = U.el("div", { class: "up-result" }, [
           U.el("h4", {}, [`${item.obec}`]),
           U.el("p", {}, [`KÚ: ${item.ku}`]),
@@ -819,8 +815,8 @@
         addPanel(box);
       });
       
-      if (results.length > 5) {
-        addAI(`... a dalších ${results.length - 5} výsledků. Pro přesnější vyhledávání upřesněte prosím lokalitu.`);
+      if (allResults.length > 5) {
+        addAI(`... a dalších ${allResults.length - 5} výsledků. Pro přesnější vyhledávání upřesněte prosím katastrální území.`);
       }
     }
     
@@ -860,7 +856,6 @@
     try{chatTextarea.focus();}catch(e){}
     addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod.");
     
-    // NEW: Proactively offer UP search
     setTimeout(() => {
       offerUPSearch();
     }, 800);
@@ -1155,7 +1150,10 @@
     if (needPricing(q)) { startPricing(); return; }
     
     const url = (S.cfg && (S.cfg.proxy_url || S.cfg.chat_url)) || null;
-    if (!url) { addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod."); return; }
+    if (!url) { 
+      addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod."); 
+      return; 
+    }
 
     const wantContact = /(^|\b)(chci ?byt ?kontaktovan|kontaktuj(te)? me|zavolejte|napiste|nechte kontakt|ozve se|muzete me kontaktovat)/i.test(U.norm(q));
     if (wantContact) { stepContactVerify(); return; }
@@ -1222,7 +1220,7 @@
         txt = (txt && String(txt).trim()) || "Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS, územnímu plánu apod.";
         addAI(txt);
         
-        // NEW: After AI response, check if we should offer UP
+        // After AI response, check if we should offer UP
         if (U.mentionsProperty(q) && !needsUP(q) && !S.intent.upOffered) {
           setTimeout(() => {
             offerUPSearch();
@@ -1278,7 +1276,8 @@
 
   // input handlers
   chatSendBtn.addEventListener("click", () => { 
-    const q = chatTextarea.value.trim(); chatTextarea.value = ""; 
+    const q = chatTextarea.value.trim(); 
+    chatTextarea.value = ""; 
     ask(q); 
   });
   
