@@ -1,19 +1,13 @@
 {
   "data_urls": {
-    "byty": "./data/v1/prices_byty.v1.json",
-    "domy": "./data/v1/prices_domy.v1.json",
-    "pozemky": "./data/v1/prices_pozemky.v1.json",
+    "byty": "./data/v1/AI_byty_CZ.xlsx",
+    "domy": "./data/v1/AI_model_config_Domy_READY.xlsx",
+    "pozemky": "./data/v1/AI_model_config_Pozemky_READY.xlsx",
     "up": "./data/v1/up.v1.json"
   },
+  "data_format": "excel",
   "mapy_key": "EreCyrH41se5wkNErc5JEWX2eMLqnpja5BUVxsvpqzM",
   "lead_url": "https://script.google.com/macros/s/AKfycbyNLWmhYxwrUtxMDrE33bs8jUdiZNdJERL8CGgn8wB2cwttnPHXogXFtSEGh1q0EvE_sw/exec?path=/lead",
   "chat_url": "https://script.google.com/macros/s/AKfycbyNLWmhYxwrUtxMDrE33bs8jUdiZNdJERL8CGgn8wB2cwttnPHXogXFtSEGh1q0EvE_sw/exec?path=/chat",
-  "secret": "cogniterra_secret_2398751098",
-  "default_type": "pozemky",
-  "fallback_order": [
-    "obec",
-    "okres",
-    "kraj",
-    "cr"
-  ]
+  "secret": "cogniterra_secret_2398751098"
 }
