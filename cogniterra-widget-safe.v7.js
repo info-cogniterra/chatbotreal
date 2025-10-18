@@ -8,14 +8,14 @@
   window.addEventListener('resize', updateVH, {passive:true});
 })();
 
-// cogniterra-widget-safe.v7.js — COMPLETE VERSION WITH ALL FORM QUESTIONS
-// Build v7.0-FINAL — Byty/Domy/Pozemky s kompletními otázkami
+// cogniterra-widget-safe.v8.js — TWO SEPARATE PATHS FOR LEADS
+// Build v8.0 — Rozdělené cesty: /lead (nacenění) a /chatbot-lead (chat)
 // Date: 2025-01-18 | Author: info-cogniterra
 
 (function () {
   "use strict";
 
-  console.log('[Widget] Initialization started... (v7.0-FINAL)');
+  console.log('[Widget] Initialization started... (v8.0)');
 
   const host = document.querySelector("[data-cogniterra-widget]");
   if (!host) {
@@ -1621,7 +1621,7 @@
         display: "grid",
         gridTemplateColumns: "repeat(2, 1fr)",
         gap: "8px",
-                marginBottom: "16px"
+        marginBottom: "16px"
       }
     });
     
@@ -1910,7 +1910,7 @@
       message: "Žádost o odhad z chatbota",
       source: "chat_widget_pricing",
       timestamp: new Date().toISOString(),
-      path: "/lead",
+      path: "/lead",  // ← DO SHEETU "leads" (nacenění)
       pricing_params: JSON.stringify(S.tempPricing || {}),
     };
 
@@ -2027,6 +2027,9 @@
       return;
     }
 
+    // Získat poslední 3 zprávy z konverzace
+    const last3 = S.chat.messages.slice(-3);
+
     const payload = {
       secret: (S.cfg && S.cfg.secret) || "",
       branch: "chat",
@@ -2037,8 +2040,8 @@
       message: "Žádost o kontakt z chatbota",
       source: "chat_widget_contact",
       timestamp: new Date().toISOString(),
-      path: "/lead",
-      transcript: JSON.stringify(S.chat.messages.slice(-12))
+      path: "/chatbot-lead",  // ← ZMĚNĚNO NA /chatbot-lead (do sheetu "Chatbot leads")
+      last_messages: JSON.stringify(last3)  // ← POSLEDNÍ 3 ZPRÁVY
     };
 
     try {
@@ -2376,6 +2379,6 @@
     } 
   });
 
-  console.log('[Widget] Initialization complete (v7.0-FINAL)');
+  console.log('[Widget] Initialization complete (v8.0)');
 
 })();
