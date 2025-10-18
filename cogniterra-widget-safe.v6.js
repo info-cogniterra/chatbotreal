@@ -814,7 +814,7 @@
     return b;
   }
 
- // FIXED: Better parsing of Mapy.cz API response structure
+// COMPLETE REWRITE: Using Mapy.cz Geocoding API for real addresses
 function attachSuggest(inputEl, isPozemek) {
   if (!inputEl) {
     console.warn('[Widget] attachSuggest: no input element');
@@ -823,7 +823,7 @@ function attachSuggest(inputEl, isPozemek) {
   
   const key = (S.cfg && S.cfg.mapy_key) || "EreCyrH41se5wkNErc5JEWX2eMLqnpja5BUVxsvpqzM";
   
-  console.log('[Widget] Setting up Mapy.cz autocomplete, isPozemek:', isPozemek);
+  console.log('[Widget] Setting up Mapy.cz Geocoding autocomplete, isPozemek:', isPozemek);
   
   const suggestContainer = document.createElement('div');
   suggestContainer.className = 'mapy-suggest-container';
@@ -859,112 +859,74 @@ function attachSuggest(inputEl, isPozemek) {
     }
     
     try {
-      const url = `https://api.mapy.cz/v1/suggest?lang=cs&limit=15&query=${encodeURIComponent(query)}&apikey=${key}`;
+      // Use Geocoding API with proper type filter
+      const type = isPozemek ? 'regional.municipality' : 'regional.address';
+      const url = `https://api.mapy.cz/v1/geocode?lang=cs&limit=10&type=${type}&query=${encodeURIComponent(query)}&apikey=${key}`;
       
-      console.log('[Widget] Fetching for:', query);
+      console.log('[Widget] Fetching geocoding for:', query, 'type:', type);
       
       const response = await fetch(url);
       if (!response.ok) {
-        console.error('[Widget] API error:', response.status);
+        console.error('[Widget] Geocoding API error:', response.status);
         return;
       }
       
       const data = await response.json();
-      let items = data.items || [];
+      const items = data.items || [];
       
-      console.log('[Widget] Got', items.length, 'raw results');
-      console.log('[Widget] Sample item:', items[0]); // DEBUG
-      console.log('[Widget] Full API response:', data);
-      console.log('[Widget] First item detail:', items[0]);
+      console.log('[Widget] Geocoding returned', items.length, 'results');
+      if (items.length > 0) {
+        console.log('[Widget] First geocoding item:', items[0]);
+      }
+      
       const results = [];
       
       for (const item of items) {
-        // Get all possible fields
         const name = String(item.name || '').trim();
-        const label = String(item.label || '').trim();
-        const category = String(item.category || '').toLowerCase();
         const location = item.location || {};
         const municipality = String(location.municipality || location.municipalityPart || '').trim();
         const region = String(location.region || '').trim();
-        
-        // Skip transport stops
-        if (category.includes('tram') || category.includes('bus') || 
-            category.includes('stop') || category.includes('station') ||
-            label.toLowerCase().includes('zastávka') || 
-            name.toLowerCase().includes('zastávka')) {
-          continue;
-        }
         
         let displayText = '';
         
         if (isPozemek) {
           // For land: only municipality name
-          displayText = municipality || name || label;
+          displayText = municipality || name;
         } else {
-          // For apartments/houses: build "Street, City" format
-          
-          // Try to extract street from label if it contains comma
-          if (label.includes(',')) {
-            displayText = label;
-          } 
-          // If name looks like address (contains numbers or specific keywords)
-          else if (name && municipality) {
-            // Check if name is different from municipality (likely a street)
-            if (name.toLowerCase() !== municipality.toLowerCase()) {
-              displayText = `${name}, ${municipality}`;
+          // For apartments/houses: format as "Street, City"
+          if (name && municipality) {
+            // If name already contains municipality, use as is
+            if (name.includes(municipality)) {
+              displayText = name;
             } else {
-              displayText = municipality;
+              displayText = `${name}, ${municipality}`;
             }
-          }
-          // Fallback to label or name
-          else if (label) {
-            displayText = label;
           } else if (name) {
             displayText = name;
+          } else if (municipality) {
+            displayText = municipality;
           }
         }
         
-        // Only add if we have valid text and it's not too generic
-        if (displayText && 
-            displayText.toLowerCase() !== 'ulice' && 
-            displayText.toLowerCase() !== 'obec' &&
-            displayText.length > 2) {
+        // Only add valid, non-empty results
+        if (displayText && displayText.length > 2) {
           results.push(displayText);
         }
         
         if (results.length >= 10) break;
       }
       
-      // Fallback: if no results, try less strict filtering
-      if (results.length === 0) {
-        console.log('[Widget] No results with strict filter, trying fallback');
-        for (const item of items) {
-          const label = String(item.label || item.name || '').trim();
-          const category = String(item.category || '').toLowerCase();
-          
-          if (label && 
-              !category.includes('tram') && 
-              !category.includes('bus') && 
-              !category.includes('stop') &&
-              !label.toLowerCase().includes('zastávka') &&
-              label.toLowerCase() !== 'ulice' &&
-              label.toLowerCase() !== 'obec') {
-            results.push(label);
-            if (results.length >= 10) break;
-          }
-        }
-      }
-      
-      console.log('[Widget] Filtered to', results.length, 'relevant results:', results);
+      console.log('[Widget] Formatted results:', results);
       
       if (results.length > 0) {
         renderSuggestions(results);
       } else {
+        console.log('[Widget] No valid results found');
         suggestContainer.style.display = 'none';
       }
       
     } catch (e) {
-      console.error('[Widget] Fetch error:', e);
+      console.error('[Widget] Geocoding fetch error:', e);
       suggestContainer.style.display = 'none';
     }
   }
@@ -1011,7 +973,7 @@ function attachSuggest(inputEl, isPozemek) {
     });
     
     suggestContainer.style.display = 'block';
-    console.log('[Widget] Rendered', unique.length, 'suggestions');
+    console.log('[Widget] Rendered', unique.length, 'geocoding suggestions');
   }
   
   inputEl.addEventListener('input', (e) => {
@@ -1019,7 +981,7 @@ function attachSuggest(inputEl, isPozemek) {
     const value = (e.target.value || '').trim();
     debounceTimer = setTimeout(() => {
       fetchSuggestions(value);
-    }, 300);
+    }, 400); // Slightly longer delay for geocoding
   });
   
   inputEl.addEventListener('focus', () => {
@@ -1045,9 +1007,8 @@ function attachSuggest(inputEl, isPozemek) {
   
   window.addEventListener('resize', updatePosition, { passive: true });
   
-  console.log('[Widget] ✅ Autocomplete ready');
+  console.log('[Widget] ✅ Mapy.cz Geocoding autocomplete ready');
 }
-
   window.CG_Estimator = window.CG_Estimator || {
     estimateByt(m, p)   { return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; },
     estimateDum(m, p)   { return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; },
