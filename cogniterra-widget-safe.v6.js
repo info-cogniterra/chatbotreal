@@ -9,7 +9,7 @@
 })();
 
 // cogniterra-widget-safe.v6.js — BUBBLE-ONLY, SINGLE INSTANCE - VERZE S UP DETEKCÍ
-// Build v6.bubble.9 — Fixed UP detection - only explicit requests
+// Build v6.bubble.10 — Fixed contact form offer detection
 
 (function () {
   "use strict";
@@ -663,13 +663,18 @@
     } catch (e) {}
     try {
       const tt = String(t).toLowerCase();
-      const offer1 = /(mohu|můžu|rád|ráda)\s+(vám\s+)?(ote[vw]ř[ií]t|zobrazit|spustit)\s+(kontaktn[íi]\s+formul[aá][řr])/i.test(tt);
-      const offer2 = /chcete\s+(ote[vw]ř[ií]t|zobrazit|spustit)\s+(formul[aá][řr])/i.test(tt);
-      // NEW: Detect UP offer
+      
+      // FIXED: Broader contact form offer detection
+      const offerContact = /(mohu|můžu|mám|rád|ráda)\s+(také\s+)?(vám\s+)?(ote[vw]ř[ií]t|zobrazit|spustit|poslat|zaslat)\s+(kontaktn[íi]\s+formul[aá][řr]|formul[aá][řr])/i.test(tt) ||
+                           /chcete\s+(ote[vw]ř[ií]t|zobrazit|spustit)\s+(kontaktn[íi]\s+)?formul[aá][řr]/i.test(tt) ||
+                           /zadat\s+sv[eé]\s+(jm[eé]no|kontakt|[uú]daje)/i.test(tt) ||
+                           /(?:abyste|aby|abych)\s+(?:mohl[ai]?)?\s*zadat\s+sv[eé]/i.test(tt);
+      
+      // Detect UP offer
       const offerUP = /(chcete|potrebujete|mam\s+poslat|poslat\s+vam|najit\s+vam).*?(uzemni\s*plan|up)/i.test(tt);
       
-      if (offer1 || offer2) { 
-        console.log('[Widget] AI offered contact form');
+      if (offerContact) { 
+        console.log('[Widget] AI offered contact form:', tt);
         S.intent.contactOffer = true; 
       }
       if (offerUP) {
@@ -694,9 +699,6 @@
     chatMessages.appendChild(w);
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
-
-  // ==== Proactive UP offer - REMOVED from automatic display ====
-  // UP will only be shown on explicit request or after AI offers it
 
   // ==== Mapy.cz Suggest ====
   let MAPY_PROMISE = null;
@@ -739,17 +741,17 @@
     estimatePozemek(m,p){ return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; }
   };
 
-  // ==== COMPLETELY REWRITTEN: Only explicit UP requests ====
+  // ==== Only explicit UP requests ====
   function needsUP(q) {
     const s = U.norm(q);
     console.log('[Widget] Checking UP need for:', q, '-> normalized:', s);
     
     // EXPLICIT UP request patterns
     const explicitUP = [
-      /uzemni\s*plan(?:\s+pro|\s+v|\s+ve|\s+na|\s+)?\s*[a-z]/i,  // "územní plán pro X", "územní plán Brno"
-      /(?:chci|potrebuji|poslat|zaslat|najit|hledam)\s+(?:mi\s+)?uzemni\s*plan/i,  // "chci územní plán", "pošli mi UP"
-      /(?:uzemni\s*plan|up)(?:\s+pro|\s+v|\s+ve)?\s+[a-z]/i,  // "UP pro Brno", "UP Brno"
-      /(?:mam|mate|muzes|muzete)\s+(?:mi\s+)?(?:poslat|zaslat|najit)\s+(?:uzemni\s*plan|up)/i  // "můžete mi poslat UP"
+      /uzemni\s*plan(?:\s+pro|\s+v|\s+ve|\s+na|\s+)?\s*[a-z]/i,
+      /(?:chci|potrebuji|poslat|zaslat|najit|hledam)\s+(?:mi\s+)?uzemni\s*plan/i,
+      /(?:uzemni\s*plan|up)(?:\s+pro|\s+v|\s+ve)?\s+[a-z]/i,
+      /(?:mam|mate|muzes|muzete)\s+(?:mi\s+)?(?:poslat|zaslat|najit)\s+(?:uzemni\s*plan|up)/i
     ];
     
     const isExplicitUP = explicitUP.some(pattern => pattern.test(s));
@@ -875,7 +877,6 @@
     chatInputArea.style.display='flex'; 
     try{chatTextarea.focus();}catch(e){}
     addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS apod.");
-    // REMOVED: Automatic UP offer
   }
 
   function startPricing() {
@@ -1144,14 +1145,19 @@
     try {
       if (S.intent.contactOffer) {
         console.log('[Widget] Contact offer active, checking response');
-        const yesRe = /^(ano|jo|ok|okej|jasne|prosim|dobre|spustit|otevrit|zobraz(it)?|muzete|urcite)(\b|!|\.)/i;
-        const noRe  = /^(ne|radeji\s+ne|pozdeji|ted\s+ne|neni)(\b|!|\.)/i;
-        if (yesRe.test(q.trim())) {
+        const yesRe = /^(ano|jo|ok|okej|jasne|prosim|dobre|spustit|otevrit|zobraz(it)?|muzete|urcite)(\b|!|\.)?$/i;
+        const noRe  = /^(ne|radeji\s+ne|pozdeji|ted\s+ne|neni)(\b|!|\.)?$/i;
+        
+        const trimmed = q.trim();
+        console.log('[Widget] Checking answer:', trimmed, 'against yes pattern');
+        
+        if (yesRe.test(trimmed)) {
+          console.log('[Widget] YES detected - opening contact form');
           addME(q);
           stepContactVerify();
           S.intent.contactOffer = false;
           return;
-        } else if (noRe.test(q.trim())) {
+        } else if (noRe.test(trimmed)) {
           S.intent.contactOffer = false;
           addME(q);
           addAI("Dobře, pokud budete potřebovat později, dejte mi vědět!");
@@ -1159,17 +1165,18 @@
         }
         S.intent.contactOffer = false;
       }
-    } catch(_) {}
+    } catch(e) {
+      console.error('[Widget] Contact offer check error:', e);
+    }
 
     // PRIORITY 2: Check UP offer intent (after AI suggested it)
     try {
       if (S.intent.upOffer) {
         console.log('[Widget] UP offer active, checking response');
-        const yesRe = /^(ano|jo|ok|okej|jasne|prosim|dobre|poslat|zaslat)(\b|!|\.)/i;
-        const noRe  = /^(ne|radeji\s+ne|pozdeji|ted\s+ne|neni)(\b|!|\.)/i;
+        const yesRe = /^(ano|jo|ok|okej|jasne|prosim|dobre|poslat|zaslat)(\b|!|\.)?$/i;
+        const noRe  = /^(ne|radeji\s+ne|pozdeji|ted\s+ne|neni)(\b|!|\.)?$/i;
         if (yesRe.test(q.trim())) {
           addME(q);
-          // Ask for location
           addAI("Pro jakou lokalitu (obec nebo katastrální území) potřebujete územní plán?");
           S.intent.upOffer = false;
           S.intent.waitingForLocation = true;
@@ -1189,7 +1196,7 @@
       if (S.intent.waitingForLocation) {
         addME(q);
         S.intent.waitingForLocation = false;
-        handleUPQuery("územní plán " + q);  // Prepend to trigger UP search
+        handleUPQuery("územní plán " + q);
         return;
       }
     } catch(_) {}
@@ -1301,46 +1308,3 @@
           d.byty ? U.fetchJson(d.byty) : null,
           d.domy ? U.fetchJson(d.domy) : null,
           d.pozemky ? U.fetchJson(d.pozemky) : null,
-          d.up ? U.fetchJson(d.up) : null
-        ]);
-        window.PRICES = { byty, domy, pozemky, up };
-        S.data.up = up;
-        console.log('[Widget] UP data loaded:', up ? `${up.map?.length || 0} entries` : 'FAILED');
-      }
-    } catch (e) {
-      console.error('[Widget] Config/data loading error:', e);
-      addAI("Chyba načítání konfigurace/dat: " + String(e));
-    }
-  })();
-
-  // ==== Init ====
-  function cgSafeStart() {
-    try {
-      if (!chatMessages) return setTimeout(cgSafeStart, 40);
-      console.log('[Widget] Rendering start screen...');
-      renderStart();
-    } catch (e) {
-      console.error('[Widget] Start error:', e);
-      setTimeout(cgSafeStart, 40);
-    }
-  }
-
-  cgSafeStart();
-
-  // input handlers
-  chatSendBtn.addEventListener("click", () => { 
-    const q = chatTextarea.value.trim(); 
-    chatTextarea.value = ""; 
-    ask(q); 
-  });
-  
-  chatTextarea.addEventListener("keydown", (e) => { 
-    if (e.key === "Enter" && !e.shiftKey) { 
-      e.preventDefault(); 
-      chatSendBtn.click(); 
-    } 
-  });
-
-  console.log('[Widget] Initialization complete');
-
-})();
