@@ -3,18 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Cogniterra Chatbot (demo v6)</title>
-  <link rel="stylesheet" href="styles.css"></head>
+  <title>Cogniterra Chatbot (v7 - kompletní oprava)</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
 <body>
-  <h1>Cogniterra Chatbot (demo v6)</h1>
-  <p>Klikni na kulaté tlačítko vpravo dole — otevře se skleněný widget s chatem.</p>
+  <h1>Cogniterra Chatbot (v7)</h1>
+  <p>Klikni na kulaté tlačítko vpravo dole — otevře se widget s kompletními formuláři.</p>
+
+  <!-- Načíst estimátor PŘED widgetem -->
+  <script src="./estimator.v2.js"></script>
 
   <script src="./embed.js"
           data-config="./data/v1/widget_config.json"
-          data-widget="./cogniterra-widget-safe.v6.js"
+          data-widget="./cogniterra-widget-safe.v7.js"
           data-styles="./styles.css"></script>
 
-  <div class="chat-bubble" data-chatbot="bubble" aria-label="Chat">
-    💬
-  </div></body>
+  <div class="chat-bubble" data-chatbot="bubble" aria-label="Chat">💬</div>
+</body>
 </html>
