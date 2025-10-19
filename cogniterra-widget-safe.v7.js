@@ -75,16 +75,17 @@
     }
     if (!url) {
       if (window.PRICES && window.PRICES[norm]) {
-        DATA_CACHE[norm] = window.PRICES[norm];
+        DATA_CACHE[norm] = window.PRICES[norm]; try { if (norm === 'up') { S.data = S.data || {}; S.data.up = DATA_CACHE[norm]; } } catch(e){}
         return DATA_CACHE[norm];
       }
       return null;
     }
-    const p = fetch(url, {credentials:'omit'}).then(r => r.json()).then(j => (DATA_CACHE[norm]=j));
+    const p = fetch(url, {credentials:'omit'}).then(r => r.json()).then(j => (window.PRICES[norm] = DATA_CACHE[norm] = j));
     DATA_CACHE._loading[norm] = p;
     try { const res = await p; delete DATA_CACHE._loading[norm]; return res; }
     catch(e){ delete DATA_CACHE._loading[norm]; console.warn('[Widget] Lazy load failed for', norm, e); return null; }
   }
+window.PRICES = window.PRICES || {};
 const U = {
     el(tag, props, kids) {
       const n = document.createElement(tag);
