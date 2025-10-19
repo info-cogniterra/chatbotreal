@@ -1308,7 +1308,7 @@ const U = {
     const isPozemek = (typ === "Pozemek");
     // Lazy-load data for selected type
     try {
-      if (isPozemek) { loadData('pozemek'); loadData('up'); }
+      if (isPozemek) { loadData('pozemek'); }
       else if (typ === "Byt") { loadData('byt'); }
       else if (typ === "Dům") { loadData('dum'); }
     } catch(e) { console.warn('[Widget] lazy load skip', e); }
@@ -2218,6 +2218,7 @@ if (!name.trim() || !U.emailOk(email) || !U.phoneOk(phone) || !consent) {
     }
     
     if (needsUP(q)) {
+      try { if (!S.data.up && !(window.PRICES && window.PRICES.up)) { await loadData('up'); } } catch(e){}
       handleUPQuery(q);
       return;
     }
@@ -2320,67 +2321,9 @@ if (!name.trim() || !U.emailOk(email) || !U.phoneOk(phone) || !consent) {
         const isExcel = (d.byty && d.byty.endsWith('.xlsx')) || S.cfg.data_format === 'excel';
         
         if (isExcel) {
-          // Načíst XLSX.js pokud ještě není
-          if (typeof XLSX === 'undefined') {
-            console.log('[Widget] Loading XLSX.js...');
-            await new Promise((resolve, reject) => {
-              const script = document.createElement('script');
-              script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
-              script.onload = resolve;
-              script.onerror = reject;
-              document.head.appendChild(script);
-            });
-          }
-          
-          console.log('[Widget] Loading Excel files...');
-          
-          // Načíst Excel soubory
-          const loadExcel = async (url, preferSheet) => {
-            try {
-              const resp = await fetch(url + '?v=' + Date.now());
-              if (!resp.ok) throw new Error('Failed to load');
-              const ab = await resp.arrayBuffer();
-              const wb = XLSX.read(ab, { type: 'array' });
-              const sheetName = wb.SheetNames.find(n => 
-                n.toLowerCase().includes(preferSheet)
-              ) || wb.SheetNames[0];
-              return XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: null, raw: true });
-            } catch (e) {
-              console.error('[Widget] Failed to load Excel:', url, e);
-              return [];
-            }
-          };
-          
-          const [byty, domy, pozemky, up] = await Promise.all([
-            d.byty ? loadExcel(d.byty, 'ai_byty') : [],
-            d.domy ? loadExcel(d.domy, 'ai_domy') : [],
-            d.pozemky ? loadExcel(d.pozemky, 'ai_pozemky') : [],
-            d.up ? U.fetchJson(d.up) : null
-          ]);
-          
-          window.PRICES = { byty, domy, pozemky, up };
-          S.data.up = up;
-          
-          console.log('[Widget] Excel data loaded:', {
-            byty: byty?.length || 0,
-            domy: domy?.length || 0,
-            pozemky: pozemky?.length || 0,
-            up: up?.map?.length || 0
-          });
-          
+          console.log('[Widget] Data loading deferred (Excel, lazy)');
         } else {
-          // JSON formát (původní)
-          const [byty, domy, pozemky, up] = await Promise.all([
-            d.byty ? U.fetchJson(d.byty) : null,
-            d.domy ? U.fetchJson(d.domy) : null,
-            d.pozemky ? U.fetchJson(d.pozemky) : null,
-            d.up ? U.fetchJson(d.up) : null
-          ]);
-          
-          window.PRICES = { byty, domy, pozemky, up };
-          S.data.up = up;
-          
-          console.log('[Widget] JSON data loaded');
+          console.log('[Widget] Data loading deferred (JSON, lazy)');
         }
         
       }
