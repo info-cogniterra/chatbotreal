@@ -1944,7 +1944,7 @@ const U = {
     addAI("Kontaktní ověření", box);
   }
 
-  async async function saveLeadPricing(consentId) {
+  async function saveLeadPricing(consentId) {
     const btn = shadow.querySelector(".leadbox .cg-btn");
     if (btn) { btn.disabled = true; btn.textContent = "Odesílám…"; }
 
