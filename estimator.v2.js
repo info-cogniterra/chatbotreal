@@ -1,5 +1,5 @@
-// estimator.v3.js - Smart Fallback System with Quality Gating
-// v3.2 - Intelligent cascade with minimum sample requirements
+// estimator.v3.js - FIXED: Roman numerals removal + better normalization
+// v3.1 - Removes roman numerals from city names (Pardubice I → Pardubice)
 (function(global){
   
   // Helper functions
@@ -21,6 +21,7 @@
     return s;
   };
   
+  // ✨ NOVÁ FUNKCE: Odstranit diakritiku pro porovnávání
   const removeDiacritics = s => {
     if (!s) return s;
     return String(s)
@@ -43,42 +44,51 @@
       return 'Praha';
     }
     
+    // Normalize všechny typy pomlček
     s = s.replace(/\s*[-–—]\s*/g, '-');
     
+    // Odstranit části za pomlčkou (Pardubice I-Zelené Předměstí → Pardubice I)
     if (s.includes('-')) {
       const parts = s.split('-');
+      // Pokud první část není POUZE římské číslice
       if (!/^[IVX]+$/i.test(parts[0].trim())) {
         s = parts[0].trim();
       }
     }
     
+    // Odstranit závorky: Brno (střed) → Brno
     s = s.replace(/\s*\([^)]+\)/g, '').trim();
+    
+    // ✨ KLÍČOVÁ OPRAVA: Odstranit římské číslice na konci
+    // Pardubice I → Pardubice
+    // Brno II → Brno
+    // ALE: Praha 10 → Praha 10 (zůstane, protože má číslo)
     s = s.replace(/\s+[IVX]+$/i, '').trim();
+    
+    // Odstranit tečky za římskými číslicemi (kdyby zbyly)
     s = s.replace(/\s+[IVX]+\.\s*$/i, '').trim();
     
+    console.log('[Estimator] extractMainMunicipality result:', s);
     return s;
   };
   
+  // ✨ VYLEPŠENÉ: Porovnání měst s normalizací diakritiky
   const eqObec = (a, b) => {
     const normA = removeDiacritics(extractMainMunicipality(normalizePraha(a)) || '');
     const normB = removeDiacritics(extractMainMunicipality(normalizePraha(b)) || '');
     
+    console.log('[Estimator] Comparing:', {a, b, normA, normB, match: normA === normB});
+    
     // Exact match
     if (normA === normB) return true;
     
-    // Praha district matching - STRICT
+    // Praha district matching
     if (/praha/i.test(normA) && /praha/i.test(normB)) {
       const numA = (normA.match(/\d+/) || [])[0];
       const numB = (normB.match(/\d+/) || [])[0];
       
-      // Pokud jen jeden má číslo → FALSE (Praha ≠ Praha 10)
-      if ((numA && !numB) || (!numA && numB)) return false;
-      
-      // Oba mají číslo → musí být stejné
       if (numA && numB) return numA === numB;
-      
-      // Oba jsou jen "Praha" → TRUE
-      return true;
+      return true; // Oba jsou Praha bez čísla
     }
     
     return false;
@@ -110,12 +120,24 @@
       const rawObec = parts[parts.length - 1];
       const mainObec = extractMainMunicipality(normalizePraha(rawObec));
       
+      console.log('[Estimator] Parsed location with street:', {
+        raw: locationStr,
+        ulice: parts[0],
+        rawObec,
+        mainObec
+      });
+      
       return {
         ulice: parts[0],
         obec: mainObec
       };
     } else {
       const mainObec = extractMainMunicipality(normalizePraha(parts[0]));
+      
+      console.log('[Estimator] Parsed location (no street):', {
+        raw: locationStr,
+        mainObec
+      });
       
       return {
         ulice: null,
@@ -124,6 +146,7 @@
     }
   };
   
+  // Helper: Find okres and kraj for target obec
   const findGeoContext = (rows, targetObec) => {
     const record = rows.find(r => eqObec(r.obec, targetObec));
     
@@ -144,29 +167,7 @@
     return { okres: null, kraj: null };
   };
   
-  // ✨ NOVÁ FUNKCE: Disposition coefficient pro mix dat
-  const getDispoCoef = (rooms) => {
-    const coefs = {
-      '1': 0.75,  // 1+kk/1+1
-      '2': 0.90,  // 2+kk/2+1
-      '3': 1.00,  // 3+kk/3+1 (baseline)
-      '4': 1.10,  // 4+kk/4+1
-      '5': 1.20,  // 5+kk/5+1
-      '6': 1.25   // 6+kk/6+1
-    };
-    return coefs[rooms] || 1.0;
-  };
-  
-  // ✨ NOVÁ FUNKCE: Confidence scoring
-  const getConfidence = (level, n) => {
-    if (level <= 2 && n >= 10) return { label: 'velmi vysoká', stars: '⭐⭐⭐⭐⭐', score: 5 };
-    if (level <= 3 && n >= 20) return { label: 'vysoká', stars: '⭐⭐⭐⭐', score: 4 };
-    if (level <= 6 && n >= 30) return { label: 'střední', stars: '⭐⭐⭐', score: 3 };
-    if (level <= 8 && n >= 50) return { label: 'nízká', stars: '⭐⭐', score: 2 };
-    return { label: 'velmi nízká', stars: '⭐', score: 1 };
-  };
-  
-  // BYTY estimation with SMART FALLBACK
+  // BYTY estimation
   function estimateByt(rows, params) {
     if (!rows || !rows.length) {
       return { ok: false, reason: "Data nejsou k dispozici." };
@@ -181,159 +182,63 @@
       return { ok: false, reason: "Nepodařilo se rozpoznat obec z adresy." };
     }
     
-    console.log('[Estimator] 🏢 Byt - hledám obec:', targetObec, 'dispozice:', dispozice);
+    console.log('[Estimator] Byt - hledám obec:', targetObec);
     
     const geo = findGeoContext(rows, targetObec);
     
     const d = (dispozice || '').toLowerCase().trim();
     const rooms = dispoRooms(dispozice);
     
-    // ✨ SMART FALLBACK CASCADE
     const cascades = [
-      // === TIER 1: HYPERLOCAL ===
-      { 
-        level: 1,
-        label: `obec "${targetObec}" + dispozice "${dispozice}"`,
-        filter: r => eqObec(r.obec, targetObec) && (r.dispozice || '').toLowerCase() === d,
-        minSamples: 3,
-        adjustForDispo: false
-      },
+      { label: `obec "${targetObec}" + dispozice "${dispozice}"`, 
+        filter: r => eqObec(r.obec, targetObec) && (r.dispozice || '').toLowerCase() === d },
       
-      { 
-        level: 2,
-        label: `obec "${targetObec}" + ${rooms} pokoje`,
-        filter: r => eqObec(r.obec, targetObec) && dispoRooms(r.dispozice) === rooms,
-        minSamples: 5,
-        adjustForDispo: false
-      },
+      { label: `obec "${targetObec}" + ${rooms} pokoje`, 
+        filter: r => eqObec(r.obec, targetObec) && dispoRooms(r.dispozice) === rooms },
       
-      // === TIER 2: LOCAL (wider) ===
-      { 
-        level: 3,
-        label: `obec "${targetObec}" + všechny byty`,
-        filter: r => eqObec(r.obec, targetObec),
-        minSamples: 10,
-        adjustForDispo: true  // ✅ Aplikovat korekci
-      },
+      { label: `okres "${geo.okres}" + dispozice "${dispozice}"`,
+        filter: r => geo.okres && eqOkres(r.okres, geo.okres) && (r.dispozice || '').toLowerCase() === d },
       
-      // === TIER 3: REGIONAL (okres) ===
-      { 
-        level: 4,
-        label: `okres "${geo.okres}" + dispozice "${dispozice}"`,
-        filter: r => geo.okres && eqOkres(r.okres, geo.okres) && 
-                     (r.dispozice || '').toLowerCase() === d,
-        minSamples: 10,
-        adjustForDispo: false
-      },
+      { label: `okres "${geo.okres}" + ${rooms} pokoje`,
+        filter: r => geo.okres && eqOkres(r.okres, geo.okres) && dispoRooms(r.dispozice) === rooms },
       
-      { 
-        level: 5,
-        label: `okres "${geo.okres}" + ${rooms} pokoje`,
-        filter: r => geo.okres && eqOkres(r.okres, geo.okres) && 
-                     dispoRooms(r.dispozice) === rooms,
-        minSamples: 20,
-        adjustForDispo: false
-      },
+      { label: `kraj "${geo.kraj}" + dispozice "${dispozice}"`,
+        filter: r => geo.kraj && eqKraj(r.kraj, geo.kraj) && (r.dispozice || '').toLowerCase() === d },
       
-      { 
-        level: 6,
-        label: `okres "${geo.okres}" + všechny byty`,
-        filter: r => geo.okres && eqOkres(r.okres, geo.okres),
-        minSamples: 30,
-        adjustForDispo: true
-      },
+      { label: `kraj "${geo.kraj}" + ${rooms} pokoje`,
+        filter: r => geo.kraj && eqKraj(r.kraj, geo.kraj) && dispoRooms(r.dispozice) === rooms },
       
-      // === TIER 4: MACRO (kraj) ===
-      { 
-        level: 7,
-        label: `kraj "${geo.kraj}" + dispozice "${dispozice}"`,
-        filter: r => geo.kraj && eqKraj(r.kraj, geo.kraj) && 
-                     (r.dispozice || '').toLowerCase() === d,
-        minSamples: 30,
-        adjustForDispo: false
-      },
+      { label: `ČR + dispozice "${dispozice}"`, 
+        filter: r => (r.dispozice || '').toLowerCase() === d },
       
-      { 
-        level: 8,
-        label: `kraj "${geo.kraj}" + ${rooms} pokoje`,
-        filter: r => geo.kraj && eqKraj(r.kraj, geo.kraj) && 
-                     dispoRooms(r.dispozice) === rooms,
-        minSamples: 50,
-        adjustForDispo: false
-      },
+      { label: `ČR + ${rooms} pokoje`, 
+        filter: r => dispoRooms(r.dispozice) === rooms },
       
-      // === TIER 5: NATIONAL ===
-      { 
-        level: 9,
-        label: `ČR + dispozice "${dispozice}"`,
-        filter: r => (r.dispozice || '').toLowerCase() === d,
-        minSamples: 100,
-        adjustForDispo: false
-      },
-      
-      { 
-        level: 10,
-        label: `ČR + ${rooms} pokoje`,
-        filter: r => dispoRooms(r.dispozice) === rooms,
-        minSamples: 200,
-        adjustForDispo: false
-      },
-      
-      // === EMERGENCY ===
-      { 
-        level: 11,
-        label: `ČR - všechny byty (emergency)`,
-        filter: r => true,
-        minSamples: 1,
-        adjustForDispo: true
-      }
+      { label: "ČR – všechny byty", 
+        filter: r => true }
     ];
     
     let medianPrice = null;
     let usedLevel = null;
     let count = 0;
-    let skipped = [];
     
-    // ✨ SMART SELECTION with quality gating
     for (const cascade of cascades) {
       const filtered = rows.filter(cascade.filter);
       const prices = filtered.map(r => Number(r.cena_m2)).filter(p => isFinite(p));
       
-      if (prices.length < cascade.minSamples) {
-        skipped.push({ level: cascade.level, label: cascade.label, n: prices.length, required: cascade.minSamples });
-        console.log(`[Estimator] ⏭️  Skip level ${cascade.level}: ${cascade.label} - nedostatek vzorků (${prices.length} < ${cascade.minSamples})`);
-        continue;
+      if (prices.length > 0) {
+        medianPrice = median(prices);
+        usedLevel = cascade.label;
+        count = prices.length;
+        console.log(`[Estimator] ✅ Použit fallback: ${cascade.label}, n=${count}, medián=${Math.round(medianPrice)} Kč/m²`);
+        break;
       }
-      
-      medianPrice = median(prices);
-      count = prices.length;
-      
-      // ✨ Apply disposition adjustment if needed
-      if (cascade.adjustForDispo) {
-        const kD = getDispoCoef(rooms);
-        console.log(`[Estimator] 🔧 Korekce dispozice: ${rooms} pokoje → koef ${kD}`);
-        medianPrice = medianPrice * kD;
-      }
-      
-      usedLevel = { ...cascade, n: count };
-      
-      const conf = getConfidence(cascade.level, count);
-      console.log(`[Estimator] ✅ Použit level ${cascade.level}: ${cascade.label}`);
-      console.log(`[Estimator] 📊 Vzorek: n=${count}, medián=${Math.round(medianPrice)} Kč/m²`);
-      console.log(`[Estimator] ${conf.stars} Spolehlivost: ${conf.label} (${count} vzorků)`);
-      
-      if (skipped.length > 0) {
-        console.log(`[Estimator] ℹ️  Přeskočeno ${skipped.length} úrovní:`, skipped);
-      }
-      
-      break;
     }
     
     if (!medianPrice || !isFinite(medianPrice)) {
       return { ok: false, reason: "Nenašel jsem vhodný vzorek dat." };
     }
     
-    // Apply state/ownership coefficients
     const koefStav = {
       "Novostavba": 1.30,
       "Po rekonstrukci": 1.15,
@@ -352,9 +257,7 @@
     const pricePerM2 = medianPrice * kS * kV;
     const totalPrice = pricePerM2 * parseFloat(vymera || 0);
     
-    const conf = getConfidence(usedLevel.level, count);
-    
-    console.log('[Estimator] 💰 Finální výpočet:', {
+    console.log('[Estimator] Výpočet bytu:', {
       medianPrice: Math.round(medianPrice),
       kS,
       kV,
@@ -370,13 +273,12 @@
       high: Math.round(totalPrice * 1.12),
       per_m2: Math.round(pricePerM2),
       n: count,
-      confidence: conf.label,
-      confidenceScore: conf.score,
-      note: `${conf.stars} ${usedLevel.label} (n=${count})${usedLevel.adjustForDispo ? ' + korekce dispozice' : ''}`
+      confidence: count >= 20 ? "vysoká" : (count >= 5 ? "střední" : "nízká"),
+      note: `Vzorek: ${usedLevel} (n=${count})`
     };
   }
   
-  // DOMY estimation (zkrácená verze - stejný princip)
+  // DOMY estimation
   function estimateDum(rows, params) {
     if (!rows || !rows.length) {
       return { ok: false, reason: "Data nejsou k dispozici." };
@@ -391,7 +293,7 @@
       return { ok: false, reason: "Nepodařilo se rozpoznat obec z adresy." };
     }
     
-    console.log('[Estimator] 🏠 Dům - hledám obec:', targetObec, 'typ:', typ_stavby);
+    console.log('[Estimator] Dům - hledám obec:', targetObec, 'typ:', typ_stavby);
     
     const geo = findGeoContext(rows, targetObec);
     const typNorm = (typ_stavby || '').toLowerCase();
@@ -400,37 +302,150 @@
       { label: `obec "${targetObec}" + typ "${typ_stavby}"`,
         filter: r => eqObec(r.obec, targetObec) && 
                      (r.typ_stavby || '').toLowerCase() === typNorm,
-        minSamples: 3 },
+        useTypCoef: false },
       
       { label: `okres "${geo.okres}" + typ "${typ_stavby}"`,
         filter: r => geo.okres && eqOkres(r.okres, geo.okres) &&
                      (r.typ_stavby || '').toLowerCase() === typNorm,
-        minSamples: 10 },
+        useTypCoef: false },
       
       { label: `kraj "${geo.kraj}" + typ "${typ_stavby}"`,
         filter: r => geo.kraj && eqKraj(r.kraj, geo.kraj) &&
                      (r.typ_stavby || '').toLowerCase() === typNorm,
-        minSamples: 20 },
+        useTypCoef: false },
       
       { label: `ČR + typ "${typ_stavby}"`,
         filter: r => (r.typ_stavby || '').toLowerCase() === typNorm,
-        minSamples: 50 },
+        useTypCoef: false },
       
-      { label: `obec "${targetObec}" (všechny typy)`,
+      { label: `obec "${targetObec}" (mix typů)`,
         filter: r => eqObec(r.obec, targetObec),
-        minSamples: 10 },
+        useTypCoef: true },
       
-      { label: `okres "${geo.okres}" (všechny typy)`,
+      { label: `okres "${geo.okres}" (mix typů)`,
         filter: r => geo.okres && eqOkres(r.okres, geo.okres),
-        minSamples: 30 },
+        useTypCoef: true },
       
-      { label: `kraj "${geo.kraj}" (všechny typy)`,
+      { label: `kraj "${geo.kraj}" (mix typů)`,
         filter: r => geo.kraj && eqKraj(r.kraj, geo.kraj),
-        minSamples: 50 },
+        useTypCoef: true },
       
       { label: "ČR – všechny domy",
         filter: r => true,
-        minSamples: 1 }
+        useTypCoef: true }
+    ];
+    
+    let medianPrice = null;
+    let usedLevel = null;
+    let count = 0;
+    let useTypCoef = false;
+    
+    for (const cascade of cascades) {
+      const filtered = rows.filter(cascade.filter);
+      const prices = filtered.map(r => Number(r.cena_m2)).filter(p => isFinite(p));
+      
+      if (prices.length > 0) {
+        medianPrice = median(prices);
+        usedLevel = cascade.label;
+        count = prices.length;
+        useTypCoef = cascade.useTypCoef;
+        console.log(`[Estimator] ✅ Použit fallback: ${cascade.label}, n=${count}, medián=${Math.round(medianPrice)} Kč/m², useTypCoef=${useTypCoef}`);
+        break;
+      }
+    }
+    
+    if (!medianPrice || !isFinite(medianPrice)) {
+      return { ok: false, reason: "Nenašel jsem vhodný vzorek dat." };
+    }
+    
+    let kK = 1.0;
+    if (useTypCoef) {
+      if (typNorm.includes('dřev')) kK = 0.90;
+      else if (typNorm.includes('smíšen')) kK = 0.95;
+      else if (typNorm && !typNorm.includes('cihl')) kK = 0.85;
+      console.log('[Estimator] ⚠️ Aplikuji koeficient typu stavby:', kK, '(nemáme přesná data pro typ)');
+    } else {
+      console.log('[Estimator] ✅ Máme přesná data pro typ stavby, koeficient typu nepoužit');
+    }
+    
+    const z = (zatepleni || '').toLowerCase();
+    const o = (nova_okna || '').toLowerCase();
+    const kS = (z === 'ano' && o === 'ano') ? 1.30 : 
+               ((z === 'ano' || o === 'ano') ? 1.15 : 1.00);
+    
+    const pricePerM2 = medianPrice * kK * kS;
+    const totalPrice = pricePerM2 * parseFloat(vymera || 0);
+    
+    console.log('[Estimator] Výpočet domu:', {
+      medianPrice: Math.round(medianPrice),
+      kK,
+      kS,
+      pricePerM2: Math.round(pricePerM2),
+      vymera,
+      totalPrice: Math.round(totalPrice)
+    });
+    
+    return {
+      ok: true,
+      mid: Math.round(totalPrice),
+      low: Math.round(totalPrice * 0.88),
+      high: Math.round(totalPrice * 1.12),
+      per_m2: Math.round(pricePerM2),
+      n: count,
+      confidence: count >= 20 ? "vysoká" : (count >= 5 ? "střední" : "nízká"),
+      note: `Vzorek: ${usedLevel} (n=${count}). Koef: ${useTypCoef ? `typ=${kK}, ` : ''}stav=${kS}`
+    };
+  }
+  
+  // POZEMKY estimation
+  function estimatePozemek(rows, params) {
+    if (!rows || !rows.length) {
+      return { ok: false, reason: "Data nejsou k dispozici." };
+    }
+    
+    const { obec, kategorie, vymera, spoluvl, podil } = params;
+    
+    const targetObec = extractMainMunicipality(normalizePraha(obec));
+    
+    console.log('[Estimator] Pozemek - hledám obec:', targetObec, 'kategorie:', kategorie);
+    
+    const geo = findGeoContext(rows, targetObec);
+    
+    const field = rows[0]?.kategorie_final !== undefined ? 'kategorie_final' : 
+                  (rows[0]?.kategorie !== undefined ? 'kategorie' : null);
+    
+    if (!field) {
+      return { ok: false, reason: "Data nemají správnou strukturu." };
+    }
+    
+    const k = (kategorie || '').toLowerCase().trim();
+    
+    const cascades = [
+      { label: `obec "${targetObec}" + kategorie "${kategorie}"`,
+        filter: r => eqObec(r.obec, targetObec) && (r[field] || '').toLowerCase() === k },
+      
+      { label: `okres "${geo.okres}" + kategorie "${kategorie}"`,
+        filter: r => geo.okres && eqOkres(r.okres, geo.okres) && 
+                     (r[field] || '').toLowerCase() === k },
+      
+      { label: `kraj "${geo.kraj}" + kategorie "${kategorie}"`,
+        filter: r => geo.kraj && eqKraj(r.kraj, geo.kraj) && 
+                     (r[field] || '').toLowerCase() === k },
+      
+      { label: `ČR + kategorie "${kategorie}"`,
+        filter: r => (r[field] || '').toLowerCase() === k },
+      
+      { label: `obec "${targetObec}" (mix kategorií)`,
+        filter: r => eqObec(r.obec, targetObec) },
+      
+      { label: `okres "${geo.okres}" (mix kategorií)`,
+        filter: r => geo.okres && eqOkres(r.okres, geo.okres) },
+      
+      { label: `kraj "${geo.kraj}" (mix kategorií)`,
+        filter: r => geo.kraj && eqKraj(r.kraj, geo.kraj) },
+      
+      { label: "ČR – všechny pozemky",
+        filter: r => true }
     ];
     
     let medianPrice = null;
@@ -441,50 +456,54 @@
       const filtered = rows.filter(cascade.filter);
       const prices = filtered.map(r => Number(r.cena_m2)).filter(p => isFinite(p));
       
-      if (prices.length < cascade.minSamples) {
-        console.log(`[Estimator] ⏭️  Skip: ${cascade.label} (${prices.length} < ${cascade.minSamples})`);
-        continue;
+      if (prices.length > 0) {
+        medianPrice = median(prices);
+        usedLevel = cascade.label;
+        count = prices.length;
+        console.log(`[Estimator] ✅ Použit fallback: ${cascade.label}, n=${count}, medián=${Math.round(medianPrice)} Kč/m²`);
+        break;
       }
-      
-      medianPrice = median(prices);
-      usedLevel = cascade.label;
-      count = prices.length;
-      console.log(`[Estimator] ✅ Použit: ${cascade.label}, n=${count}, medián=${Math.round(medianPrice)} Kč/m²`);
-      break;
     }
     
     if (!medianPrice || !isFinite(medianPrice)) {
       return { ok: false, reason: "Nenašel jsem vhodný vzorek dat." };
     }
     
-    const z = (zatepleni || '').toLowerCase();
-    const o = (nova_okna || '').toLowerCase();
-    const kS = (z === 'ano' && o === 'ano') ? 1.30 : 
-               ((z === 'ano' || o === 'ano') ? 1.15 : 1.00);
+    let share = 1.0;
+    if ((spoluvl || '').toLowerCase() === 'ano') {
+      let p = (podil || '').trim();
+      if (/^\s*\d+(\.\d+)?\s*$/.test(p)) {
+        share = parseFloat(p);
+      } else if (p.includes('/')) {
+        const [x, y] = p.split('/').map(s => parseFloat(s.replace(',', '.')));
+        if (isFinite(x) && isFinite(y) && y > 0) {
+          share = x / y;
+        }
+      }
+      if (!isFinite(share) || share <= 0 || share > 1) share = 1.0;
+    }
     
-    const pricePerM2 = medianPrice * kS;
-    const totalPrice = pricePerM2 * parseFloat(vymera || 0);
+    const totalPrice = medianPrice * parseFloat(vymera || 0) * share;
+    
+    console.log('[Estimator] Výpočet pozemku:', {
+      medianPrice: Math.round(medianPrice),
+      vymera,
+      share,
+      totalPrice: Math.round(totalPrice)
+    });
     
     return {
       ok: true,
       mid: Math.round(totalPrice),
       low: Math.round(totalPrice * 0.88),
       high: Math.round(totalPrice * 1.12),
-      per_m2: Math.round(pricePerM2),
+      per_m2: Math.round(medianPrice),
       n: count,
-      confidence: count >= 30 ? "vysoká" : (count >= 10 ? "střední" : "nízká"),
-      note: `Vzorek: ${usedLevel} (n=${count}). Stav: ${kS}`
+      confidence: count >= 20 ? "vysoká" : (count >= 5 ? "střední" : "nízká"),
+      note: `Vzorek: ${usedLevel} (n=${count}). Podíl: ${share}`
     };
   }
   
-  // POZEMKY estimation (zkrácená)
-  function estimatePozemek(rows, params) {
-    if (!rows || !rows.length) {
-      return { ok: false, reason: "Data nejsou k dispozici." };
-    }
-    
-    const { obec, kategorie, vymera, spoluvl, podil } = params;
-    
-    const targetObec = extractMainMunicipality(normalizePraha(obec));
-    
-    console.log('[Estimator] 🌳 Pozemek - hledám obec:', targetObec, 'kategorie:', kateg
+  global.CG_Estimator = { estimateByt, estimateDum, estimatePozemek };
+  
+})(window);
