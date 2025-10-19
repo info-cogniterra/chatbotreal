@@ -53,7 +53,39 @@
 
   console.log('[Widget] Session:', S.session);
 
-  const U = {
+  
+  // === Global data cache for lazy loading ===
+  const DATA_CACHE = { byt:null, dum:null, pozemek:null, up:null, _loading:{} };
+  async function loadData(kind){
+    const key = (kind||'').toLowerCase();
+    if (!['byt','dům','dum','pozemek','up'].includes(key)) return null;
+    const norm = key.replace('dům','dum');
+    if (DATA_CACHE[norm]) return DATA_CACHE[norm];
+    if (DATA_CACHE._loading[norm]) return DATA_CACHE._loading[norm];
+    let url = null;
+    try { if (S && S.cfg && S.cfg.data_urls && S.cfg.data_urls[norm]) url = S.cfg.data_urls[norm]; } catch(e){}
+    if (!url) {
+      const DU = {
+        byt: (window.CGTR_DATA_BYT_URL || null),
+        dum: (window.CGTR_DATA_DUM_URL || null),
+        pozemek: (window.CGTR_DATA_POZEMEK_URL || null),
+        up: (window.CGTR_DATA_UP_URL || null)
+      };
+      url = DU[norm] || null;
+    }
+    if (!url) {
+      if (window.PRICES && window.PRICES[norm]) {
+        DATA_CACHE[norm] = window.PRICES[norm];
+        return DATA_CACHE[norm];
+      }
+      return null;
+    }
+    const p = fetch(url, {credentials:'omit'}).then(r => r.json()).then(j => (DATA_CACHE[norm]=j));
+    DATA_CACHE._loading[norm] = p;
+    try { const res = await p; delete DATA_CACHE._loading[norm]; return res; }
+    catch(e){ delete DATA_CACHE._loading[norm]; console.warn('[Widget] Lazy load failed for', norm, e); return null; }
+  }
+const U = {
     el(tag, props, kids) {
       const n = document.createElement(tag);
       if (props) for (const k in props) {
@@ -736,7 +768,7 @@
       e.preventDefault();
       e.stopPropagation();
       console.log('[Widget] Close button clicked');
-      U.saveSession();
+      U.saveSession(); S.formOpen=false;
       if (window.CGTR && typeof window.CGTR.hide === 'function') {
         window.CGTR.hide();
       } else {
@@ -898,6 +930,11 @@
         const results = [];
         
         for (const item of items) {
+          const locLower = String(item.location || '').toLowerCase();
+          const ctry = String(item.country || (item.address && item.address.country) || '').toLowerCase();
+          const countryOk = /,\s*(česko|czech republic)\s*$/.test(locLower) || ['cz','czechia','česko','czech republic'].includes(ctry);
+          if (!countryOk) continue;
+
           const name = String(item.name || '').trim();
           
           let displayText = '';
@@ -1248,6 +1285,9 @@
   }
 
   function startPricing() {
+    if (S.formOpen) { addAI("Dotazník už je otevřený."); return; }
+    S.formOpen = true;
+
     S.flow = "pricing";
     U.saveSession();
     stepChooseType();
@@ -1266,6 +1306,13 @@
 
   function stepLocation(typ) {
     const isPozemek = (typ === "Pozemek");
+    // Lazy-load data for selected type
+    try {
+      if (isPozemek) { loadData('pozemek'); loadData('up'); }
+      else if (typ === "Byt") { loadData('byt'); }
+      else if (typ === "Dům") { loadData('dum'); }
+    } catch(e) { console.warn('[Widget] lazy load skip', e); }
+
     
     const locationInput = U.input("lokalita", 
       isPozemek ? "Začněte psát obec..." : "Začněte psát ulici a obec...", 
@@ -1888,10 +1935,7 @@
       U.el("input", { id: "lead_name",  name:"name",  placeholder:"Jméno" }),
       U.el("input", { id: "lead_email", name:"email", type:"email", placeholder:"E-mail" }),
       U.el("input", { id: "lead_phone", name:"phone", placeholder:"Telefon (+420…)" }),
-      U.el("label", {}, [
-        U.el("input", { id: consentId, type:"checkbox" }),
-        " Odesláním souhlasím se zásadami zpracování osobních údajů."
-      ]),
+      U.el("div", {}, ["Odesláním souhlasíte se zpracováním osobních údajů."]),
       U.el("div", { class: "cg-cta" }, [
         U.el("button", { class: "cg-btn", type: "button", onclick: () => saveLeadPricing(consentId) }, ["Odeslat a zobrazit odhad"])
       ])
@@ -1909,10 +1953,8 @@
     const name  = (nameEl  && nameEl.value)  ? nameEl.value.trim() : "";
     const email = (emailEl && emailEl.value) ? emailEl.value.trim() : "";
     const phone = (phoneEl && phoneEl.value) ? phoneEl.value.trim() : "";
-    const consentEl = shadow.querySelector("#" + consentId);
-    const consent = !!(consentEl && consentEl.checked);
-
-    if (!name || !U.emailOk(email) || !U.phoneOk(phone) || !consent) {
+    const consent = true;
+if (!name || !U.emailOk(email) || !U.phoneOk(phone)) {
       addAI("Zkontrolujte prosím kontaktní údaje a potvrďte souhlas.");
       if (btn) { btn.disabled = false; btn.textContent = "Odeslat a zobrazit odhad"; }
       return;
@@ -1997,21 +2039,11 @@
     const typ = params.typ || "Nemovitost";
     
     const box = U.el("div", { class: "cg-step" }, [
-      U.el("label", {}, [`${typ}: orientační odhad`]),
+      U.el("label", {}, ["Odhad ceny"]),
       U.el("div", { style: { fontSize: "18px", fontWeight: "700", margin: "12px 0", color: "#2c5282" } }, 
-        [`${res.low?.toLocaleString?.("cs-CZ") || res.low || "-"} – ${res.high?.toLocaleString?.("cs-CZ") || res.high || "-"} Kč`]),
+        [`${res.low?.toLocaleString?.("cs-CZ") || res.low || "-"} Kč`]),
       U.el("div", { style: { fontSize: "14px", margin: "8px 0" } }, 
-        [`Medián: ${res.mid?.toLocaleString?.("cs-CZ") || res.mid || "-"} Kč`]),
-      U.el("div", { style: { fontSize: "14px", margin: "8px 0" } }, 
-        [`Cena za m²: ~${res.per_m2?.toLocaleString?.("cs-CZ") || res.per_m2 || "-"} Kč/m²`]),
-      U.el("div", { class: "hint" }, [res.note || "Odhad je orientační."]),
-      U.el("div", { style: { marginTop: "12px", padding: "10px", background: "#f0f9ff", borderRadius: "8px", fontSize: "13px" } }, [
-        `Spolehlivost: ${res.confidence || "střední"} (vzorek: ${res.n || "?"} záznamů)`
-      ]),
-      U.el("div", { class: "cg-cta", style: { marginTop: "16px" } }, [
-        U.el("button", { class: "cg-btn", type: "button", onclick: () => stepContactVerify() }, 
-          ["Chci přesný odhad od odborníka"])
-      ])
+        [`Medián: ${res.mid?.toLocaleString?.("cs-CZ") || res.mid || "-"} Kč`])
     ]);
     
     addAI("Výsledek odhadu", box);
@@ -2024,7 +2056,7 @@
       U.el("input", { id: "c_name",  name:"name",  placeholder:"Jméno" }),
       U.el("input", { id: "c_email", name:"email", type:"email", placeholder:"E-mail" }),
       U.el("input", { id: "c_phone", name:"phone", placeholder:"Telefon (+420…)" }),
-      U.el("label", {}, [ U.el("input", { id: consentId, type:"checkbox" }), " Souhlasím se zpracováním osobních údajů." ]),
+      U.el("div", {}, ["Odesláním souhlasíte se zpracováním osobních údajů."]),
       U.el("div", { class: "cg-cta" }, [ U.el("button", { class:"cg-btn", type:"button", onclick: () => saveLeadContact(consentId) }, ["Odeslat"]) ])
     ]);
     addAI("Kontaktní formulář", box);
@@ -2036,10 +2068,8 @@
     const name  = (shadow.querySelector("#c_name")  || {}).value || "";
     const email = (shadow.querySelector("#c_email") || {}).value || "";
     const phone = (shadow.querySelector("#c_phone") || {}).value || "";
-    const consentEl = shadow.querySelector("#" + consentId);
-    const consent = !!(consentEl && consentEl.checked);
-
-    if (!name.trim() || !U.emailOk(email) || !U.phoneOk(phone) || !consent) {
+    const consent = true;
+if (!name.trim() || !U.emailOk(email) || !U.phoneOk(phone) || !consent) {
       addAI("Zkontrolujte prosím kontaktní údaje a potvrďte souhlas.");
       if (btn) { btn.disabled = false; btn.textContent = "Odeslat"; }
       return;
