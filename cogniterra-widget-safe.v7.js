@@ -2014,17 +2014,17 @@ if (!name || !U.emailOk(email) || !U.phoneOk(phone)) {
     // Volání estimátoru s novými parametry
     if (P.typ === "Byt") {
       res = window.CG_Estimator.estimateByt(
-        window.PRICES ? window.PRICES.byty : null, 
+        window.PRICES ? window.PRICES.byt : null, 
         P
       );
     } else if (P.typ === "Dům") {
       res = window.CG_Estimator.estimateDum(
-        window.PRICES ? window.PRICES.domy : null, 
+        window.PRICES ? window.PRICES.dum : null, 
         P
       );
     } else {
       res = window.CG_Estimator.estimatePozemek(
-        window.PRICES ? window.PRICES.pozemky : null, 
+        window.PRICES ? window.PRICES.pozemek : null, 
         P
       );
     }
