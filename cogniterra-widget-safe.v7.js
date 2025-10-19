@@ -1744,13 +1744,22 @@
   }
 
   function stepParamsPozemek(obec) {
-    let selectedKategorie = "stavební";
+    let selectedKategorie = "Bydlení";
     let selectedSpoluvl = "NE";
-    
+
     const katLabel = U.el("label", {}, ["Kategorie pozemku"]);
     const katButtons = [];
-    const katOptions = ["stavební", "zahrada", "zemědělský", "les", "ostatní"];
-    
+    // --- OPRAVENO: jen povolené kategorie ---
+    const katOptions = [
+      "Bydlení",
+      "Komerční",
+      "Lesy",
+      "Louky",
+      "Pole",
+      "Sady/vinice",
+      "Zahrady"
+    ];
+
     const katGrid = U.el("div", {
       style: {
         display: "grid",
@@ -1759,15 +1768,15 @@
         marginBottom: "16px"
       }
     });
-    
+
     katOptions.forEach((kat) => {
       const btn = U.el("button", {
         class: "cg-btn-disp",
         type: "button",
         style: {
-          background: kat === "stavební" ? "#2c5282" : "#fff",
-          border: "2px solid " + (kat === "stavební" ? "#2c5282" : "#cbd5e0"),
-          color: kat === "stavební" ? "#fff" : "#2d3748",
+          background: kat === "Bydlení" ? "#2c5282" : "#fff",
+          border: "2px solid " + (kat === "Bydlení" ? "#2c5282" : "#cbd5e0"),
+          color: kat === "Bydlení" ? "#fff" : "#2d3748",
           padding: "10px",
           borderRadius: "4px",
           cursor: "pointer",
@@ -1788,19 +1797,18 @@
           btn.style.color = "#fff";
           selectedKategorie = kat;
         }
-      }, [kat.charAt(0).toUpperCase() + kat.slice(1)]);
-      
+      }, [kat]);
       katButtons.push(btn);
       katGrid.appendChild(btn);
     });
-    
+
     const areaLabel = U.el("label", {}, ["Výměra pozemku (m²)"]);
     const area = U.input("vymera", "Výměra (m²)", "number");
-    
+
     const spoluvlLabel = U.el("label", {}, ["Spoluvlastnictví?"]);
     const spoluvlButtons = [];
     const spoluvlOptions = ["ANO", "NE"];
-    
+
     const spoluvlGrid = U.el("div", {
       style: {
         display: "grid",
@@ -1809,7 +1817,7 @@
         marginBottom: "16px"
       }
     });
-    
+
     spoluvlOptions.forEach((opt) => {
       const btn = U.el("button", {
         class: "cg-btn-disp",
@@ -1836,8 +1844,6 @@
           btn.style.borderColor = "#2c5282";
           btn.style.color = "#fff";
           selectedSpoluvl = opt;
-          
-          // Show/hide podil input
           if (opt === "ANO") {
             podilContainer.style.display = "block";
           } else {
@@ -1846,22 +1852,21 @@
           }
         }
       }, [opt]);
-      
       spoluvlButtons.push(btn);
       spoluvlGrid.appendChild(btn);
     });
-    
+
     const podilLabel = U.el("label", {}, ["Podíl (např. 1/2 nebo 0.5)"]);
     const podil = U.input("podil", "Např. 1/2 nebo 0.5", "text");
     podil.value = "1";
-    
+
     const podilContainer = U.el("div", {
       style: { display: "none" }
     }, [podilLabel, podil]);
 
-    const go = U.el("button", { 
-      class: "cg-btn", 
-      type: "button", 
+    const go = U.el("button", {
+      class: "cg-btn",
+      type: "button",
       onclick: () => {
         const vymera = parseFloat(area.value || 0);
         if (!vymera || vymera <= 0) {
@@ -1869,17 +1874,14 @@
           area.focus();
           return;
         }
-        
-        const params = { 
-          typ: "Pozemek", 
+        const params = {
+          typ: "Pozemek",
           obec: obec,
-          kategorie: selectedKategorie, 
+          kategorie: selectedKategorie,
           vymera: vymera,
           spoluvl: selectedSpoluvl,
           podil: podil.value || "1"
         };
-        
-        console.log('[Widget] Pozemek params:', params);
         renderLeadBoxPricing(params);
       }
     }, ["Pokračovat k odhadu"]);
@@ -1896,7 +1898,6 @@
       podilContainer,
       U.el("div", { class: "cg-cta" }, [go]),
     ]);
-    
     addAI("Nacenění – krok 3/3", box);
   }
 
