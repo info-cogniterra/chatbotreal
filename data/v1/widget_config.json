@@ -1,11 +1,11 @@
 {
   "data_urls": {
-    "byty": "./data/v1/AI_byty_CZ.xlsx",
-    "domy": "./data/v1/AI_model_config_Domy_READY.xlsx",
-    "pozemky": "./data/v1/AI_model_config_Pozemky_READY.xlsx",
+    "byt": "./data/v1/byty.v1.json",
+    "dum": "./data/v1/domy.v1.json",
+    "pozemek": "./data/v1/pozemky.v1.json",
     "up": "./data/v1/up.v1.json"
   },
-  "data_format": "excel",
+  "data_format": "json",
   "mapy_key": "EreCyrH41se5wkNErc5JEWX2eMLqnpja5BUVxsvpqzM",
   "lead_url": "https://script.google.com/macros/s/AKfycbyNLWmhYxwrUtxMDrE33bs8jUdiZNdJERL8CGgn8wB2cwttnPHXogXFtSEGh1q0EvE_sw/exec?path=/lead",
   "chat_url": "https://script.google.com/macros/s/AKfycbyNLWmhYxwrUtxMDrE33bs8jUdiZNdJERL8CGgn8wB2cwttnPHXogXFtSEGh1q0EvE_sw/exec?path=/chat",
