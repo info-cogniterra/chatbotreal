@@ -1944,7 +1944,7 @@ const U = {
     addAI("Kontaktní ověření", box);
   }
 
-  async function saveLeadPricing(consentId) {
+  async async function saveLeadPricing(consentId) {
     const btn = shadow.querySelector(".leadbox .cg-btn");
     if (btn) { btn.disabled = true; btn.textContent = "Odesílám…"; }
 
@@ -2000,6 +2000,15 @@ if (!name || !U.emailOk(email) || !U.phoneOk(phone)) {
     if (btn) { btn.disabled = false; btn.textContent = "Odesláno"; }
 
     const P = S.tempPricing || {};
+    // Ensure dataset for selected type is loaded (lazy)
+    try {
+      const kind = (P.typ === "Byt") ? "byt" : (P.typ === "Dům") ? "dum" : "pozemek";
+      if (!window.PRICES || !window.PRICES[kind]) {
+        addLoading("⏳ Načítám data pro odhad…");
+        await Promise.resolve(loadData(kind));
+      }
+    } catch(e) { console.warn('[Widget] wait for data failed', e); }
+    
     let res = null;
     
     // Volání estimátoru s novými parametry
