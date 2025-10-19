@@ -1024,18 +1024,18 @@ const U = {
           inputEl.value = selectedValue;
           suggestContainer.style.display = 'none';
           
-          setTimeout(() => {
+          setTimeout(async () => {
             inputEl.dispatchEvent(new Event('input', { bubbles: true }));
             inputEl.dispatchEvent(new Event('change', { bubbles: true }));
             console.log('[Widget] Value set and events triggered:', selectedValue);
             
-            setTimeout(() => {
+            setTimeout(async () => {
               isSelecting = false;
               console.log('[Widget] Selection completed, autocomplete ready again');
             }, 500);
           }, 10);
           
-          setTimeout(() => {
+          setTimeout(async () => {
             inputEl.focus();
           }, 50);
         });
@@ -1051,12 +1051,12 @@ const U = {
           inputEl.value = selectedValue;
           suggestContainer.style.display = 'none';
           
-          setTimeout(() => {
+          setTimeout(async () => {
             inputEl.dispatchEvent(new Event('input', { bubbles: true }));
             inputEl.dispatchEvent(new Event('change', { bubbles: true }));
             inputEl.focus();
             
-            setTimeout(() => {
+            setTimeout(async () => {
               isSelecting = false;
             }, 500);
           }, 10);
@@ -1078,7 +1078,7 @@ const U = {
         return;
       }
       
-      debounceTimer = setTimeout(() => {
+      debounceTimer = setTimeout(async () => {
         fetchSuggestions(value);
       }, 400);
     });
@@ -1093,7 +1093,7 @@ const U = {
     });
     
     inputEl.addEventListener('blur', (e) => {
-      setTimeout(() => {
+      setTimeout(async () => {
         const rect = suggestContainer.getBoundingClientRect();
         const isOverContainer = (
           e.relatedTarget && 
@@ -1151,12 +1151,12 @@ const U = {
     return isExplicit;
   }
   
-  function handleUPQuery(q) {
+  async function handleUPQuery(q) {
     console.log('[Widget] Handling UP query:', q);
     
     const loadingMsg = addLoading("🔍 Vyhledávám územní plán...");
     
-    setTimeout(() => {
+    setTimeout(async () => {
       const locations = U.extractLocationFromUP(q);
       
       console.log('[Widget] Extracted locations:', locations);
@@ -1355,7 +1355,7 @@ const U = {
 
     addAI("Nacenění – krok 2/3", box);
     
-    setTimeout(() => {
+    setTimeout(async () => {
       attachSuggest(locationInput, isPozemek);
     }, 100);
   }
@@ -2205,7 +2205,7 @@ if (!name.trim() || !U.emailOk(email) || !U.phoneOk(phone) || !consent) {
     
     addME(q);
     
-    setTimeout(() => {
+    setTimeout(async () => {
       S.processing = false;
       chatTextarea.disabled = false;
       chatSendBtn.disabled = false;
@@ -2218,8 +2218,7 @@ if (!name.trim() || !U.emailOk(email) || !U.phoneOk(phone) || !consent) {
     }
     
     if (needsUP(q)) {
-      try { if (!S.data.up && !(window.PRICES && window.PRICES.up)) { await loadData('up'); } } catch(e){}
-      handleUPQuery(q);
+      try { if (!S.data.up && !(window.PRICES && window.PRICES.up)) { loadData('up'); } } catch(e){} handleUPQuery(q);
       return;
     }
     
