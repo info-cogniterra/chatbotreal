@@ -259,7 +259,7 @@
     
     console.log('[Estimator] Výpočet bytu:', {
       medianPrice: Math.round(medianPrice),
-      kS,
+      kStav,
       kV,
       pricePerM2: Math.round(pricePerM2), addPark: Math.round(addPark),
       vymera,
@@ -432,7 +432,7 @@ function estimateDum(rows, params) {
     console.log('[Estimator] Výpočet domu:', {
       medianPrice: Math.round(medianPrice),
       kK,
-      kS,
+      kStav,
       pricePerM2: Math.round(pricePerM2), addPark: Math.round(addPark),
       vymera,
       totalPrice: Math.round(totalPrice)
