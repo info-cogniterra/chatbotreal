@@ -1519,6 +1519,9 @@
     let selectedTyp = "Cihlová";
     let selectedZatepleni = "NE";
     let selectedOkna = "NE";
+    let selectedTypDomu = "Rodinný dům";
+    let selectedStav = "Dobrý";
+    let selectedParkovani = "Žádné";
     
     const typLabel = U.el("label", {}, ["Typ stavby"]);
     const typButtons = [];
@@ -1658,7 +1661,43 @@
       oknaGrid.appendChild(btn);
     });
     
-    const areaLabel = U.el("label", {}, ["Výměra domu (m²)"]);
+    
+    // === Typ domu ===
+    const typDomuLabel = U.el("label", {}, ["Typ domu"]);
+    const typDomuOptions = ["Rodinný dům", "Řadový", "Dvojdům", "Vila", "Chata/Chalupa"];
+    const typDomuButtons = [];
+    const typDomuGrid = U.el("div", { style: { display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:"8px", marginBottom:"16px" } });
+    typDomuOptions.forEach((opt) => {
+      const btn = U.el("button", { class:"cg-btn-disp", type:"button", style:{ background: opt==="Rodinný dům"?"#2c5282":"#fff", border:"2px solid " + (opt==="Rodinný dům"?"#2c5282":"#cbd5e0"), color: opt==="Rodinný dům"?"#fff":"#2d3748", borderRadius:"10px", padding:"10px 12px", fontWeight:"600", transition:"all 0.2s", minHeight:"44px" },
+        onclick:(e)=>{ e.preventDefault(); typDomuButtons.forEach(b=>{b.style.background="#fff"; b.style.borderColor="#cbd5e0"; b.style.color="#2d3748";}); btn.style.background="#2c5282"; btn.style.borderColor="#2c5282"; btn.style.color="#fff"; selectedTypDomu = opt; }
+      }, [opt]);
+      typDomuButtons.push(btn); typDomuGrid.appendChild(btn);
+    });
+
+    // === Stav domu ===
+    const stavLabel = U.el("label", {}, ["Stav domu"]);
+    const stavOptions = ["Novostavba", "Po rekonstrukci", "Dobrý", "Horší"];
+    const stavButtons = [];
+    const stavGrid = U.el("div", { style: { display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:"8px", marginBottom:"16px" } });
+    stavOptions.forEach((opt) => {
+      const btn = U.el("button", { class:"cg-btn-disp", type:"button", style:{ background: opt==="Dobrý"?"#2c5282":"#fff", border:"2px solid " + (opt==="Dobrý"?"#2c5282":"#cbd5e0"), color: opt==="Dobrý"?"#fff":"#2d3748", borderRadius:"10px", padding:"10px 12px", fontWeight:"600", transition:"all 0.2s", minHeight:"44px" },
+        onclick:(e)=>{ e.preventDefault(); stavButtons.forEach(b=>{b.style.background="#fff"; b.style.borderColor="#cbd5e0"; b.style.color="#2d3748";}); btn.style.background="#2c5282"; btn.style.borderColor="#2c5282"; btn.style.color="#fff"; selectedStav = opt; }
+      }, [opt]);
+      stavButtons.push(btn); stavGrid.appendChild(btn);
+    });
+
+    // === Parkování ===
+    const parkLabel = U.el("label", {}, ["Parkování"]);
+    const parkOptions = ["Žádné", "Venkovní stání", "Garáž 1×", "Garáž 2×"];
+    const parkButtons = [];
+    const parkGrid = U.el("div", { style: { display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:"8px", marginBottom:"16px" } });
+    parkOptions.forEach((opt) => {
+      const btn = U.el("button", { class:"cg-btn-disp", type:"button", style:{ background: opt==="Žádné"?"#2c5282":"#fff", border:"2px solid " + (opt==="Žádné"?"#2c5282":"#cbd5e0"), color: opt==="Žádné"?"#fff":"#2d3748", borderRadius:"10px", padding:"10px 12px", fontWeight:"600", transition:"all 0.2s", minHeight:"44px" },
+        onclick:(e)=>{ e.preventDefault(); parkButtons.forEach(b=>{b.style.background="#fff"; b.style.borderColor="#cbd5e0"; b.style.color="#2d3748";}); btn.style.background="#2c5282"; btn.style.borderColor="#2c5282"; btn.style.color="#fff"; selectedParkovani = opt; }
+      }, [opt]);
+      parkButtons.push(btn); parkGrid.appendChild(btn);
+    });
+        const areaLabel = U.el("label", {}, ["Výměra domu (m²)"]);
     const area = U.input("vymera", "Výměra (m²)", "number");
 
     const go = U.el("button", { 
@@ -1675,9 +1714,10 @@
         const params = { 
           typ: "Dům", 
           adresa: adresa,
-          typ_stavby: selectedTyp, 
-          zatepleni: selectedZatepleni,
-          nova_okna: selectedOkna,
+          typ_stavby: selectedTyp,
+          typ_domu: selectedTypDomu,
+          stav: selectedStav,
+          parkovani: selectedParkovani,
           vymera: vymera 
         };
         
@@ -1694,7 +1734,7 @@
       zatepleniLabel,
       zatepleniGrid,
       oknaLabel,
-      oknaGrid,
+      oknaGrid, typDomuLabel, typDomuGrid, stavLabel, stavGrid, parkLabel, parkGrid,
       areaLabel,
       area,
       U.el("div", { class: "cg-cta" }, [go]),

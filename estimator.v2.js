@@ -261,7 +261,7 @@
       medianPrice: Math.round(medianPrice),
       kS,
       kV,
-      pricePerM2: Math.round(pricePerM2),
+      pricePerM2: Math.round(pricePerM2), addPark: Math.round(addPark),
       vymera,
       totalPrice: Math.round(totalPrice)
     });
@@ -279,7 +279,59 @@
   }
   
   // DOMY estimation
-  function estimateDum(rows, params) {
+  
+// === House model v2 (simplified) ===
+const KOEF_TYP_DOMU = {
+  "rodinný dům": 1.00,
+  "radovy": 0.90, "řadový": 0.90,
+  "dvojdum": 0.95, "dvojdům": 0.95,
+  "vila": 1.15,
+  "chata": 0.80, "chalupa": 0.80, "chata/chalupa": 0.80
+};
+function coefTypDomu(s) {
+  if (!s) return 1.00;
+  const k = s.toLowerCase().trim();
+  return KOEF_TYP_DOMU[k] != null ? KOEF_TYP_DOMU[k] : 1.00;
+}
+function coefVelikost(pp) {
+  const x = Number(pp)||0;
+  if (x < 80) return 1.10;
+  if (x < 120) return 1.05;
+  if (x < 160) return 1.00;
+  if (x < 220) return 0.90;
+  return 0.80;
+}
+function coefStav(s) {
+  const t = (s||"").toLowerCase();
+  if (t.includes("novostav")) return 1.20;
+  if (t.includes("rekon")) return 1.12;
+  if (t.includes("hor")) return 0.88;
+  if (t.includes("dob")) return 1.00;
+  return 1.00;
+}
+// pevná přirážka za parkování dle pásma baseline_m2
+function parkSurchargeCZK(baselineM2, parkovani) {
+  const b = Number(baselineM2)||0;
+  let band = "mid";
+  if (b < 35000) band = "low";
+  else if (b > 70000) band = "high";
+  const P = {
+    "žádné":   {low:0, mid:0, high:0},
+    "zadne":   {low:0, mid:0, high:0},
+    "stání":   {low:60000, mid:100000, high:160000},
+    "stani":   {low:60000, mid:100000, high:160000},
+    "garáž 1×":{low:180000, mid:300000, high:480000},
+    "garaz 1": {low:180000, mid:300000, high:480000},
+    "garáž 2×":{low:300000, mid:500000, high:800000},
+    "garaz 2": {low:300000, mid:500000, high:800000}
+  };
+  const key = (parkovani||"").toLowerCase().trim();
+  const row = P[key];
+  if (!row) return 0;
+  return row[band];
+}
+
+function estimateDum(rows, params) {
     if (!rows || !rows.length) {
       return { ok: false, reason: "Data nejsou k dispozici." };
     }
@@ -368,19 +420,20 @@
       console.log('[Estimator] ✅ Máme přesná data pro typ stavby, koeficient typu nepoužit');
     }
     
-    const z = (zatepleni || '').toLowerCase();
-    const o = (nova_okna || '').toLowerCase();
-    const kS = (z === 'ano' && o === 'ano') ? 1.30 : 
-               ((z === 'ano' || o === 'ano') ? 1.15 : 1.00);
     
-    const pricePerM2 = medianPrice * kK * kS;
-    const totalPrice = pricePerM2 * parseFloat(vymera || 0);
-    
+    // --- new v2 coefficients ---
+    const kTypDomu = coefTypDomu(params.typ_domu);
+    const kVel = coefVelikost(vymera);
+    const kStav = coefStav(params.stav);
+    const pricePerM2 = medianPrice * kK * kTypDomu * kVel * kStav;
+    const addPark = parkSurchargeCZK(pricePerM2, params.parkovani);
+    const totalPrice = pricePerM2 * parseFloat(vymera || 0) + addPark;
+        
     console.log('[Estimator] Výpočet domu:', {
       medianPrice: Math.round(medianPrice),
       kK,
       kS,
-      pricePerM2: Math.round(pricePerM2),
+      pricePerM2: Math.round(pricePerM2), addPark: Math.round(addPark),
       vymera,
       totalPrice: Math.round(totalPrice)
     });
@@ -393,7 +446,7 @@
       per_m2: Math.round(pricePerM2),
       n: count,
       confidence: count >= 20 ? "vysoká" : (count >= 5 ? "střední" : "nízká"),
-      note: `Vzorek: ${usedLevel} (n=${count}). Koef: ${useTypCoef ? `typ=${kK}, ` : ''}stav=${kS}`
+      note: `Vzorek: ${usedLevel} (n=${count}). Koef: ${useTypCoef ? `mat=${kK}, ` : ''}typD=${kTypDomu}, vel=${kVel}, stav=${kStav}, park=+${Math.round(addPark)} Kč`
     };
   }
   
