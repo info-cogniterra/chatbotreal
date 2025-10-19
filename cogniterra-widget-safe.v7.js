@@ -2040,10 +2040,17 @@ if (!name || !U.emailOk(email) || !U.phoneOk(phone)) {
     
     const box = U.el("div", { class: "cg-step" }, [
       U.el("label", {}, ["Odhad ceny"]),
-      U.el("div", { style: { fontSize: "18px", fontWeight: "700", margin: "12px 0", color: "#2c5282" } }, 
-        [`${res.low?.toLocaleString?.("cs-CZ") || res.low || "-"} Kč`]),
-      U.el("div", { style: { fontSize: "14px", margin: "8px 0" } }, 
-        [`Medián: ${res.mid?.toLocaleString?.("cs-CZ") || res.mid || "-"} Kč`])
+      U.el("div", { style: { fontSize: "22px", fontWeight: "800", margin: "12px 0", color: "#2c5282" } },
+        [`${(res.low?.toLocaleString?.("cs-CZ") || res.low || "-")} Kč - ${(res.mid?.toLocaleString?.("cs-CZ") || res.mid || "-")} Kč`]
+      ),
+      U.el("div", { style: { fontSize: "14px", margin: "8px 0", opacity: "0.9" } },
+        ["Pro bližší informace Vás můžeme spojit s naším specialistou."]
+      ),
+      U.el("div", { class: "cg-cta", style: { marginTop: "10px" } }, [
+        U.el("button", { class: "cg-btn", type: "button", onclick: () => { addAI("Děkujeme, budeme Vás kontaktovat."); } },
+          ["Spojit se specialistou"]
+        )
+      ])
     ]);
     
     addAI("Výsledek odhadu", box);
