@@ -1516,232 +1516,209 @@
   }
 
   function stepParamsDum(adresa) {
-    let selectedTyp = "Cihlová";
-    let selectedZatepleni = "NE";
-    let selectedOkna = "NE";
-    let selectedTypDomu = "Rodinný dům";
-    let selectedStav = "Dobrý";
-    let selectedParkovani = "Žádné";
-    
-    const typLabel = U.el("label", {}, ["Typ stavby"]);
-    const typButtons = [];
-    const typOptions = ["Cihlová", "Dřevostavba", "Smíšená", "Jiná"];
-    
-    const typGrid = U.el("div", {
+  let selectedTypDomu = "Rodinný dům";
+  let selectedTyp = "Cihlová";
+  let selectedStav = "Dobrý";
+  let selectedZatepleni = "NE";
+  let selectedOkna = "NE";
+  let selectedParkovani = "Žádné";
+
+  // 1. Typ domu
+  const typDomuLabel = U.el("label", {}, ["Typ domu"]);
+  const typDomuOptions = ["Rodinný dům", "Řadový", "Dvojdům", "Vila", "Chata/Chalupa"];
+  const typDomuButtons = [];
+  const typDomuGrid = U.el("div", { style: { display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:"8px", marginBottom:"16px" } });
+  typDomuOptions.forEach((opt) => {
+    const btn = U.el("button", { class:"cg-btn-disp", type:"button", style:{ background: opt==="Rodinný dům"?"#2c5282":"#fff", border:"2px solid " + (opt==="Rodinný dům"?"#2c5282":"#cbd5e0"), color: opt==="Rodinný dům"?"#fff":"#2d3748", borderRadius:"10px", padding:"10px 12px", fontWeight:"600", transition:"all 0.2s", minHeight:"44px" },
+      onclick:(e)=>{ e.preventDefault(); typDomuButtons.forEach(b=>{b.style.background="#fff"; b.style.borderColor="#cbd5e0"; b.style.color="#2d3748";}); btn.style.background="#2c5282"; btn.style.borderColor="#2c5282"; btn.style.color="#fff"; selectedTypDomu = opt; }
+    }, [opt]);
+    typDomuButtons.push(btn); typDomuGrid.appendChild(btn);
+  });
+
+  // 2. Typ stavby - upraveno "Jiná" na "Nevím"
+  const typLabel = U.el("label", {}, ["Typ stavby"]);
+  const typOptions = ["Cihlová", "Dřevostavba", "Smíšená", "Nevím"];
+  const typButtons = [];
+  const typGrid = U.el("div", {
+    style: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginBottom: "16px" }
+  });
+  typOptions.forEach((typ) => {
+    const btn = U.el("button", {
+      class: "cg-btn-disp",
+      type: "button",
       style: {
-        display: "grid",
-        gridTemplateColumns: "repeat(2, 1fr)",
-        gap: "8px",
-        marginBottom: "16px"
+        background: typ === "Cihlová" ? "#2c5282" : "#fff",
+        border: "2px solid " + (typ === "Cihlová" ? "#2c5282" : "#cbd5e0"),
+        color: typ === "Cihlová" ? "#fff" : "#2d3748",
+        padding: "10px",
+        borderRadius: "4px",
+        cursor: "pointer",
+        fontWeight: "600",
+        transition: "all 0.2s",
+        minHeight: "44px"
+      },
+      onclick: (e) => {
+        e.preventDefault();
+        typButtons.forEach(b => {
+          b.style.background = "#fff";
+          b.style.borderColor = "#cbd5e0";
+          b.style.color = "#2d3748";
+        });
+        btn.style.background = "#2c5282";
+        btn.style.borderColor = "#2c5282";
+        btn.style.color = "#fff";
+        selectedTyp = typ;
       }
-    });
-    
-    typOptions.forEach((typ) => {
-      const btn = U.el("button", {
-        class: "cg-btn-disp",
-        type: "button",
-        style: {
-          background: typ === "Cihlová" ? "#2c5282" : "#fff",
-          border: "2px solid " + (typ === "Cihlová" ? "#2c5282" : "#cbd5e0"),
-          color: typ === "Cihlová" ? "#fff" : "#2d3748",
-          padding: "10px",
-          borderRadius: "4px",
-          cursor: "pointer",
-          fontWeight: "600",
-          transition: "all 0.2s",
-          minHeight: "44px"
-        },
-        onclick: (e) => {
-          e.preventDefault();
-          typButtons.forEach(b => {
-            b.style.background = "#fff";
-            b.style.borderColor = "#cbd5e0";
-            b.style.color = "#2d3748";
-          });
-          btn.style.background = "#2c5282";
-          btn.style.borderColor = "#2c5282";
-          btn.style.color = "#fff";
-          selectedTyp = typ;
-        }
-      }, [typ]);
-      
-      typButtons.push(btn);
-      typGrid.appendChild(btn);
-    });
-    
-    const zatepleniLabel = U.el("label", {}, ["Zateplený?"]);
-    const zatepleniButtons = [];
-    const zatepleniOptions = ["ANO", "NE"];
-    
-    const zatepleniGrid = U.el("div", {
+    }, [typ]);
+    typButtons.push(btn);
+    typGrid.appendChild(btn);
+  });
+
+  // 3. Stav domu
+  const stavLabel = U.el("label", {}, ["Stav domu"]);
+  const stavOptions = ["Novostavba", "Po rekonstrukci", "Dobrý", "Horší"];
+  const stavButtons = [];
+  const stavGrid = U.el("div", { style: { display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:"8px", marginBottom:"16px" } });
+  stavOptions.forEach((opt) => {
+    const btn = U.el("button", { class:"cg-btn-disp", type:"button", style:{ background: opt==="Dobrý"?"#2c5282":"#fff", border:"2px solid " + (opt==="Dobrý"?"#2c5282":"#cbd5e0"), color: opt==="Dobrý"?"#fff":"#2d3748", borderRadius:"10px", padding:"10px 12px", fontWeight:"600", transition:"all 0.2s", minHeight:"44px" },
+      onclick:(e)=>{ e.preventDefault(); stavButtons.forEach(b=>{b.style.background="#fff"; b.style.borderColor="#cbd5e0"; b.style.color="#2d3748";}); btn.style.background="#2c5282"; btn.style.borderColor="#2c5282"; btn.style.color="#fff"; selectedStav = opt; }
+    }, [opt]);
+    stavButtons.push(btn); stavGrid.appendChild(btn);
+  });
+
+  // 4. Zateplený?
+  const zatepleniLabel = U.el("label", {}, ["Zateplený?"]);
+  const zatepleniOptions = ["ANO", "NE"];
+  const zatepleniButtons = [];
+  const zatepleniGrid = U.el("div", { style: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginBottom: "16px" } });
+  zatepleniOptions.forEach((opt) => {
+    const btn = U.el("button", {
+      class: "cg-btn-disp",
+      type: "button",
       style: {
-        display: "grid",
-        gridTemplateColumns: "repeat(2, 1fr)",
-        gap: "8px",
-        marginBottom: "16px"
+        background: opt === "NE" ? "#2c5282" : "#fff",
+        border: "2px solid " + (opt === "NE" ? "#2c5282" : "#cbd5e0"),
+        color: opt === "NE" ? "#fff" : "#2d3748",
+        padding: "10px",
+        borderRadius: "4px",
+        cursor: "pointer",
+        fontWeight: "600",
+        transition: "all 0.2s",
+        minHeight: "44px"
+      },
+      onclick: (e) => {
+        e.preventDefault();
+        zatepleniButtons.forEach(b => {
+          b.style.background = "#fff";
+          b.style.borderColor = "#cbd5e0";
+          b.style.color = "#2d3748";
+        });
+        btn.style.background = "#2c5282";
+        btn.style.borderColor = "#2c5282";
+        btn.style.color = "#fff";
+        selectedZatepleni = opt;
       }
-    });
-    
-    zatepleniOptions.forEach((opt) => {
-      const btn = U.el("button", {
-        class: "cg-btn-disp",
-        type: "button",
-        style: {
-          background: opt === "NE" ? "#2c5282" : "#fff",
-          border: "2px solid " + (opt === "NE" ? "#2c5282" : "#cbd5e0"),
-          color: opt === "NE" ? "#fff" : "#2d3748",
-          padding: "10px",
-          borderRadius: "4px",
-          cursor: "pointer",
-          fontWeight: "600",
-          transition: "all 0.2s",
-          minHeight: "44px"
-        },
-        onclick: (e) => {
-          e.preventDefault();
-          zatepleniButtons.forEach(b => {
-            b.style.background = "#fff";
-            b.style.borderColor = "#cbd5e0";
-            b.style.color = "#2d3748";
-          });
-          btn.style.background = "#2c5282";
-          btn.style.borderColor = "#2c5282";
-          btn.style.color = "#fff";
-          selectedZatepleni = opt;
-        }
-      }, [opt]);
-      
-      zatepleniButtons.push(btn);
-      zatepleniGrid.appendChild(btn);
-    });
-    
-    const oknaLabel = U.el("label", {}, ["Nová okna?"]);
-    const oknaButtons = [];
-    const oknaOptions = ["ANO", "NE"];
-    
-    const oknaGrid = U.el("div", {
+    }, [opt]);
+    zatepleniButtons.push(btn);
+    zatepleniGrid.appendChild(btn);
+  });
+
+  // 5. Nová okna?
+  const oknaLabel = U.el("label", {}, ["Nová okna?"]);
+  const oknaOptions = ["ANO", "NE"];
+  const oknaButtons = [];
+  const oknaGrid = U.el("div", { style: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginBottom: "16px" } });
+  oknaOptions.forEach((opt) => {
+    const btn = U.el("button", {
+      class: "cg-btn-disp",
+      type: "button",
       style: {
-        display: "grid",
-        gridTemplateColumns: "repeat(2, 1fr)",
-        gap: "8px",
-        marginBottom: "16px"
+        background: opt === "NE" ? "#2c5282" : "#fff",
+        border: "2px solid " + (opt === "NE" ? "#2c5282" : "#cbd5e0"),
+        color: opt === "NE" ? "#fff" : "#2d3748",
+        padding: "10px",
+        borderRadius: "4px",
+        cursor: "pointer",
+        fontWeight: "600",
+        transition: "all 0.2s",
+        minHeight: "44px"
+      },
+      onclick: (e) => {
+        e.preventDefault();
+        oknaButtons.forEach(b => {
+          b.style.background = "#fff";
+          b.style.borderColor = "#cbd5e0";
+          b.style.color = "#2d3748";
+        });
+        btn.style.background = "#2c5282";
+        btn.style.borderColor = "#2c5282";
+        btn.style.color = "#fff";
+        selectedOkna = opt;
       }
-    });
-    
-    oknaOptions.forEach((opt) => {
-      const btn = U.el("button", {
-        class: "cg-btn-disp",
-        type: "button",
-        style: {
-          background: opt === "NE" ? "#2c5282" : "#fff",
-          border: "2px solid " + (opt === "NE" ? "#2c5282" : "#cbd5e0"),
-          color: opt === "NE" ? "#fff" : "#2d3748",
-          padding: "10px",
-          borderRadius: "4px",
-          cursor: "pointer",
-          fontWeight: "600",
-          transition: "all 0.2s",
-          minHeight: "44px"
-        },
-        onclick: (e) => {
-          e.preventDefault();
-          oknaButtons.forEach(b => {
-            b.style.background = "#fff";
-            b.style.borderColor = "#cbd5e0";
-            b.style.color = "#2d3748";
-          });
-          btn.style.background = "#2c5282";
-          btn.style.borderColor = "#2c5282";
-          btn.style.color = "#fff";
-          selectedOkna = opt;
-        }
-      }, [opt]);
+    }, [opt]);
+    oknaButtons.push(btn);
+    oknaGrid.appendChild(btn);
+  });
+
+  // 6. Parkování
+  const parkLabel = U.el("label", {}, ["Parkování"]);
+  const parkOptions = ["Žádné", "Venkovní stání", "Garáž 1×", "Garáž 2×"];
+  const parkButtons = [];
+  const parkGrid = U.el("div", { style: { display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:"8px", marginBottom:"16px" } });
+  parkOptions.forEach((opt) => {
+    const btn = U.el("button", { class:"cg-btn-disp", type:"button", style:{ background: opt==="Žádné"?"#2c5282":"#fff", border:"2px solid " + (opt==="Žádné"?"#2c5282":"#cbd5e0"), color: opt==="Žádné"?"#fff":"#2d3748", borderRadius:"10px", padding:"10px 12px", fontWeight:"600", transition:"all 0.2s", minHeight:"44px" },
+      onclick:(e)=>{ e.preventDefault(); parkButtons.forEach(b=>{b.style.background="#fff"; b.style.borderColor="#cbd5e0"; b.style.color="#2d3748";}); btn.style.background="#2c5282"; btn.style.borderColor="#2c5282"; btn.style.color="#fff"; selectedParkovani = opt; }
+    }, [opt]);
+    parkButtons.push(btn); parkGrid.appendChild(btn);
+  });
+
+  // 7. Výměra domu (m²)
+  const areaLabel = U.el("label", {}, ["Výměra domu (m²)"]);
+  const area = U.input("vymera", "Výměra (m²)", "number");
+
+  const go = U.el("button", { 
+    class: "cg-btn", 
+    type: "button", 
+    onclick: () => {
+      const vymera = parseFloat(area.value || 0);
+      if (!vymera || vymera <= 0) {
+        addAI("⚠️ Prosím zadejte platnou výměru v m².");
+        area.focus();
+        return;
+      }
       
-      oknaButtons.push(btn);
-      oknaGrid.appendChild(btn);
-    });
-    
-    
-    // === Typ domu ===
-    const typDomuLabel = U.el("label", {}, ["Typ domu"]);
-    const typDomuOptions = ["Rodinný dům", "Řadový", "Dvojdům", "Vila", "Chata/Chalupa"];
-    const typDomuButtons = [];
-    const typDomuGrid = U.el("div", { style: { display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:"8px", marginBottom:"16px" } });
-    typDomuOptions.forEach((opt) => {
-      const btn = U.el("button", { class:"cg-btn-disp", type:"button", style:{ background: opt==="Rodinný dům"?"#2c5282":"#fff", border:"2px solid " + (opt==="Rodinný dům"?"#2c5282":"#cbd5e0"), color: opt==="Rodinný dům"?"#fff":"#2d3748", borderRadius:"10px", padding:"10px 12px", fontWeight:"600", transition:"all 0.2s", minHeight:"44px" },
-        onclick:(e)=>{ e.preventDefault(); typDomuButtons.forEach(b=>{b.style.background="#fff"; b.style.borderColor="#cbd5e0"; b.style.color="#2d3748";}); btn.style.background="#2c5282"; btn.style.borderColor="#2c5282"; btn.style.color="#fff"; selectedTypDomu = opt; }
-      }, [opt]);
-      typDomuButtons.push(btn); typDomuGrid.appendChild(btn);
-    });
+      const params = { 
+        typ: "Dům", 
+        adresa: adresa,
+        typ_domu: selectedTypDomu,
+        typ_stavby: selectedTyp,
+        stav: selectedStav,
+        zatepleni: selectedZatepleni,
+        okna: selectedOkna,
+        parkovani: selectedParkovani,
+        vymera: vymera 
+      };
+      
+      console.log('[Widget] Dům params:', params);
+      renderLeadBoxPricing(params);
+    }
+  }, ["Pokračovat k odhadu"]);
 
-    // === Stav domu ===
-    const stavLabel = U.el("label", {}, ["Stav domu"]);
-    const stavOptions = ["Novostavba", "Po rekonstrukci", "Dobrý", "Horší"];
-    const stavButtons = [];
-    const stavGrid = U.el("div", { style: { display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:"8px", marginBottom:"16px" } });
-    stavOptions.forEach((opt) => {
-      const btn = U.el("button", { class:"cg-btn-disp", type:"button", style:{ background: opt==="Dobrý"?"#2c5282":"#fff", border:"2px solid " + (opt==="Dobrý"?"#2c5282":"#cbd5e0"), color: opt==="Dobrý"?"#fff":"#2d3748", borderRadius:"10px", padding:"10px 12px", fontWeight:"600", transition:"all 0.2s", minHeight:"44px" },
-        onclick:(e)=>{ e.preventDefault(); stavButtons.forEach(b=>{b.style.background="#fff"; b.style.borderColor="#cbd5e0"; b.style.color="#2d3748";}); btn.style.background="#2c5282"; btn.style.borderColor="#2c5282"; btn.style.color="#fff"; selectedStav = opt; }
-      }, [opt]);
-      stavButtons.push(btn); stavGrid.appendChild(btn);
-    });
+  const box = U.el("div", { class: "cg-step" }, [
+    U.el("label", {}, ["Parametry domu"]),
+    U.el("div", { class: "hint" }, ["Adresa: " + adresa]),
+    typDomuLabel, typDomuGrid, // 1
+    typLabel, typGrid,         // 2
+    stavLabel, stavGrid,       // 3
+    zatepleniLabel, zatepleniGrid, // 4
+    oknaLabel, oknaGrid,       // 5
+    parkLabel, parkGrid,       // 6
+    areaLabel, area,           // 7
+    U.el("div", { class: "cg-cta" }, [go]),
+  ]);
 
-    // === Parkování ===
-    const parkLabel = U.el("label", {}, ["Parkování"]);
-    const parkOptions = ["Žádné", "Venkovní stání", "Garáž 1×", "Garáž 2×"];
-    const parkButtons = [];
-    const parkGrid = U.el("div", { style: { display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:"8px", marginBottom:"16px" } });
-    parkOptions.forEach((opt) => {
-      const btn = U.el("button", { class:"cg-btn-disp", type:"button", style:{ background: opt==="Žádné"?"#2c5282":"#fff", border:"2px solid " + (opt==="Žádné"?"#2c5282":"#cbd5e0"), color: opt==="Žádné"?"#fff":"#2d3748", borderRadius:"10px", padding:"10px 12px", fontWeight:"600", transition:"all 0.2s", minHeight:"44px" },
-        onclick:(e)=>{ e.preventDefault(); parkButtons.forEach(b=>{b.style.background="#fff"; b.style.borderColor="#cbd5e0"; b.style.color="#2d3748";}); btn.style.background="#2c5282"; btn.style.borderColor="#2c5282"; btn.style.color="#fff"; selectedParkovani = opt; }
-      }, [opt]);
-      parkButtons.push(btn); parkGrid.appendChild(btn);
-    });
-        const areaLabel = U.el("label", {}, ["Výměra domu (m²)"]);
-    const area = U.input("vymera", "Výměra (m²)", "number");
-
-    const go = U.el("button", { 
-      class: "cg-btn", 
-      type: "button", 
-      onclick: () => {
-        const vymera = parseFloat(area.value || 0);
-        if (!vymera || vymera <= 0) {
-          addAI("⚠️ Prosím zadejte platnou výměru v m².");
-          area.focus();
-          return;
-        }
-        
-        const params = { 
-          typ: "Dům", 
-          adresa: adresa,
-          typ_stavby: selectedTyp,
-          typ_domu: selectedTypDomu,
-          stav: selectedStav,
-          parkovani: selectedParkovani,
-          vymera: vymera 
-        };
-        
-        console.log('[Widget] Dům params:', params);
-        renderLeadBoxPricing(params);
-      }
-    }, ["Pokračovat k odhadu"]);
-
-    const box = U.el("div", { class: "cg-step" }, [
-      U.el("label", {}, ["Parametry domu"]),
-      U.el("div", { class: "hint" }, ["Adresa: " + adresa]),
-      typLabel,
-      typGrid,
-      zatepleniLabel,
-      zatepleniGrid,
-      oknaLabel,
-      oknaGrid, typDomuLabel, typDomuGrid, stavLabel, stavGrid, parkLabel, parkGrid,
-      areaLabel,
-      area,
-      U.el("div", { class: "cg-cta" }, [go]),
-    ]);
-    
-    addAI("Nacenění – krok 3/3", box);
-  }
+  addAI("Nacenění – krok 3/3", box);
+}
 
   function stepParamsPozemek(obec) {
     let selectedKategorie = "Bydlení";
