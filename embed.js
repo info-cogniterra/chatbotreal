@@ -1,4 +1,4 @@
-// Cogniterra embed loader (v6) - BEZ DUPLICITNÍHO CLOSE TLAČÍTKA
+// Cogniterra embed loader (v8) - NEW DESIGN with Fox Avatar
 (function(){
   const tag = document.currentScript;
   const CFG = tag.getAttribute('data-config');
@@ -9,15 +9,127 @@
 
   window.CGTR = { configUrl: CFG, widgetUrl: WIDGET, containerId: 'chatbot-container' };
 
-  const css = `.cg-launcher{position:fixed;right:20px;bottom:20px;width:56px;height:56px;border-radius:999px;
-    background:linear-gradient(135deg,#6E7BFF,#9B6BFF);box-shadow:0 10px 30px rgba(0,0,0,.35);
-    border:1px solid rgba(255,255,255,.15);color:#EAF2FF;display:flex;align-items:center;justify-content:center;
-    cursor:pointer;z-index:2147483000;font:600 14px/1 Inter,system-ui;-webkit-tap-highlight-color:transparent;
-    user-select:none;-webkit-user-select:none;touch-action:manipulation;}
-  .cg-panel{position:fixed;right:20px;bottom:90px;width:420px;height:650px;z-index:2147483001;border-radius:18px;
-    overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.35);border:none;background:transparent;display:none;padding:0;}
+  // NEW: Fox avatar as base64 data URI (replace with your actual image)
+  const FOX_AVATAR = 'https://raw.githubusercontent.com/info-cogniterra/chatbotreal/main/assets/fox-avatar.png';
+
+  const css = `
+  /* === NEW DESIGN: Fox Avatar Launcher === */
+  .cg-launcher {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FF8C42, #FF6B35);
+    box-shadow: 0 8px 24px rgba(255, 107, 53, 0.4);
+    border: 3px solid #fff;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2147483000;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
+  }
+  
+  .cg-launcher:hover {
+    transform: scale(1.05);
+    box-shadow: 0 12px 32px rgba(255, 107, 53, 0.5);
+  }
+  
+  .cg-launcher:active {
+    transform: scale(0.98);
+  }
+  
+  .cg-launcher-avatar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+  
+  /* Speech bubble */
+  .cg-launcher-bubble {
+    position: absolute;
+    right: 85px;
+    bottom: 50%;
+    transform: translateY(50%);
+    background: #fff;
+    color: #2C3E50;
+    padding: 12px 18px;
+    border-radius: 18px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    font: 500 14px/1.4 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  
+  .cg-launcher-bubble::after {
+    content: '';
+    position: absolute;
+    right: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 8px solid #fff;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+  }
+  
+  .cg-launcher:hover .cg-launcher-bubble {
+    opacity: 1;
+    transform: translateY(50%) translateX(-5px);
+  }
+  
+  /* Panel - NEW DESIGN */
+  .cg-panel {
+    position: fixed;
+    right: 20px;
+    bottom: 100px;
+    width: 420px;
+    height: 650px;
+    z-index: 2147483001;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    border: none;
+    background: #fff;
+    display: none;
+    padding: 0;
+  }
+  
   @media (max-width: 767.98px) {
-    .cg-launcher{right:16px;bottom:16px;width:60px;height:60px;font-size:24px;}
+    .cg-launcher {
+      right: 16px;
+      bottom: 16px;
+      width: 64px;
+      height: 64px;
+    }
+    
+    .cg-launcher-bubble {
+      display: none;
+    }
+    
+    .cg-panel {
+      position: fixed !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      top: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      height: 100dvh !important;
+      border-radius: 0 !important;
+    }
   }`;
   
   const style=document.createElement('style'); 
@@ -31,13 +143,30 @@
     document.head.appendChild(link); 
   }
 
+  // NEW: Launcher with fox avatar
   const btn=document.createElement('div'); 
   btn.className='cg-launcher'; 
   btn.title='Otevřít chat'; 
-  btn.innerHTML = '💬';
   btn.setAttribute('role', 'button');
-  btn.setAttribute('aria-label', 'Otevřít chat');
+  btn.setAttribute('aria-label', 'Otevřít chat s asistentem');
   btn.setAttribute('tabindex', '0');
+  
+  const avatarImg = document.createElement('img');
+  avatarImg.className = 'cg-launcher-avatar';
+  avatarImg.src = FOX_AVATAR;
+  avatarImg.alt = 'Cogniterra asistent';
+  avatarImg.onerror = function() {
+    // Fallback to emoji if image fails to load
+    btn.innerHTML = '🦊';
+    btn.style.fontSize = '36px';
+  };
+  btn.appendChild(avatarImg);
+  
+  const bubble = document.createElement('div');
+  bubble.className = 'cg-launcher-bubble';
+  bubble.textContent = 'Potřebujete pomoc?';
+  btn.appendChild(bubble);
+  
   document.body.appendChild(btn);
   
   const panel=document.createElement('div'); 
@@ -46,15 +175,12 @@
   panel.setAttribute('aria-modal', 'true');
   panel.setAttribute('aria-label', 'Chatbot');
   
-  // ODSTRANĚNO: close button zde - widget má vlastní
-  
   const cont=document.createElement('div'); 
   cont.id='chatbot-container'; 
   cont.style.cssText = 'width:100%;height:100%;position:absolute;inset:0;';
   panel.appendChild(cont);
   document.body.appendChild(panel);
   
-  // Ensure widget host exists for bubble-only build
   const host=document.createElement('div'); 
   host.setAttribute('data-cogniterra-widget',''); 
   host.style.cssText = 'width:100%;height:100%;position:absolute;inset:0;';
@@ -94,30 +220,20 @@
   };
   
   const handleToggle = (e) => {
-    console.log('[CGTR] Toggle triggered, open:', open, 'transitioning:', transitioning);
+    console.log('[CGTR] Toggle triggered');
     e.preventDefault();
     e.stopPropagation();
-    e.stopImmediatePropagation();
-    if (transitioning) {
-      console.log('[CGTR] Blocked: transitioning');
-      return false;
-    }
-    if(open) {
-      hide();
-    } else {
-      show();
-    }
+    if (transitioning) return false;
+    if(open) hide(); else show();
     return false;
   };
   
-  // Přidáme oba eventy pro mobilní podporu
-  btn.addEventListener('click', handleToggle, { passive: false, capture: false }); 
+  btn.addEventListener('click', handleToggle, { passive: false }); 
   btn.addEventListener('touchend', (e) => {
     e.preventDefault();
     handleToggle(e);
-  }, { passive: false, capture: false });
+  }, { passive: false });
 
-  // Keyboard support
   btn.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -125,17 +241,13 @@
     }
   });
 
-  // Expose show/hide globally for widget
   window.CGTR.show = show;
   window.CGTR.hide = hide;
-  window.CGTR.toggle = () => {
-    console.log('[CGTR] Manual toggle called');
-    if (open) hide(); else show();
-  };
+  window.CGTR.toggle = () => { if (open) hide(); else show(); };
   window.CGTR.isOpen = () => open;
 })();
 
-// === Mobile viewport helper (vh fix) ===
+// Mobile viewport helper
 (function cgSetVH() {
   try {
     const set = () => {
@@ -150,73 +262,28 @@
   } catch(e){ console.warn('[CGTR] VH setup failed:', e); }
 })();
 
-//== CG Inject: responsive overrides & body lock ==
+// Responsive overrides & body lock
 (function() {
   try {
     var style = document.createElement('style');
     style.id = 'cg-responsive-override';
     style.textContent = `
-/* === CG: Lock background scroll when chat open === */
 html.cg-open, body.cg-open {
   overflow: hidden !important;
   touch-action: none !important;
   overscroll-behavior: contain !important;
 }
-\n
-/* === CG: Responsive overrides for launcher & panel === */
-.cg-launcher {
-  -webkit-tap-highlight-color: transparent;
-  transition: transform 0.1s ease;
-}
-.cg-launcher:active {
-  transform: scale(0.95);
-}
+
 @media (min-width: 768px) {
   .cg-panel {
-    width: clamp(360px, 34vw, 420px) !important;
-    height: clamp(520px, 72vh, 650px) !important;
+    width: clamp(380px, 36vw, 450px) !important;
+    height: clamp(550px, 75vh, 700px) !important;
     right: 20px !important;
-    bottom: 90px !important;
-    left: auto !important;
-    top: auto !important;
-    border-radius: 18px !important;
-    max-height: 92vh !important;
-    overflow: hidden !important;
-  }
-  html.cg-open, body.cg-open {
-    position: relative !important;
-    width: auto !important;
-    height: auto !important;
+    bottom: 100px !important;
   }
 }
+
 @media (max-width: 767.98px) {
-  .cg-panel {
-    position: fixed !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    top: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    height: 100dvh !important;
-    max-height: 100vh !important;
-    max-height: 100dvh !important;
-    border-radius: 0 !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    overflow: hidden !important;
-    box-sizing: border-box !important;
-    transform: none !important;
-    transition: none !important;
-  }
-  
-  html.cg-open, body.cg-open {
-    position: fixed !important;
-    width: 100% !important;
-    height: 100% !important;
-    overflow: hidden !important;
-  }
-  
   .cg-launcher.cg-hidden {
     opacity: 0 !important;
     pointer-events: none !important;
@@ -228,8 +295,7 @@ html.cg-open, body.cg-open {
   } catch(e) { console.warn('[CGTR] Style inject failed:', e); }
 })();
 
-
-//== CG Inject: observe panel visibility to lock background ==
+// Panel visibility observer
 (function(){
   try {
     var checkPanel = function() {
@@ -247,10 +313,6 @@ html.cg-open, body.cg-open {
         if (launcher && window.innerWidth < 768) {
           launcher.classList.add('cg-hidden');
         }
-        if (window.innerWidth < 768) {
-          window.__cgScrollY = window.scrollY || window.pageYOffset || 0;
-          document.body.style.top = '-' + window.__cgScrollY + 'px';
-        }
       };
       
       var off = function(){ 
@@ -260,11 +322,6 @@ html.cg-open, body.cg-open {
         if (launcher) {
           launcher.classList.remove('cg-hidden');
         }
-        if (window.innerWidth < 768 && typeof window.__cgScrollY !== 'undefined') {
-          document.body.style.top = '';
-          window.scrollTo(0, window.__cgScrollY);
-          window.__cgScrollY = undefined;
-        }
       };
       
       var lastDisplay = getComputedStyle(panel).display;
@@ -272,7 +329,6 @@ html.cg-open, body.cg-open {
         var d = getComputedStyle(panel).display;
         if (d !== lastDisplay) {
           lastDisplay = d;
-          console.log('[CGTR] Panel display changed to:', d);
           if (d !== 'none') on(); else off();
         }
       });
@@ -283,45 +339,3 @@ html.cg-open, body.cg-open {
     checkPanel();
   } catch(e){ console.warn('[CGTR] Observer failed:', e); }
 })();
-
-
-//== CG Inject: visualViewport height sync on mobile ==
-(function(){
-  try {
-    var checkPanel = function() {
-      var panel = document.querySelector('.cg-panel');
-      if (!panel) {
-        setTimeout(checkPanel, 50);
-        return;
-      }
-      if (!window.visualViewport) return;
-      
-      var isMobile = function(){ return window.innerWidth < 768; };
-      var apply = function(){
-        if (!isMobile()) { 
-          panel.style.removeProperty('height'); 
-          panel.style.removeProperty('max-height');
-          return; 
-        }
-        var vh = Math.round(window.visualViewport.height);
-        if (getComputedStyle(panel).display !== 'none') {
-          panel.style.height = vh + 'px';
-          panel.style.maxHeight = vh + 'px';
-        }
-      };
-      
-      window.visualViewport.addEventListener('resize', apply, { passive: true });
-      window.addEventListener('orientationchange', () => {
-        setTimeout(apply, 100);
-      }, { passive: true });
-      apply();
-    };
-    checkPanel();
-  } catch(e){ console.warn('[CGTR] Viewport sync failed:', e); }
-})();
-
-// Debug helper
-if (window.location.search.includes('cgtr_debug=1')) {
-  console.log('[CGTR] Debug mode enabled');
-  window.CGTR.debug = true;
-}
