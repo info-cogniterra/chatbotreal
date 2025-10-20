@@ -19,10 +19,10 @@
     bottom: 20px;
     width: 70px;
     height: 70px;
-    border-radius: 50%;
+    border-radius: 0;
     background: linear-gradient(135deg, #1F6A3A, #76C68E);
     box-shadow: 0 10px 26px rgba(31, 106, 58, 0.35);
-    border: 3px solid #fff;
+    border: none;
     color: #fff;
     display: flex;
     align-items: center;
