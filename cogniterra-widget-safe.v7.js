@@ -319,7 +319,7 @@
   }
   
   .chat-header-logo {
-    height: 32px;
+    height: 52px;
     width: auto;
   }
   
