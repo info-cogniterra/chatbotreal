@@ -47,10 +47,11 @@
   }
   
   .cg-launcher-avatar {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 50%;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;  /* Změněno z cover */
+  border-radius: 0;  /* Odstraněno zaoblení */
+  background: transparent;  /* Průhledné pozadí */
   }
   
   /* Speech bubble */
