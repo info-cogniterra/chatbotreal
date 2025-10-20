@@ -1565,7 +1565,7 @@
         btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
         btn.style.borderColor = "var(--green)";
         btn.style.color = "#fff";
-              
+        }      
       stavButtons.push(btn);
       stavGrid.appendChild(btn);
     });
