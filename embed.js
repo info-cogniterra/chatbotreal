@@ -111,21 +111,25 @@
     height: 64px;
   }
   
-  /* Bublina viditelná i na mobilu */
   .cg-launcher-bubble {
-    display: block;  /* Viditelná */
-    right: 75px;  /* Upravená pozice pro menší launcher */
-    font-size: 13px;  /* Menší text na mobilu */
-    padding: 10px 14px;  /* Kompaktnější */
-    max-width: 200px;  /* Omezení šířky */
-    white-space: normal;  /* Povolit zalomení textu */
+    display: block !important;
+    right: 75px;  /* 64px launcher + 11px mezera */
+    bottom: 50%;
+    transform: translateY(50%);
+    font-size: 12px;
+    padding: 8px 12px;
+    max-width: calc(66vw - 90px);  /* 2/3 šířky obrazovky mínus launcher a mezery */
+    width: calc(66vw - 90px);  /* Fixní šířka na 2/3 */
+    white-space: normal;
+    line-height: 1.4;
+    box-sizing: border-box;
   }
   
   .cg-launcher-bubble::after {
-    right: -7px;  /* Upravená šipka */
-    border-left: 7px solid #fff;
-    border-top: 7px solid transparent;
-    border-bottom: 7px solid transparent;
+    right: -7px;
+    border-left-width: 7px;
+    border-top-width: 7px;
+    border-bottom-width: 7px;
   }
     
     .cg-panel {
