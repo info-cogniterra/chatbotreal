@@ -8,14 +8,14 @@
   window.addEventListener('resize', updateVH, {passive:true});
 })();
 
-// cogniterra-widget-safe.v8.js — NEW DESIGN with Fox Avatar
-// Build v8.0 — Nový design podle HTML + funkčnost zachována
+// cogniterra-widget-safe.v8.js — NEW DESIGN with updated brand colors
+// Build v8.1 — Zelená a zlatá paleta, světlý režim
 // Date: 2025-01-20 | Author: info-cogniterra
 
 (function () {
   "use strict";
 
-  console.log('[Widget] Initialization started... (v8.0 - New Design)');
+  console.log('[Widget] Initialization started... (v8.1 - Brand Colors)');
 
   const host = document.querySelector("[data-cogniterra-widget]");
   if (!host) {
@@ -53,7 +53,7 @@
 
   console.log('[Widget] Session:', S.session);
 
-  // Fox avatar URL - můžete nahradit vlastní URL nebo base64
+  // Fox avatar URL
   const FOX_AVATAR = 'https://raw.githubusercontent.com/info-cogniterra/chatbotreal/main/assets/avatar.png';
   const LOGO_URL = 'https://raw.githubusercontent.com/info-cogniterra/chatbotreal/main/assets/brand-icon.png';
   
@@ -254,10 +254,10 @@
     }
   };
 
-  // === NEW DESIGN STYLES ===
+  // === NEW BRAND DESIGN STYLES ===
   const style = document.createElement("style");
   style.textContent = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
   
   :host {
     all: initial;
@@ -268,12 +268,35 @@
     padding: 0;
     border: none;
     background: transparent;
-    --color-primary: #FF6B35;
-    --color-primary-light: #FF8C42;
-    --color-bg: #F5F7FA;
-    --color-text: #2C3E50;
-    --color-text-light: #5A6C7D;
-    --color-border: #E1E8ED;
+    
+    /* Brand colors */
+    --gold: #D4AF37;
+    --green: #1F6A3A;
+    --green-soft: #76C68E;
+    
+    /* Neutrals */
+    --surface: #ffffff;
+    --text: #0f0f0f;
+    --muted: #5f6368;
+    --gray-50: #fafafa;
+    --gray-600: #4b5563;
+    --gray-900: #111827;
+    
+    /* Radius */
+    --radius-sm: 12px;
+    --radius-md: 16px;
+    --radius-lg: 24px;
+    
+    /* Shadows */
+    --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.04);
+    --shadow-btn: 0 10px 26px rgba(31, 106, 58, 0.22);
+    
+    /* Typography */
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-weight-normal: 400;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 800;
+    --font-weight-black: 900;
   }
   
   * {
@@ -284,10 +307,10 @@
   
   /* === Chat Container === */
   .chat-container {
-    font: 15px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-    color: var(--color-text);
-    background: #fff;
-    border-radius: 24px;
+    font: 15px/1.6 var(--font-sans);
+    color: var(--text);
+    background: var(--surface);
+    border-radius: var(--radius-lg);
     box-shadow: 0 20px 60px rgba(0,0,0,0.2);
     width: 100%;
     max-width: 100%;
@@ -299,16 +322,16 @@
     inset: 0;
   }
   
-  /* === NEW: Header with Logo === */
+  /* === Header with Logo === */
   .chat-header {
-    background: linear-gradient(135deg, #FF8C42, #FF6B35);
+    background: linear-gradient(135deg, var(--green), var(--green-soft));
     color: #fff;
     padding: 18px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-bottom: none;
-    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.2);
+    box-shadow: var(--shadow-btn);
   }
   
   .chat-header-content {
@@ -324,7 +347,7 @@
   }
   
   .chat-header-title {
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     font-size: 17px;
     letter-spacing: -0.2px;
   }
@@ -359,7 +382,7 @@
     flex: 1;
     padding: 20px;
     overflow-y: auto;
-    background: var(--color-bg);
+    background: var(--gray-50);
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -382,7 +405,7 @@
     background: #A0AEC0;
   }
   
-  /* === NEW: Message Bubbles with Avatars === */
+  /* === Message Bubbles with Avatars === */
   .chat-msg {
     display: flex;
     gap: 10px;
@@ -427,25 +450,25 @@
     word-wrap: break-word;
     overflow-wrap: break-word;
     white-space: pre-wrap;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    box-shadow: var(--shadow-card);
     line-height: 1.5;
   }
   
   .chat-msg.ai .msg-content {
-    background: #fff;
+    background: var(--surface);
     border-bottom-left-radius: 6px;
-    color: var(--color-text);
+    color: var(--text);
   }
   
   .chat-msg.me .msg-content {
-    background: linear-gradient(135deg, #FF8C42, #FF6B35);
+    background: linear-gradient(135deg, var(--green), var(--green-soft));
     color: #fff;
     border-bottom-right-radius: 6px;
   }
   
   .chat-msg.loading .msg-content {
     background: #E2E8F0;
-    color: #4A5568;
+    color: var(--gray-600);
     font-style: italic;
     animation: pulse 1.5s ease-in-out infinite;
   }
@@ -468,8 +491,8 @@
     display: flex;
     gap: 12px;
     padding: 16px 20px;
-    background: #fff;
-    border-top: 1px solid var(--color-border);
+    background: var(--surface);
+    border-top: 1px solid var(--gray-50);
   }
   
   .chat-input-area textarea {
@@ -477,12 +500,12 @@
     resize: none;
     min-height: 48px;
     max-height: 120px;
-    border-radius: 12px;
-    border: 1px solid var(--color-border);
-    background: var(--color-bg);
-    color: var(--color-text);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--gray-50);
+    background: var(--gray-50);
+    color: var(--text);
     padding: 14px 16px;
-    font-family: 'Inter', -apple-system, sans-serif;
+    font-family: var(--font-sans);
     font-size: 15px;
     line-height: 1.4;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -490,9 +513,9 @@
   
   .chat-input-area textarea:focus {
     outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
-    background: #fff;
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(31, 106, 58, 0.1);
+    background: var(--surface);
   }
   
   .chat-input-area textarea:disabled {
@@ -502,22 +525,22 @@
   
   .chat-input-area button {
     border: 0;
-    background: linear-gradient(135deg, #FF8C42, #FF6B35);
+    background: linear-gradient(135deg, var(--green), var(--green-soft));
     color: #fff;
     padding: 0 24px;
-    border-radius: 12px;
-    font-weight: 600;
+    border-radius: var(--radius-sm);
+    font-weight: var(--font-weight-semibold);
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     min-height: 48px;
-    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+    box-shadow: var(--shadow-btn);
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
   
   .chat-input-area button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(255, 107, 53, 0.4);
+    box-shadow: 0 12px 32px rgba(31, 106, 58, 0.3);
   }
   
   .chat-input-area button:active {
@@ -548,21 +571,21 @@
   .cg-card {
     width: 100%;
     text-align: left;
-    background: #fff;
+    background: var(--surface);
     border: none;
-    border-radius: 16px;
+    border-radius: var(--radius-md);
     padding: 18px;
     cursor: pointer;
-    color: var(--color-text);
+    color: var(--text);
     font-family: inherit;
     transition: all 0.2s ease;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    box-shadow: var(--shadow-card);
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
   
   .cg-card:hover {
-    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.08);
     transform: translateY(-2px);
   }
   
@@ -572,37 +595,37 @@
   
   .cg-card h3 {
     margin: 0 0 8px;
-    font-weight: 700;
+    font-weight: var(--font-weight-bold);
     font-size: 17px;
-    color: var(--color-text);
+    color: var(--text);
   }
   
   .cg-card p {
     margin: 0;
     font-size: 14px;
-    color: var(--color-text-light);
+    color: var(--muted);
     line-height: 1.5;
   }
   
   .cg-card.secondary {
     background: #F0FFF4;
-    border: 1px solid #9AE6B4;
+    border: 1px solid var(--green-soft);
   }
   
   /* === Form Steps === */
   .cg-step {
-    background: #fff;
-    border-radius: 16px;
+    background: var(--surface);
+    border-radius: var(--radius-md);
     padding: 18px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    box-shadow: var(--shadow-card);
     position: relative;
   }
   
   .cg-step label {
     display: block;
     margin: 10px 0 8px;
-    color: var(--color-text);
-    font-weight: 600;
+    color: var(--text);
+    font-weight: var(--font-weight-semibold);
     font-size: 14px;
   }
   
@@ -610,10 +633,10 @@
     width: 100%;
     margin: 6px 0 12px;
     padding: 12px 14px;
-    border-radius: 12px;
-    border: 1px solid var(--color-border);
-    background: var(--color-bg);
-    color: var(--color-text);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--gray-50);
+    background: var(--gray-50);
+    color: var(--text);
     font-family: inherit;
     font-size: 15px;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -621,9 +644,9 @@
   
   .cg-input:focus, .cg-select:focus {
     outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
-    background: #fff;
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(31, 106, 58, 0.1);
+    background: var(--surface);
   }
   
   .cg-cta {
@@ -635,22 +658,22 @@
   
   .cg-btn {
     border: 0;
-    background: linear-gradient(135deg, #FF8C42, #FF6B35);
+    background: linear-gradient(135deg, var(--green), var(--green-soft));
     color: #fff;
     padding: 12px 20px;
-    border-radius: 12px;
-    font-weight: 600;
+    border-radius: var(--radius-sm);
+    font-weight: var(--font-weight-semibold);
     cursor: pointer;
     transition: all 0.2s ease;
     min-height: 48px;
-    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+    box-shadow: var(--shadow-btn);
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
   
   .cg-btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(255, 107, 53, 0.4);
+    box-shadow: 0 12px 32px rgba(31, 106, 58, 0.3);
   }
   
   .cg-btn:active {
@@ -664,9 +687,9 @@
   }
   
   .cg-btn.secondary {
-    background: #F4F6F8;
-    color: var(--color-text);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    background: var(--gray-50);
+    color: var(--text);
+    box-shadow: var(--shadow-card);
   }
   
   .cg-btn.secondary:hover {
@@ -674,12 +697,12 @@
   }
   
   .cg-btn-disp {
-    border: 2px solid var(--color-border);
-    background: #fff;
-    color: var(--color-text);
+    border: 2px solid var(--gray-50);
+    background: var(--surface);
+    color: var(--text);
     padding: 12px;
-    border-radius: 12px;
-    font-weight: 600;
+    border-radius: var(--radius-sm);
+    font-weight: var(--font-weight-semibold);
     cursor: pointer;
     transition: all 0.2s;
     min-height: 48px;
@@ -690,42 +713,42 @@
   }
   
   .cg-btn-disp:hover {
-    border-color: var(--color-primary);
-    background: rgba(255, 107, 53, 0.05);
+    border-color: var(--green);
+    background: rgba(31, 106, 58, 0.05);
   }
   
   .cg-btn-disp:active,
   .cg-btn-disp.selected {
-    background: linear-gradient(135deg, #FF8C42, #FF6B35) !important;
-    border-color: var(--color-primary) !important;
+    background: linear-gradient(135deg, var(--green), var(--green-soft)) !important;
+    border-color: var(--green) !important;
     color: #fff !important;
   }
   
   /* === Lead Box === */
   .leadbox {
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--gray-50);
     padding: 18px;
-    border-radius: 16px;
-    background: #fff;
+    border-radius: var(--radius-md);
+    background: var(--surface);
   }
   
   .leadbox input {
     width: 100%;
     margin: 6px 0 12px;
     padding: 12px 14px;
-    border-radius: 12px;
-    border: 1px solid var(--color-border);
-    background: var(--color-bg);
-    color: var(--color-text);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--gray-50);
+    background: var(--gray-50);
+    color: var(--text);
     font-family: inherit;
     font-size: 15px;
   }
   
   .leadbox input:focus {
     outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
-    background: #fff;
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(31, 106, 58, 0.1);
+    background: var(--surface);
   }
   
   .leadbox input[type="checkbox"] {
@@ -734,17 +757,17 @@
   }
   
   .hint {
-    color: var(--color-text-light);
+    color: var(--muted);
     font-size: 13px;
     margin-top: 8px;
   }
   
   /* === UP Results === */
   .up-result {
-    background: #fff;
-    border: 1px solid var(--color-border);
-    border-left: 4px solid var(--color-primary);
-    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--gray-50);
+    border-left: 4px solid var(--green);
+    border-radius: var(--radius-sm);
     padding: 16px;
     margin: 10px 0;
   }
@@ -752,20 +775,20 @@
   .up-result h4 {
     margin: 0 0 10px 0;
     font-size: 16px;
-    font-weight: 700;
-    color: var(--color-text);
+    font-weight: var(--font-weight-bold);
+    color: var(--text);
   }
   
   .up-result p {
     margin: 6px 0;
     font-size: 14px;
-    color: var(--color-text-light);
+    color: var(--muted);
   }
   
   .up-result a {
-    color: var(--color-primary);
+    color: var(--green);
     text-decoration: none;
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     word-break: break-all;
   }
   
@@ -775,9 +798,9 @@
   
   .up-no-result {
     background: #FFF3CD;
-    border: 1px solid #FFC107;
-    border-left: 4px solid #FFC107;
-    border-radius: 12px;
+    border: 1px solid var(--gold);
+    border-left: 4px solid var(--gold);
+    border-radius: var(--radius-sm);
     padding: 16px;
     margin: 10px 0;
     color: #856404;
@@ -785,9 +808,9 @@
   
   .up-offer {
     background: #E6FFED;
-    border: 1px solid #48BB78;
-    border-left: 4px solid #48BB78;
-    border-radius: 12px;
+    border: 1px solid var(--green-soft);
+    border-left: 4px solid var(--green);
+    border-radius: var(--radius-sm);
     padding: 16px;
     margin: 10px 0;
     color: #22543D;
@@ -797,9 +820,9 @@
   .mapy-suggest-container {
     position: absolute;
     background: white;
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--gray-50);
     border-top: none;
-    border-radius: 0 0 12px 12px;
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
     box-shadow: 0 8px 16px rgba(0,0,0,0.12);
     max-height: 240px;
     overflow-y: auto;
@@ -812,9 +835,9 @@
   .mapy-suggest-item {
     padding: 12px 16px;
     cursor: pointer;
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--gray-50);
     font-size: 14px;
-    color: var(--color-text);
+    color: var(--text);
     background: white;
     transition: background 0.15s ease;
     user-select: none;
@@ -827,7 +850,7 @@
   }
   
   .mapy-suggest-item:hover {
-    background: var(--color-bg) !important;
+    background: var(--gray-50) !important;
   }
   
   .mapy-suggest-item:active {
@@ -941,7 +964,7 @@
   
   console.log('[Widget] UI created successfully');
 
-  // === MESSAGE FUNCTIONS WITH NEW DESIGN ===
+  // === MESSAGE FUNCTIONS ===
   function addAI(t, extra) {
     const msgWrapper = U.el("div", { class: "chat-msg ai" });
     
@@ -950,7 +973,7 @@
       src: FOX_AVATAR,
       alt: "AI asistent",
       onerror: function() {
-        this.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%23FF6B35"/><text x="50" y="65" font-size="40" text-anchor="middle" fill="white">🦊</text></svg>';
+        this.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%231F6A3A"/></svg>';
       }
     });
     
@@ -1038,6 +1061,9 @@
     chatMessages.scrollTop = chatMessages.scrollHeight;
     return msgWrapper;
   }
+
+  // [Zbytek kódu zůstává stejný jako v původním souboru - attachSuggest, estimátor, formuláře atd.]
+  // Pro úsporu místa zde pokračuji pouze s hlavními změnami...
 
   // Mapy.cz Geocoding API autocomplete
   function attachSuggest(inputEl, isPozemek) {
@@ -1252,6 +1278,11 @@
     estimateDum(m, p)   { return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; },
     estimatePozemek(m,p){ return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; }
   };
+
+  // [Zbytek funkcionality - needsUP, handleUPQuery, renderStart, startPricing, 
+  // stepChooseType, stepLocation, stepParamsByt, stepParamsDum, stepParamsPozemek,
+  // renderLeadBoxPricing, saveLeadPricing, renderEstimate, stepContactVerify,
+  // saveLeadContact, needPricing, ask - zůstávají stejné]
 
   function needsUP(q) {
     const s = U.norm(q);
@@ -1489,12 +1520,12 @@
         onclick: (e) => {
           e.preventDefault();
           dispButtons.forEach(b => {
-            b.style.background = "#fff";
-            b.style.borderColor = "var(--color-border)";
-            b.style.color = "var(--color-text)";
+            b.style.background = "var(--surface)";
+            b.style.borderColor = "var(--gray-50)";
+            b.style.color = "var(--text)";
           });
-          btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
-          btn.style.borderColor = "var(--color-primary)";
+          btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+          btn.style.borderColor = "var(--green)";
           btn.style.color = "#fff";
           selectedDisposition = disp;
         }
@@ -1519,23 +1550,22 @@
         onclick: (e) => {
           e.preventDefault();
           stavButtons.forEach(b => {
-            b.style.background = "#fff";
-            b.style.borderColor = "var(--color-border)";
-            b.style.color = "var(--color-text)";
+            b.style.background = "var(--surface)";
+            b.style.borderColor = "var(--gray-50)";
+            b.style.color = "var(--text)";
           });
-          btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
-          btn.style.borderColor = "var(--color-primary)";
+          btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+          btn.style.borderColor = "var(--green)";
           btn.style.color = "#fff";
           selectedStav = stav;
         }
       }, [stav]);
       
       if (stav === "Dobrý") {
-        btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
-        btn.style.borderColor = "var(--color-primary)";
+        btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+        btn.style.borderColor = "var(--green)";
         btn.style.color = "#fff";
-      }
-      
+              
       stavButtons.push(btn);
       stavGrid.appendChild(btn);
     });
@@ -1556,20 +1586,20 @@
         onclick: (e) => {
           e.preventDefault();
           vlastButtons.forEach(b => {
-            b.style.background = "#fff";
-            b.style.borderColor = "var(--color-border)";
-                        b.style.color = "var(--color-text)";
+            b.style.background = "var(--surface)";
+            b.style.borderColor = "var(--gray-50)";
+            b.style.color = "var(--text)";
           });
-          btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
-          btn.style.borderColor = "var(--color-primary)";
+          btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+          btn.style.borderColor = "var(--green)";
           btn.style.color = "#fff";
           selectedVlast = vlast;
         }
       }, [vlast.charAt(0).toUpperCase() + vlast.slice(1)]);
       
       if (vlast === "osobní") {
-        btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
-        btn.style.borderColor = "var(--color-primary)";
+        btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+        btn.style.borderColor = "var(--green)";
         btn.style.color = "#fff";
       }
       
@@ -1646,20 +1676,20 @@
         onclick:(e)=>{ 
           e.preventDefault(); 
           typDomuButtons.forEach(b=>{
-            b.style.background="#fff"; 
-            b.style.borderColor="var(--color-border)"; 
-            b.style.color="var(--color-text)";
+            b.style.background="var(--surface)"; 
+            b.style.borderColor="var(--gray-50)"; 
+            b.style.color="var(--text)";
           }); 
-          btn.style.background="linear-gradient(135deg, #FF8C42, #FF6B35)"; 
-          btn.style.borderColor="var(--color-primary)";
+          btn.style.background="linear-gradient(135deg, var(--green), var(--green-soft))"; 
+          btn.style.borderColor="var(--green)";
           btn.style.color="#fff"; 
           selectedTypDomu=opt;
         }
       }, [opt]);
       
       if (opt === "Rodinný dům") {
-        btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
-        btn.style.borderColor = "var(--color-primary)";
+        btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+        btn.style.borderColor = "var(--green)";
         btn.style.color = "#fff";
       }
       
@@ -1681,20 +1711,20 @@
         onclick: (e) => {
           e.preventDefault();
           typButtons.forEach(b => {
-            b.style.background = "#fff";
-            b.style.borderColor = "var(--color-border)";
-            b.style.color = "var(--color-text)";
+            b.style.background = "var(--surface)";
+            b.style.borderColor = "var(--gray-50)";
+            b.style.color = "var(--text)";
           });
-          btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
-          btn.style.borderColor = "var(--color-primary)";
+          btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+          btn.style.borderColor = "var(--green)";
           btn.style.color = "#fff";
           selectedTyp = typ;
         }
       }, [typ]);
       
       if (typ === "Cihlová") {
-        btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
-        btn.style.borderColor = "var(--color-primary)";
+        btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+        btn.style.borderColor = "var(--green)";
         btn.style.color = "#fff";
       }
       
@@ -1714,20 +1744,20 @@
         onclick:(e)=>{ 
           e.preventDefault(); 
           stavButtons.forEach(b=>{
-            b.style.background="#fff"; 
-            b.style.borderColor="var(--color-border)"; 
-            b.style.color="var(--color-text)";
+            b.style.background="var(--surface)"; 
+            b.style.borderColor="var(--gray-50)"; 
+            b.style.color="var(--text)";
           }); 
-          btn.style.background="linear-gradient(135deg, #FF8C42, #FF6B35)"; 
-          btn.style.borderColor="var(--color-primary)";
+          btn.style.background="linear-gradient(135deg, var(--green), var(--green-soft))"; 
+          btn.style.borderColor="var(--green)";
           btn.style.color="#fff"; 
           selectedStav=opt;
         }
       }, [opt]);
       
       if (opt === "Dobrý") {
-        btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
-        btn.style.borderColor = "var(--color-primary)";
+        btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+        btn.style.borderColor = "var(--green)";
         btn.style.color = "#fff";
       }
       
@@ -1747,20 +1777,20 @@
         onclick: (e) => {
           e.preventDefault();
           zatepleniButtons.forEach(b => {
-            b.style.background = "#fff";
-            b.style.borderColor = "var(--color-border)";
-            b.style.color = "var(--color-text)";
+            b.style.background = "var(--surface)";
+            b.style.borderColor = "var(--gray-50)";
+            b.style.color = "var(--text)";
           });
-          btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
-          btn.style.borderColor = "var(--color-primary)";
+          btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+          btn.style.borderColor = "var(--green)";
           btn.style.color = "#fff";
           selectedZatepleni = opt;
         }
       }, [opt]);
       
       if (opt === "NE") {
-        btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
-        btn.style.borderColor = "var(--color-primary)";
+        btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+        btn.style.borderColor = "var(--green)";
         btn.style.color = "#fff";
       }
       
@@ -1780,20 +1810,20 @@
         onclick: (e) => {
           e.preventDefault();
           oknaButtons.forEach(b => {
-            b.style.background = "#fff";
-            b.style.borderColor = "var(--color-border)";
-            b.style.color = "var(--color-text)";
+            b.style.background = "var(--surface)";
+            b.style.borderColor = "var(--gray-50)";
+            b.style.color = "var(--text)";
           });
-          btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
-          btn.style.borderColor = "var(--color-primary)";
+          btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+          btn.style.borderColor = "var(--green)";
           btn.style.color = "#fff";
           selectedOkna = opt;
         }
       }, [opt]);
       
       if (opt === "NE") {
-        btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
-        btn.style.borderColor = "var(--color-primary)";
+        btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+        btn.style.borderColor = "var(--green)";
         btn.style.color = "#fff";
       }
       
@@ -1813,20 +1843,20 @@
         onclick:(e)=>{ 
           e.preventDefault(); 
           parkButtons.forEach(b=>{
-            b.style.background="#fff"; 
-            b.style.borderColor="var(--color-border)"; 
-            b.style.color="var(--color-text)";
+            b.style.background="var(--surface)"; 
+            b.style.borderColor="var(--gray-50)"; 
+            b.style.color="var(--text)";
           }); 
-          btn.style.background="linear-gradient(135deg, #FF8C42, #FF6B35)"; 
-          btn.style.borderColor="var(--color-primary)";
+          btn.style.background="linear-gradient(135deg, var(--green), var(--green-soft))"; 
+          btn.style.borderColor="var(--green)";
           btn.style.color="#fff"; 
           selectedParkovani=opt;
         }
       }, [opt]);
       
       if (opt === "Žádné") {
-        btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
-        btn.style.borderColor = "var(--color-primary)";
+        btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+        btn.style.borderColor = "var(--green)";
         btn.style.color = "#fff";
       }
       
@@ -1902,20 +1932,20 @@
         onclick: (e) => {
           e.preventDefault();
           katButtons.forEach(b => {
-            b.style.background = "#fff";
-            b.style.borderColor = "var(--color-border)";
-            b.style.color = "var(--color-text)";
+            b.style.background = "var(--surface)";
+            b.style.borderColor = "var(--gray-50)";
+            b.style.color = "var(--text)";
           });
-          btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
-          btn.style.borderColor = "var(--color-primary)";
+          btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+          btn.style.borderColor = "var(--green)";
           btn.style.color = "#fff";
           selectedKategorie = kat;
         }
       }, [kat]);
       
       if (kat === "Bydlení") {
-        btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
-        btn.style.borderColor = "var(--color-primary)";
+        btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+        btn.style.borderColor = "var(--green)";
         btn.style.color = "#fff";
       }
       
@@ -1941,12 +1971,12 @@
         onclick: (e) => {
           e.preventDefault();
           spoluvlButtons.forEach(b => {
-            b.style.background = "#fff";
-            b.style.borderColor = "var(--color-border)";
-            b.style.color = "var(--color-text)";
+            b.style.background = "var(--surface)";
+            b.style.borderColor = "var(--gray-50)";
+            b.style.color = "var(--text)";
           });
-          btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
-          btn.style.borderColor = "var(--color-primary)";
+          btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+          btn.style.borderColor = "var(--green)";
           btn.style.color = "#fff";
           selectedSpoluvl = opt;
           if (opt === "ANO") {
@@ -1959,8 +1989,8 @@
       }, [opt]);
       
       if (opt === "NE") {
-        btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
-        btn.style.borderColor = "var(--color-primary)";
+        btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+        btn.style.borderColor = "var(--green)";
         btn.style.color = "#fff";
       }
       
@@ -2132,7 +2162,7 @@
     
     const box = U.el("div", { class: "cg-step" }, [
       U.el("label", {}, ["Odhad ceny"]),
-      U.el("div", { style: { fontSize: "22px", fontWeight: "800", margin: "12px 0", color: "var(--color-primary)" } },
+      U.el("div", { style: { fontSize: "22px", fontWeight: "var(--font-weight-black)", margin: "12px 0", color: "var(--green)" } },
         [`${(res.low?.toLocaleString?.("cs-CZ") || res.low || "-")} Kč - ${(res.mid?.toLocaleString?.("cs-CZ") || res.mid || "-")} Kč`]
       ),
       U.el("div", { style: { fontSize: "14px", margin: "8px 0", opacity: "0.9" } },
@@ -2448,6 +2478,7 @@
     } 
   });
 
-  console.log('[Widget] Initialization complete (v8.0 - New Design)');
+  console.log('[Widget] Initialization complete (v8.1 - Brand Colors)');
 
 })();
+      }
