@@ -1,4 +1,4 @@
-// Cogniterra embed loader (v8) - NEW DESIGN with Fox Avatar
+// Cogniterra embed loader (v8.1) - Brand Colors
 (function(){
   const tag = document.currentScript;
   const CFG = tag.getAttribute('data-config');
@@ -9,11 +9,10 @@
 
   window.CGTR = { configUrl: CFG, widgetUrl: WIDGET, containerId: 'chatbot-container' };
 
-  // NEW: Fox avatar as base64 data URI (replace with your actual image)
   const FOX_AVATAR = 'https://raw.githubusercontent.com/info-cogniterra/chatbotreal/main/assets/fox-avatar.png';
 
   const css = `
-  /* === NEW DESIGN: Fox Avatar Launcher === */
+  /* === Brand Colors - Green & Gold Launcher === */
   .cg-launcher {
     position: fixed;
     right: 20px;
@@ -21,8 +20,8 @@
     width: 70px;
     height: 70px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #FF8C42, #FF6B35);
-    box-shadow: 0 8px 24px rgba(255, 107, 53, 0.4);
+    background: linear-gradient(135deg, #1F6A3A, #76C68E);
+    box-shadow: 0 10px 26px rgba(31, 106, 58, 0.35);
     border: 3px solid #fff;
     color: #fff;
     display: flex;
@@ -40,7 +39,7 @@
   
   .cg-launcher:hover {
     transform: scale(1.05);
-    box-shadow: 0 12px 32px rgba(255, 107, 53, 0.5);
+    box-shadow: 0 12px 32px rgba(31, 106, 58, 0.45);
   }
   
   .cg-launcher:active {
@@ -61,11 +60,11 @@
     bottom: 50%;
     transform: translateY(50%);
     background: #fff;
-    color: #2C3E50;
+    color: #0f0f0f;
     padding: 12px 18px;
     border-radius: 18px;
     box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-    font: 500 14px/1.4 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font: 600 14px/1.4 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     white-space: nowrap;
     opacity: 0;
     pointer-events: none;
@@ -90,7 +89,7 @@
     transform: translateY(50%) translateX(-5px);
   }
   
-  /* Panel - NEW DESIGN */
+  /* Panel - Brand Colors */
   .cg-panel {
     position: fixed;
     right: 20px;
@@ -143,7 +142,6 @@
     document.head.appendChild(link); 
   }
 
-  // NEW: Launcher with fox avatar
   const btn=document.createElement('div'); 
   btn.className='cg-launcher'; 
   btn.title='Otevřít chat'; 
@@ -156,7 +154,6 @@
   avatarImg.src = FOX_AVATAR;
   avatarImg.alt = 'Cogniterra asistent';
   avatarImg.onerror = function() {
-    // Fallback to emoji if image fails to load
     btn.innerHTML = '🦊';
     btn.style.fontSize = '36px';
   };
