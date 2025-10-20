@@ -889,7 +889,7 @@
     }
   });
   
-  const chatTitle = U.el("div", { class: "chat-header-title" }, ["Asistent Cogniterra"]);
+  const chatTitle = U.el("div", { class: "chat-header-title" }, ["Asistent"]);
   
   chatHeaderContent.appendChild(logo);
   chatHeaderContent.appendChild(chatTitle);
