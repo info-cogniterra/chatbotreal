@@ -104,16 +104,29 @@
   }
   
   @media (max-width: 767.98px) {
-    .cg-launcher {
-      right: 16px;
-      bottom: 16px;
-      width: 64px;
-      height: 64px;
-    }
-    
-    .cg-launcher-bubble {
-      display: none;
-    }
+  .cg-launcher {
+    right: 16px;
+    bottom: 16px;
+    width: 64px;
+    height: 64px;
+  }
+  
+  /* Bublina viditelná i na mobilu */
+  .cg-launcher-bubble {
+    display: block;  /* Viditelná */
+    right: 75px;  /* Upravená pozice pro menší launcher */
+    font-size: 13px;  /* Menší text na mobilu */
+    padding: 10px 14px;  /* Kompaktnější */
+    max-width: 200px;  /* Omezení šířky */
+    white-space: normal;  /* Povolit zalomení textu */
+  }
+  
+  .cg-launcher-bubble::after {
+    right: -7px;  /* Upravená šipka */
+    border-left: 7px solid #fff;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+  }
     
     .cg-panel {
       position: fixed !important;
