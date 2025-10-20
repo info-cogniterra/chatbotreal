@@ -171,7 +171,7 @@
   
   const bubble = document.createElement('div');
   bubble.className = 'cg-launcher-bubble';
-  bubble.textContent = 'Potřebujete pomoc?';
+  bubble.textContent = 'Nacením Vaší nemovitost a pomůžu zorientovat se v realitách.';
   btn.appendChild(bubble);
   
   document.body.appendChild(btn);
