@@ -54,7 +54,7 @@
   console.log('[Widget] Session:', S.session);
 
   // Fox avatar URL - můžete nahradit vlastní URL nebo base64
-  const FOX_AVATAR = 'https://raw.githubusercontent.com/info-cogniterra/chatbotreal/main/assets/fox-transparent.png';
+  const FOX_AVATAR = 'https://raw.githubusercontent.com/info-cogniterra/chatbotreal/main/assets/avatar.png';
   const LOGO_URL = 'https://raw.githubusercontent.com/info-cogniterra/chatbotreal/main/assets/brand-icon.png';
   
   // === Global data cache for lazy loading ===
