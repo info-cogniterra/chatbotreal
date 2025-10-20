@@ -1,14 +1,53 @@
-/* Cogniterra Chatbot - NEW DESIGN v8 */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* Cogniterra Chatbot - Brand Colors v8.1 */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  /* Brand */
+  --gold: #D4AF37;
+  --green: #1F6A3A;
+  --green-soft: #76C68E;
+  
+  /* Neutrals */
+  --surface: #ffffff;
+  --text: #0f0f0f;
+  --muted: #5f6368;
+  --gray-50: #fafafa;
+  --gray-600: #4b5563;
+  --gray-900: #111827;
+  
+  /* Radius */
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  
+  /* Shadows */
+  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.04);
+  --shadow-btn: 0 10px 26px rgba(31, 106, 58, 0.22);
+  
+  /* Typography */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-weight-normal: 400;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 800;
+  --font-weight-black: 900;
+}
+
+.dark {
+  --surface: #0f1115;
+  --text: #e7e7e7;
+  --muted: #9aa4b2;
+  --gray-50: #111318;
+  --shadow-card: 0 14px 36px rgba(0, 0, 0, 0.55);
+}
 
 body {
-  background: #F5F7FA;
-  color: #2C3E50;
-  font: 16px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--gray-50);
+  color: var(--text);
+  font: 16px/1.6 var(--font-sans);
   margin: 24px;
 }
 
-/* === NEW: Chat message styling with avatars === */
+/* === Chat message styling with avatars === */
 .chat-message, .message {
   display: flex;
   gap: 12px;
@@ -35,35 +74,35 @@ body {
 }
 
 .message-content {
-  background: #fff;
+  background: var(--surface);
   padding: 14px 18px;
   border-radius: 18px;
   max-width: 75%;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: var(--shadow-card);
   word-wrap: break-word;
   line-height: 1.5;
 }
 
 .chat-message.ai .message-content, .message.ai .message-content {
-  background: #F8F9FA;
+  background: var(--surface);
   border-bottom-left-radius: 4px;
-  color: #2C3E50;
+  color: var(--text);
 }
 
 .chat-message.me .message-content, .message.me .message-content {
-  background: linear-gradient(135deg, #FF8C42, #FF6B35);
+  background: linear-gradient(135deg, var(--green), var(--green-soft));
   color: #fff;
   border-bottom-right-radius: 4px;
 }
 
 .chat-message a, .message a {
-  color: #FF6B35;
+  color: var(--green);
   text-decoration: none;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .chat-message a:hover, .message a:hover {
-  color: #FF8C42;
+  color: var(--green-soft);
   text-decoration: underline;
 }
 
@@ -83,30 +122,30 @@ body {
 
 .cg-card {
   border: none;
-  background: #fff;
-  border-radius: 16px;
+  background: var(--surface);
+  border-radius: var(--radius-md);
   padding: 18px;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  box-shadow: var(--shadow-card);
   transition: all 0.2s ease;
   text-align: left;
 }
 
 .cg-card:hover {
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.08);
   transform: translateY(-2px);
 }
 
 .cg-card h3 {
   margin: 0 0 8px 0;
-  font: 700 17px 'Inter', sans-serif;
-  color: #2C3E50;
+  font: var(--font-weight-bold) 17px var(--font-sans);
+  color: var(--text);
 }
 
 .cg-card p {
   margin: 0;
-  font: 400 14px/1.5 'Inter', sans-serif;
-  color: #5A6C7D;
+  font: var(--font-weight-normal) 14px/1.5 var(--font-sans);
+  color: var(--muted);
 }
 
 /* === Form steps === */
@@ -115,9 +154,9 @@ body {
   flex-direction: column;
   gap: 12px;
   padding: 16px;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
 }
 
 .cg-row {
@@ -132,18 +171,19 @@ body {
 .cg-select, .cg-input {
   width: 100%;
   padding: 12px 14px;
-  border: 1px solid #E1E8ED;
-  border-radius: 12px;
-  font: 500 15px 'Inter', sans-serif;
-  color: #2C3E50;
-  background: #fff;
+  border: 1px solid var(--gray-50);
+  border-radius: var(--radius-sm);
+  font: var(--font-weight-normal) 15px var(--font-sans);
+  color: var(--text);
+  background: var(--gray-50);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .cg-select:focus, .cg-input:focus {
   outline: none;
-  border-color: #FF6B35;
-  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(31, 106, 58, 0.1);
+  background: var(--surface);
 }
 
 .cg-cta {
@@ -155,20 +195,20 @@ body {
 }
 
 .cg-btn {
-  background: linear-gradient(135deg, #FF8C42, #FF6B35);
+  background: linear-gradient(135deg, var(--green), var(--green-soft));
   color: #fff;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   padding: 12px 20px;
-  font: 600 15px 'Inter', sans-serif;
+  font: var(--font-weight-semibold) 15px var(--font-sans);
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+  box-shadow: var(--shadow-btn);
 }
 
 .cg-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(255, 107, 53, 0.4);
+  box-shadow: 0 12px 32px rgba(31, 106, 58, 0.3);
 }
 
 .cg-btn:active {
@@ -176,9 +216,9 @@ body {
 }
 
 .cg-btn.secondary {
-  background: #F4F6F8;
-  color: #2C3E50;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  background: var(--gray-50);
+  color: var(--text);
+  box-shadow: var(--shadow-card);
 }
 
 .cg-btn.secondary:hover {
@@ -187,22 +227,22 @@ body {
 
 /* === Results === */
 .cg-result {
-  background: #F8F9FA;
-  border: 1px solid #E1E8ED;
-  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--gray-50);
+  border-radius: var(--radius-md);
   padding: 16px;
   margin: 12px 0;
 }
 
 .cg-result h4 {
   margin: 0 0 10px 0;
-  font: 700 17px 'Inter', sans-serif;
-  color: #2C3E50;
+  font: var(--font-weight-bold) 17px var(--font-sans);
+  color: var(--text);
 }
 
 .cg-note {
   font-size: 13px;
-  color: #5A6C7D;
+  color: var(--muted);
   margin-top: 8px;
 }
 
@@ -220,7 +260,7 @@ body {
 /* === Widget container fixes === */
 .cg-panel {
   padding: 0 !important;
-  background: #fff !important;
+  background: var(--surface) !important;
   border: none !important;
   box-shadow: 0 20px 60px rgba(0,0,0,0.25) !important;
 }
@@ -235,12 +275,12 @@ body {
 .chat-container {
   width: 100% !important;
   height: 100% !important;
-  border-radius: 24px !important;
+  border-radius: var(--radius-lg) !important;
   margin: 0 !important;
   padding: 0 !important;
   position: absolute !important;
   inset: 0 !important;
-  background: #fff !important;
+  background: var(--surface) !important;
 }
 
 #chatbot-container {
@@ -307,7 +347,7 @@ body {
 }
 
 .cg-widget .msg {
-  border-radius: 16px;
+  border-radius: var(--radius-md);
   padding: 12px 16px;
   margin: 8px 0;
 }
@@ -322,15 +362,7 @@ body {
   max-width: 82%;
 }
 
-:root {
-  --vh: 100vh;
-  --color-primary: #FF6B35;
-  --color-primary-dark: #FF8C42;
-  --color-bg: #F5F7FA;
-  --color-text: #2C3E50;
-  --color-text-light: #5A6C7D;
-  --color-border: #E1E8ED;
-}
+--vh: 100vh;
 
 @supports not (height: 100dvh) {
   .cg-widget .cg-panel {
