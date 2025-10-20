@@ -8,14 +8,14 @@
   window.addEventListener('resize', updateVH, {passive:true});
 })();
 
-// cogniterra-widget-safe.v8.js — TWO SEPARATE PATHS FOR LEADS
-// Build v8.0 — Rozdělené cesty: /lead (nacenění) a /chatbot-lead (chat)
-// Date: 2025-01-18 | Author: info-cogniterra
+// cogniterra-widget-safe.v8.js — NEW DESIGN with Fox Avatar
+// Build v8.0 — Nový design podle HTML + funkčnost zachována
+// Date: 2025-01-20 | Author: info-cogniterra
 
 (function () {
   "use strict";
 
-  console.log('[Widget] Initialization started... (v8.0)');
+  console.log('[Widget] Initialization started... (v8.0 - New Design)');
 
   const host = document.querySelector("[data-cogniterra-widget]");
   if (!host) {
@@ -53,6 +53,9 @@
 
   console.log('[Widget] Session:', S.session);
 
+  // Fox avatar URL - můžete nahradit vlastní URL nebo base64
+  const FOX_AVATAR = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%23FF6B35"/><text x="50" y="70" font-size="50" text-anchor="middle" fill="white">🦊</text></svg>';
+  const LOGO_URL = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50"><text x="10" y="35" font-size="24" font-weight="bold" fill="white">Cogniterra</text></svg>';
   
   // === Global data cache for lazy loading ===
   const DATA_CACHE = { byt:null, dum:null, pozemek:null, up:null, _loading:{} };
@@ -75,7 +78,8 @@
     }
     if (!url) {
       if (window.PRICES && window.PRICES[norm]) {
-        DATA_CACHE[norm] = window.PRICES[norm]; try { if (norm === 'up') { S.data = S.data || {}; S.data.up = DATA_CACHE[norm]; } } catch(e){}
+        DATA_CACHE[norm] = window.PRICES[norm]; 
+        try { if (norm === 'up') { S.data = S.data || {}; S.data.up = DATA_CACHE[norm]; } } catch(e){}
         return DATA_CACHE[norm];
       }
       return null;
@@ -85,8 +89,10 @@
     try { const res = await p; delete DATA_CACHE._loading[norm]; return res; }
     catch(e){ delete DATA_CACHE._loading[norm]; console.warn('[Widget] Lazy load failed for', norm, e); return null; }
   }
-window.PRICES = window.PRICES || {};
-const U = {
+
+  window.PRICES = window.PRICES || {};
+  
+  const U = {
     el(tag, props, kids) {
       const n = document.createElement(tag);
       if (props) for (const k in props) {
@@ -134,7 +140,6 @@ const U = {
       }
       
       const q = U.norm(query);
-      
       console.log('[Widget] Searching UP for:', query, '-> normalized:', q);
       
       const kuExact = [];
@@ -208,16 +213,8 @@ const U = {
     mentionsProperty(text) {
       const s = U.norm(text);
       const keywords = [
-        'pozemek',
-        'parcela',
-        'stavba',
-        'nehnutelnost',
-        'reality',
-        'katastr',
-        'vlastnictvi',
-        'koupit',
-        'prodat',
-        'zastavitelnost'
+        'pozemek', 'parcela', 'stavba', 'nehnutelnost', 'reality',
+        'katastr', 'vlastnictvi', 'koupit', 'prodat', 'zastavitelnost'
       ];
       return keywords.some(kw => s.includes(kw));
     },
@@ -257,8 +254,11 @@ const U = {
     }
   };
 
+  // === NEW DESIGN STYLES ===
   const style = document.createElement("style");
   style.textContent = `
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  
   :host {
     all: initial;
     display: block;
@@ -268,6 +268,12 @@ const U = {
     padding: 0;
     border: none;
     background: transparent;
+    --color-primary: #FF6B35;
+    --color-primary-light: #FF8C42;
+    --color-bg: #F5F7FA;
+    --color-text: #2C3E50;
+    --color-text-light: #5A6C7D;
+    --color-border: #E1E8ED;
   }
   
   * {
@@ -276,12 +282,13 @@ const U = {
     padding: 0;
   }
   
+  /* === Chat Container === */
   .chat-container {
-    font: 15px/1.5 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-    color: #2d3748;
+    font: 15px/1.6 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    color: var(--color-text);
     background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 15px 35px rgba(50,50,93,.1), 0 5px 15px rgba(0,0,0,.07);
+    border-radius: 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
     width: 100%;
     max-width: 100%;
     height: 100%;
@@ -292,84 +299,153 @@ const U = {
     inset: 0;
   }
   
+  /* === NEW: Header with Logo === */
   .chat-header {
-    background: #2c5282;
+    background: linear-gradient(135deg, #FF8C42, #FF6B35);
     color: #fff;
-    padding: 16px;
-    font-weight: 700;
+    padding: 18px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid rgba(255,255,255,.1);
+    border-bottom: none;
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.2);
   }
   
-  .chat-header-title {
+  .chat-header-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     flex: 1;
   }
   
+  .chat-header-logo {
+    height: 32px;
+    width: auto;
+  }
+  
+  .chat-header-title {
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: -0.2px;
+  }
+  
   .chat-close-btn {
-    background: transparent;
+    background: rgba(255, 255, 255, 0.2);
     border: none;
     color: #fff;
     cursor: pointer;
-    font-size: 18px;
-    opacity: 0.8;
+    font-size: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
-    min-height: 32px;
-    padding: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    transition: background 0.2s ease;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
   
-  .chat-close-btn:hover,
-  .chat-close-btn:active {
-    opacity: 1;
+  .chat-close-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
   }
   
+  .chat-close-btn:active {
+    background: rgba(255, 255, 255, 0.4);
+  }
+  
+  /* === Messages Area === */
   .chat-messages {
     flex: 1;
-    padding: 16px;
+    padding: 20px;
     overflow-y: auto;
-    background: #f8fafc;
+    background: var(--color-bg);
     display: flex;
     flex-direction: column;
+    gap: 4px;
   }
   
+  .chat-messages::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .chat-messages::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .chat-messages::-webkit-scrollbar-thumb {
+    background: #CBD5E0;
+    border-radius: 4px;
+  }
+  
+  .chat-messages::-webkit-scrollbar-thumb:hover {
+    background: #A0AEC0;
+  }
+  
+  /* === NEW: Message Bubbles with Avatars === */
   .chat-msg {
-    max-width: 86%;
-    margin: 10px 0;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    white-space: pre-wrap;
-    box-shadow: 0 2px 5px rgba(0,0,0,.06);
+    display: flex;
+    gap: 10px;
+    margin: 8px 0;
+    align-items: flex-start;
+    animation: slideIn 0.3s ease;
+  }
+  
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
   
   .chat-msg.ai {
-    background: #fff;
-    border-left: 4px solid #2c5282;
-    border-radius: 0 8px 8px 0;
-    padding: 14px 16px;
-    align-self: flex-start;
-    color: #2d3748;
+    flex-direction: row;
   }
   
   .chat-msg.me {
-    background: #2c5282;
-    color: #fff;
-    border-radius: 8px 0 0 8px;
-    border-right: 4px solid #1a365d;
-    padding: 14px 16px;
-    align-self: flex-end;
+    flex-direction: row-reverse;
   }
   
-  .chat-msg.loading {
-    background: #e2e8f0;
-    color: #4a5568;
+  .msg-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    object-fit: cover;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  .msg-content {
+    padding: 14px 18px;
+    border-radius: 18px;
+    max-width: 75%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    line-height: 1.5;
+  }
+  
+  .chat-msg.ai .msg-content {
+    background: #fff;
+    border-bottom-left-radius: 6px;
+    color: var(--color-text);
+  }
+  
+  .chat-msg.me .msg-content {
+    background: linear-gradient(135deg, #FF8C42, #FF6B35);
+    color: #fff;
+    border-bottom-right-radius: 6px;
+  }
+  
+  .chat-msg.loading .msg-content {
+    background: #E2E8F0;
+    color: #4A5568;
     font-style: italic;
     animation: pulse 1.5s ease-in-out infinite;
   }
@@ -379,6 +455,7 @@ const U = {
     50% { opacity: 1; }
   }
   
+  /* === Panel Blocks === */
   .chat-panel {
     background: transparent;
     padding: 0;
@@ -386,31 +463,36 @@ const U = {
     width: 100%;
   }
   
+  /* === Input Area === */
   .chat-input-area {
     display: flex;
-    gap: 10px;
-    padding: 14px 16px;
+    gap: 12px;
+    padding: 16px 20px;
     background: #fff;
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid var(--color-border);
   }
   
   .chat-input-area textarea {
     flex: 1;
     resize: none;
-    height: 46px;
-    border-radius: 4px;
-    border: 1px solid #cbd5e0;
-    background: #fff;
-    color: #2d3748;
-    padding: 12px;
-    font-family: inherit;
+    min-height: 48px;
+    max-height: 120px;
+    border-radius: 12px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-text);
+    padding: 14px 16px;
+    font-family: 'Inter', -apple-system, sans-serif;
     font-size: 15px;
+    line-height: 1.4;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
   
   .chat-input-area textarea:focus {
     outline: none;
-    border-color: #2c5282;
-    box-shadow: 0 0 0 2px rgba(44,82,130,.2);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+    background: #fff;
   }
   
   .chat-input-area textarea:disabled {
@@ -420,39 +502,46 @@ const U = {
   
   .chat-input-area button {
     border: 0;
-    background: #2c5282;
+    background: linear-gradient(135deg, #FF8C42, #FF6B35);
     color: #fff;
-    padding: 0 18px;
-    border-radius: 4px;
+    padding: 0 24px;
+    border-radius: 12px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s;
-    min-height: 46px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    min-height: 48px;
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
   
-  .chat-input-area button:hover,
+  .chat-input-area button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(255, 107, 53, 0.4);
+  }
+  
   .chat-input-area button:active {
-    background: #1a365d;
+    transform: translateY(0);
   }
   
   .chat-input-area button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+    transform: none;
   }
   
+  /* === Start Screen Cards === */
   .cg-start {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
     width: 100%;
   }
   
   .cg-cards {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 12px;
     width: 100%;
   }
   
@@ -460,78 +549,81 @@ const U = {
     width: 100%;
     text-align: left;
     background: #fff;
-    border: 1px solid #e2e8f0;
-    border-left: 4px solid #2c5282;
-    border-radius: 0 8px 8px 0;
-    padding: 16px;
+    border: none;
+    border-radius: 16px;
+    padding: 18px;
     cursor: pointer;
-    color: #2d3748;
+    color: var(--color-text);
     font-family: inherit;
     transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
   
-  .cg-card:hover,
+  .cg-card:hover {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    transform: translateY(-2px);
+  }
+  
   .cg-card:active {
-    box-shadow: 0 4px 12px rgba(0,0,0,.08);
-    border-left-color: #1a365d;
+    transform: translateY(0);
   }
   
   .cg-card h3 {
-    margin: 0 0 6px;
+    margin: 0 0 8px;
     font-weight: 700;
-    font-size: 16px;
-    color: #2d3748;
+    font-size: 17px;
+    color: var(--color-text);
   }
   
   .cg-card p {
     margin: 0;
     font-size: 14px;
-    color: #4a5568;
+    color: var(--color-text-light);
+    line-height: 1.5;
   }
   
   .cg-card.secondary {
-    border-left-color: #48bb78;
-    background: #f0fff4;
+    background: #F0FFF4;
+    border: 1px solid #9AE6B4;
   }
   
-  .cg-card.secondary:hover,
-  .cg-card.secondary:active {
-    background: #e6ffed;
-  }
-  
+  /* === Form Steps === */
   .cg-step {
     background: #fff;
-    border-radius: 8px;
-    padding: 16px;
-    box-shadow: 0 2px 5px rgba(0,0,0,.05);
+    border-radius: 16px;
+    padding: 18px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     position: relative;
   }
   
   .cg-step label {
     display: block;
-    margin: 8px 0 6px;
-    color: #4a5568;
+    margin: 10px 0 8px;
+    color: var(--color-text);
     font-weight: 600;
+    font-size: 14px;
   }
   
   .cg-input, .cg-select {
     width: 100%;
     margin: 6px 0 12px;
     padding: 12px 14px;
-    border-radius: 4px;
-    border: 1px solid #cbd5e0;
-    background: #fff;
-    color: #2d3748;
+    border-radius: 12px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-text);
     font-family: inherit;
     font-size: 15px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
   
   .cg-input:focus, .cg-select:focus {
     outline: none;
-    border-color: #2c5282;
-    box-shadow: 0 0 0 2px rgba(44,82,130,.2);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+    background: #fff;
   }
   
   .cg-cta {
@@ -543,47 +635,54 @@ const U = {
   
   .cg-btn {
     border: 0;
-    background: #2c5282;
+    background: linear-gradient(135deg, #FF8C42, #FF6B35);
     color: #fff;
-    padding: 12px 18px;
-    border-radius: 4px;
+    padding: 12px 20px;
+    border-radius: 12px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s;
-    min-height: 44px;
+    transition: all 0.2s ease;
+    min-height: 48px;
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
   
-  .cg-btn:hover,
+  .cg-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(255, 107, 53, 0.4);
+  }
+  
   .cg-btn:active {
-    background: #1a365d;
+    transform: translateY(0);
   }
   
   .cg-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+    transform: none;
   }
   
   .cg-btn.secondary {
-    background: #48bb78;
+    background: #F4F6F8;
+    color: var(--color-text);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   }
   
-  .cg-btn.secondary:hover,
-  .cg-btn.secondary:active {
-    background: #38a169;
+  .cg-btn.secondary:hover {
+    background: #E8EAED;
   }
   
   .cg-btn-disp {
-    border: 2px solid #cbd5e0;
+    border: 2px solid var(--color-border);
     background: #fff;
-    color: #2d3748;
-    padding: 10px;
-    border-radius: 4px;
+    color: var(--color-text);
+    padding: 12px;
+    border-radius: 12px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    min-height: 44px;
+    min-height: 48px;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
     font-size: 15px;
@@ -591,21 +690,22 @@ const U = {
   }
   
   .cg-btn-disp:hover {
-    border-color: #2c5282;
-    background: #f8fafc;
+    border-color: var(--color-primary);
+    background: rgba(255, 107, 53, 0.05);
   }
   
   .cg-btn-disp:active,
   .cg-btn-disp.selected {
-    background: #2c5282 !important;
-    border-color: #2c5282 !important;
+    background: linear-gradient(135deg, #FF8C42, #FF6B35) !important;
+    border-color: var(--color-primary) !important;
     color: #fff !important;
   }
   
+  /* === Lead Box === */
   .leadbox {
-    border: 1px solid #e2e8f0;
-    padding: 16px;
-    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    padding: 18px;
+    border-radius: 16px;
     background: #fff;
   }
   
@@ -613,18 +713,19 @@ const U = {
     width: 100%;
     margin: 6px 0 12px;
     padding: 12px 14px;
-    border-radius: 4px;
-    border: 1px solid #cbd5e0;
-    background: #fff;
-    color: #2d3748;
+    border-radius: 12px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-text);
     font-family: inherit;
     font-size: 15px;
   }
   
   .leadbox input:focus {
     outline: none;
-    border-color: #2c5282;
-    box-shadow: 0 0 0 2px rgba(44,82,130,.2);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+    background: #fff;
   }
   
   .leadbox input[type="checkbox"] {
@@ -633,35 +734,36 @@ const U = {
   }
   
   .hint {
-    color: #718096;
+    color: var(--color-text-light);
     font-size: 13px;
-    margin-top: 6px;
+    margin-top: 8px;
   }
   
+  /* === UP Results === */
   .up-result {
     background: #fff;
-    border: 1px solid #e2e8f0;
-    border-left: 4px solid #2c5282;
-    border-radius: 0 8px 8px 0;
-    padding: 14px 16px;
-    margin: 8px 0;
+    border: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-primary);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 10px 0;
   }
   
   .up-result h4 {
-    margin: 0 0 8px 0;
+    margin: 0 0 10px 0;
     font-size: 16px;
     font-weight: 700;
-    color: #2d3748;
+    color: var(--color-text);
   }
   
   .up-result p {
-    margin: 4px 0;
+    margin: 6px 0;
     font-size: 14px;
-    color: #4a5568;
+    color: var(--color-text-light);
   }
   
   .up-result a {
-    color: #2c5282;
+    color: var(--color-primary);
     text-decoration: none;
     font-weight: 600;
     word-break: break-all;
@@ -672,33 +774,34 @@ const U = {
   }
   
   .up-no-result {
-    background: #fff3cd;
-    border: 1px solid #ffc107;
-    border-left: 4px solid #ffc107;
-    border-radius: 0 8px 8px 0;
-    padding: 14px 16px;
-    margin: 8px 0;
+    background: #FFF3CD;
+    border: 1px solid #FFC107;
+    border-left: 4px solid #FFC107;
+    border-radius: 12px;
+    padding: 16px;
+    margin: 10px 0;
     color: #856404;
   }
   
   .up-offer {
-    background: #e6ffed;
-    border: 1px solid #48bb78;
-    border-left: 4px solid #48bb78;
-    border-radius: 0 8px 8px 0;
-    padding: 14px 16px;
-    margin: 8px 0;
-    color: #22543d;
+    background: #E6FFED;
+    border: 1px solid #48BB78;
+    border-left: 4px solid #48BB78;
+    border-radius: 12px;
+    padding: 16px;
+    margin: 10px 0;
+    color: #22543D;
   }
   
+  /* === Mapy.cz Autocomplete === */
   .mapy-suggest-container {
     position: absolute;
     background: white;
-    border: 1px solid #cbd5e0;
+    border: 1px solid var(--color-border);
     border-top: none;
-    border-radius: 0 0 4px 4px;
-    box-shadow: 0 4px 6px rgba(0,0,0,.1);
-    max-height: 200px;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+    max-height: 240px;
     overflow-y: auto;
     z-index: 10000;
     display: none;
@@ -707,11 +810,11 @@ const U = {
   }
   
   .mapy-suggest-item {
-    padding: 10px 14px;
+    padding: 12px 16px;
     cursor: pointer;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--color-border);
     font-size: 14px;
-    color: #2d3748;
+    color: var(--color-text);
     background: white;
     transition: background 0.15s ease;
     user-select: none;
@@ -724,19 +827,30 @@ const U = {
   }
   
   .mapy-suggest-item:hover {
-    background: #f8fafc !important;
+    background: var(--color-bg) !important;
   }
   
   .mapy-suggest-item:active {
-    background: #e2e8f0 !important;
+    background: #E2E8F0 !important;
   }
   
+  /* === Mobile Responsive === */
   @media (max-width: 480px) {
     .chat-container {
       width: 100%;
       height: 100%;
       max-width: 100%;
       border-radius: 0;
+    }
+    
+    .chat-header {
+      padding: 16px;
+      padding-top: calc(16px + env(safe-area-inset-top));
+    }
+    
+    .chat-input-area {
+      padding: 14px 16px;
+      padding-bottom: calc(14px + env(safe-area-inset-bottom));
     }
     
     .chat-input-area textarea,
@@ -746,21 +860,40 @@ const U = {
       font-size: 16px;
     }
     
+    .msg-content {
+      max-width: 82%;
+    }
+    
     .chat-close-btn {
-      width: 44px;
-      height: 44px;
-      min-width: 44px;
-      min-height: 44px;
-      font-size: 20px;
+      width: 40px;
+      height: 40px;
+      font-size: 22px;
     }
   }
   `;
   shadow.appendChild(style);
 
+  // === BUILD UI ===
   const chatContainer = U.el("div", { class: "chat-container" });
   
+  // Header with logo
   const chatHeader = U.el("div", { class: "chat-header" });
+  const chatHeaderContent = U.el("div", { class: "chat-header-content" });
+  
+  const logo = U.el("img", { 
+    class: "chat-header-logo",
+    src: LOGO_URL,
+    alt: "Cogniterra",
+    onerror: function() {
+      this.style.display = 'none';
+    }
+  });
+  
   const chatTitle = U.el("div", { class: "chat-header-title" }, ["Asistent Cogniterra"]);
+  
+  chatHeaderContent.appendChild(logo);
+  chatHeaderContent.appendChild(chatTitle);
+  
   const chatCloseBtn = U.el("button", { 
     class: "chat-close-btn",
     type: "button",
@@ -769,7 +902,8 @@ const U = {
       e.preventDefault();
       e.stopPropagation();
       console.log('[Widget] Close button clicked');
-      U.saveSession(); S.formOpen=false;
+      U.saveSession(); 
+      S.formOpen=false;
       if (window.CGTR && typeof window.CGTR.hide === 'function') {
         window.CGTR.hide();
       } else {
@@ -783,7 +917,7 @@ const U = {
     }
   }, ["✕"]);
   
-  chatHeader.appendChild(chatTitle);
+  chatHeader.appendChild(chatHeaderContent);
   chatHeader.appendChild(chatCloseBtn);
   chatContainer.appendChild(chatHeader);
   
@@ -793,6 +927,7 @@ const U = {
   const chatInputArea = U.el("div", { class: "chat-input-area" });
   const chatTextarea = document.createElement("textarea");
   chatTextarea.placeholder = "Napište zprávu…";
+  chatTextarea.rows = 1;
   
   const chatSendBtn = document.createElement("button");
   chatSendBtn.textContent = "Odeslat";
@@ -806,17 +941,33 @@ const U = {
   
   console.log('[Widget] UI created successfully');
 
+  // === MESSAGE FUNCTIONS WITH NEW DESIGN ===
   function addAI(t, extra) {
-    const b = U.el("div", { class: "chat-msg ai" }, [t]);
-    if (extra) b.appendChild(extra);
-    chatMessages.appendChild(b);
+    const msgWrapper = U.el("div", { class: "chat-msg ai" });
+    
+    const avatar = U.el("img", { 
+      class: "msg-avatar",
+      src: FOX_AVATAR,
+      alt: "AI asistent",
+      onerror: function() {
+        this.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%23FF6B35"/><text x="50" y="65" font-size="40" text-anchor="middle" fill="white">🦊</text></svg>';
+      }
+    });
+    
+    const content = U.el("div", { class: "msg-content" }, [t]);
+    if (extra) content.appendChild(extra);
+    
+    msgWrapper.appendChild(avatar);
+    msgWrapper.appendChild(content);
+    chatMessages.appendChild(msgWrapper);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+    
     try { 
       S.chat.messages.push({ role: "assistant", content: String(t) }); 
     } catch (e) {}
+    
     try {
       const tt = String(t).toLowerCase();
-      
       const offerContact = /(mohu|můžu|mám|rád|ráda)\s+(také\s+)?(vám\s+)?(ote[vw]ř[ií]t|zobrazit|spustit|poslat|zaslat)\s+(kontaktn[íi]\s+formul[aá][řr]|formul[aá][řr])/i.test(tt) ||
                            /chcete\s+(ote[vw]ř[ií]t|zobrazit|spustit)\s+(kontaktn[íi]\s+)?formul[aá][řr]/i.test(tt) ||
                            /zadat\s+sv[eé]\s+(jm[eé]no|kontakt|[uú]daje)/i.test(tt) ||
@@ -825,7 +976,7 @@ const U = {
       const offerUP = /(chcete|potrebujete|mam\s+poslat|poslat\s+vam|najit\s+vam).*?(uzemni\s*plan|up)/i.test(tt);
       
       if (offerContact) { 
-        console.log('[Widget] AI offered contact form:', tt);
+        console.log('[Widget] AI offered contact form');
         S.intent.contactOffer = true; 
       }
       if (offerUP) {
@@ -839,8 +990,27 @@ const U = {
     try { 
       S.chat.messages.push({ role:"user", content: String(t) }); 
     } catch(_){}
-    const b = U.el("div", { class: "chat-msg me" }, [t]);
-    chatMessages.appendChild(b);
+    
+    const msgWrapper = U.el("div", { class: "chat-msg me" });
+    
+    const userInitial = U.el("div", { 
+      class: "msg-avatar",
+      style: {
+        background: "linear-gradient(135deg, #667EEA, #764BA2)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "#fff",
+        fontWeight: "700",
+        fontSize: "16px"
+      }
+    }, ["👤"]);
+    
+    const content = U.el("div", { class: "msg-content" }, [t]);
+    
+    msgWrapper.appendChild(content);
+    msgWrapper.appendChild(userInitial);
+    chatMessages.appendChild(msgWrapper);
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
   
@@ -852,10 +1022,21 @@ const U = {
   }
   
   function addLoading(text) {
-    const b = U.el("div", { class: "chat-msg ai loading" }, [text || "⏳ Zpracovávám..."]);
-    chatMessages.appendChild(b);
+    const msgWrapper = U.el("div", { class: "chat-msg ai loading" });
+    
+    const avatar = U.el("img", { 
+      class: "msg-avatar",
+      src: FOX_AVATAR,
+      alt: "AI asistent"
+    });
+    
+    const content = U.el("div", { class: "msg-content" }, [text || "⏳ Zpracovávám..."]);
+    
+    msgWrapper.appendChild(avatar);
+    msgWrapper.appendChild(content);
+    chatMessages.appendChild(msgWrapper);
     chatMessages.scrollTop = chatMessages.scrollHeight;
-    return b;
+    return msgWrapper;
   }
 
   // Mapy.cz Geocoding API autocomplete
@@ -924,9 +1105,6 @@ const U = {
         const items = data.items || [];
         
         console.log('[Widget] Geocoding returned', items.length, 'results');
-        if (items.length > 0) {
-          console.log('[Widget] First geocoding item:', items[0]);
-        }
         
         const results = [];
         
@@ -937,12 +1115,10 @@ const U = {
           if (!countryOk) continue;
 
           const name = String(item.name || '').trim();
-          
           let displayText = '';
           
           if (isPozemek) {
             displayText = name;
-            console.log('[Widget] Pozemek - using name:', name);
           } else {
             const locationStr = String(item.location || '').trim();
             let municipality = '';
@@ -951,8 +1127,6 @@ const U = {
               const cleanLocation = locationStr.replace(/,\s*(Česko|Czech Republic)\s*$/i, '').trim();
               municipality = cleanLocation.split(',')[0].trim();
             }
-            
-            console.log('[Widget] Address - Processing:', {name, locationStr, municipality});
             
             if (name && municipality) {
               displayText = `${name}, ${municipality}`;
@@ -970,12 +1144,9 @@ const U = {
           if (results.length >= 10) break;
         }
         
-        console.log('[Widget] Formatted results:', results);
-        
         if (results.length > 0) {
           renderSuggestions(results);
         } else {
-          console.log('[Widget] No valid results found');
           suggestContainer.style.display = 'none';
         }
         
@@ -1007,79 +1178,45 @@ const U = {
         div.textContent = text;
         div.setAttribute('data-value', text);
         
-        div.addEventListener('mouseenter', () => {
-          div.style.background = '#f8fafc';
-        });
-        div.addEventListener('mouseleave', () => {
-          div.style.background = 'white';
-        });
-        
         div.addEventListener('mousedown', (e) => {
           e.preventDefault();
           e.stopPropagation();
           
           const selectedValue = div.getAttribute('data-value');
-          console.log('[Widget] Mousedown on:', selectedValue);
+          console.log('[Widget] Selected:', selectedValue);
           
           isSelecting = true;
           inputEl.value = selectedValue;
           suggestContainer.style.display = 'none';
           
-          setTimeout(async () => {
+          setTimeout(() => {
             inputEl.dispatchEvent(new Event('input', { bubbles: true }));
             inputEl.dispatchEvent(new Event('change', { bubbles: true }));
-            console.log('[Widget] Value set and events triggered:', selectedValue);
             
-            setTimeout(async () => {
+            setTimeout(() => {
               isSelecting = false;
-              console.log('[Widget] Selection completed, autocomplete ready again');
             }, 500);
           }, 10);
           
-          setTimeout(async () => {
+          setTimeout(() => {
             inputEl.focus();
           }, 50);
-        });
-        
-        div.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          
-          const selectedValue = div.getAttribute('data-value');
-          console.log('[Widget] Click fallback on:', selectedValue);
-          
-          isSelecting = true;
-          inputEl.value = selectedValue;
-          suggestContainer.style.display = 'none';
-          
-          setTimeout(async () => {
-            inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-            inputEl.dispatchEvent(new Event('change', { bubbles: true }));
-            inputEl.focus();
-            
-            setTimeout(async () => {
-              isSelecting = false;
-            }, 500);
-          }, 10);
         });
         
         suggestContainer.appendChild(div);
       });
       
       suggestContainer.style.display = 'block';
-      console.log('[Widget] Rendered', unique.length, 'geocoding suggestions');
+      console.log('[Widget] Rendered', unique.length, 'suggestions');
     }
     
     inputEl.addEventListener('input', (e) => {
       clearTimeout(debounceTimer);
       const value = (e.target.value || '').trim();
       
-      if (isSelecting) {
-        console.log('[Widget] Input event ignored - user is selecting');
-        return;
-      }
+      if (isSelecting) return;
       
-      debounceTimer = setTimeout(async () => {
+      debounceTimer = setTimeout(() => {
         fetchSuggestions(value);
       }, 400);
     });
@@ -1093,18 +1230,9 @@ const U = {
       }
     });
     
-    inputEl.addEventListener('blur', (e) => {
-      setTimeout(async () => {
-        const rect = suggestContainer.getBoundingClientRect();
-        const isOverContainer = (
-          e.relatedTarget && 
-          suggestContainer.contains(e.relatedTarget)
-        );
-        
-        if (!isOverContainer) {
-          suggestContainer.style.display = 'none';
-          console.log('[Widget] Hiding suggestions on blur');
-        }
+    inputEl.addEventListener('blur', () => {
+      setTimeout(() => {
+        suggestContainer.style.display = 'none';
       }, 350);
     });
     
@@ -1117,8 +1245,6 @@ const U = {
     });
     
     window.addEventListener('resize', updatePosition, { passive: true });
-    
-    console.log('[Widget] ✅ Mapy.cz Geocoding autocomplete ready');
   }
 
   window.CG_Estimator = window.CG_Estimator || {
@@ -1129,14 +1255,11 @@ const U = {
 
   function needsUP(q) {
     const s = U.norm(q);
-    console.log('[Widget] Checking UP need for:', q, '-> normalized:', s);
+    console.log('[Widget] Checking UP need for:', q);
     
     const hasUPKeyword = /\b(uzemni\s*plan|up)\b/i.test(s);
     
-    if (!hasUPKeyword) {
-      console.log('[Widget] No UP keyword found');
-      return false;
-    }
+    if (!hasUPKeyword) return false;
     
     const explicitPatterns = [
       /uzemni\s*plan.*(?:pro|v|ve|na)\s+[a-z]/i,
@@ -1147,8 +1270,6 @@ const U = {
     ];
     
     const isExplicit = explicitPatterns.some(pattern => pattern.test(s));
-    
-    console.log('[Widget] Has UP keyword:', hasUPKeyword, 'Is explicit:', isExplicit);
     return isExplicit;
   }
   
@@ -1160,12 +1281,10 @@ const U = {
     setTimeout(async () => {
       const locations = U.extractLocationFromUP(q);
       
-      console.log('[Widget] Extracted locations:', locations);
-      
       loadingMsg.remove();
       
       if (locations.length === 1 && locations[0] === '__MULTIPLE__') {
-        addAI("⚠️ Zadejte prosím pouze jednu lokalitu najednou. Například 'územní plán pro Brno'.");
+        addAI("⚠️ Zadejte prosím pouze jednu lokalitu najednou.");
         S.intent.waitingForLocation = true;
         return;
       }
@@ -1178,7 +1297,7 @@ const U = {
       
       const upData = S.data.up || window.PRICES?.up;
       if (!upData || !upData.map) {
-        addAI("Omlouvám se, databáze územních plánů není aktuálně dostupná. Zkuste to prosím později nebo mě kontaktujte pro další pomoc.");
+        addAI("Omlouvám se, databáze územních plánů není aktuálně dostupná.");
         stepContactVerify();
         return;
       }
@@ -1192,12 +1311,9 @@ const U = {
         }
       }
       
-      console.log('[Widget] Search results:', allResults.length);
-      
       if (allResults.length === 0) {
         const box = U.el("div", { class: "up-no-result" }, [
-          `Pro lokalitu "${locations[0]}" jsem bohužel nenašel územní plán v databázi. `,
-          `Zkuste prosím upřesnit název obce, katastrálního území, nebo mě můžete kontaktovat pro další pomoc.`
+          `Pro lokalitu "${locations[0]}" jsem bohužel nenašel územní plán v databázi.`
         ]);
         addPanel(box);
         
@@ -1243,10 +1359,6 @@ const U = {
           ]);
           addPanel(box);
         });
-        
-        if (allResults.length > 5) {
-          addAI(`... a dalších ${allResults.length - 5} výsledků. Pro přesnější vyhledávání upřesněte prosím katastrální území.`);
-        }
       }
       
       const ctaBox = U.el("div", { class: "cg-step" }, [
@@ -1265,11 +1377,11 @@ const U = {
 
     const cards = U.el("div", { class: "cg-start" }, [
       U.el("div", { class: "cg-cards" }, [
-        U.el("button", { class: "cg-card", type: "button", onclick: () => startPricing(), "aria-label":"Nacenit nemovitost" }, [
+        U.el("button", { class: "cg-card", type: "button", onclick: () => startPricing() }, [
           U.el("h3", {}, ["Nacenit nemovitost"]),
           U.el("p", {}, ["Rychlý odhad a krátký dotazník (1–2 min)."])
         ]),
-        U.el("button", { class: "cg-card", type: "button", onclick: () => startHelp(), "aria-label":"Potřebuji pomoct" }, [
+        U.el("button", { class: "cg-card", type: "button", onclick: () => startHelp() }, [
           U.el("h3", {}, ["Potřebuji pomoct"]),
           U.el("p", {}, ["Zeptejte se na postup, dokumenty nebo pravidla."])
         ])
@@ -1288,7 +1400,6 @@ const U = {
   function startPricing() {
     if (S.formOpen) { addAI("Dotazník už je otevřený."); return; }
     S.formOpen = true;
-
     S.flow = "pricing";
     U.saveSession();
     stepChooseType();
@@ -1307,14 +1418,12 @@ const U = {
 
   function stepLocation(typ) {
     const isPozemek = (typ === "Pozemek");
-    // Lazy-load data for selected type
     try {
       if (isPozemek) { loadData('pozemek'); }
       else if (typ === "Byt") { loadData('byt'); }
       else if (typ === "Dům") { loadData('dum'); }
-    } catch(e) { console.warn('[Widget] lazy load skip', e); }
+    } catch(e) {}
 
-    
     const locationInput = U.input("lokalita", 
       isPozemek ? "Začněte psát obec..." : "Začněte psát ulici a obec...", 
       "text"
@@ -1322,7 +1431,7 @@ const U = {
     
     const hint = U.el("div", { class: "hint" }, [
       isPozemek 
-        ? "Našeptávač vám nabídne pouze obce (bez ulic)."
+        ? "Našeptávač vám nabídne pouze obce."
         : "Našeptávač vám nabídne ulice ve formátu 'Ulice, Obec'."
     ]);
     
@@ -1335,13 +1444,9 @@ const U = {
         return; 
       }
       
-      console.log('[Widget] Location selected:', rawValue, 'isPozemek:', isPozemek);
-      
       if (isPozemek) {
-        // Pro pozemky - jen obec
         return stepParamsPozemek(rawValue);
       } else {
-        // Pro byty/domy - celá adresa (ulice, obec)
         if (typ === "Byt") return stepParamsByt(rawValue);
         if (typ === "Dům") return stepParamsDum(rawValue);
       }
@@ -1356,19 +1461,15 @@ const U = {
 
     addAI("Nacenění – krok 2/3", box);
     
-    setTimeout(async () => {
+    setTimeout(() => {
       attachSuggest(locationInput, isPozemek);
     }, 100);
   }
 
   function stepParamsByt(adresa) {
     const dispositions = [
-      "1+kk", "1+1",
-      "2+kk", "2+1", 
-      "3+kk", "3+1",
-      "4+kk", "4+1",
-      "5+kk", "5+1",
-      "6+kk", "6+1"
+      "1+kk", "1+1", "2+kk", "2+1", "3+kk", "3+1",
+      "4+kk", "4+1", "5+kk", "5+1", "6+kk", "6+1"
     ];
     
     let selectedDisposition = null;
@@ -1376,12 +1477,7 @@ const U = {
     let selectedVlast = "osobní";
     
     const dispGrid = U.el("div", { 
-      style: { 
-        display: "grid", 
-        gridTemplateColumns: "repeat(2, 1fr)", 
-        gap: "8px",
-        marginBottom: "16px"
-      } 
+      style: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginBottom: "16px" } 
     });
     
     const dispButtons = [];
@@ -1390,29 +1486,17 @@ const U = {
       const btn = U.el("button", { 
         class: "cg-btn-disp", 
         type: "button",
-        style: {
-          background: "#fff",
-          border: "2px solid #cbd5e0",
-          color: "#2d3748",
-          padding: "10px",
-          borderRadius: "4px",
-          cursor: "pointer",
-          fontWeight: "600",
-          transition: "all 0.2s",
-          minHeight: "44px"
-        },
         onclick: (e) => {
           e.preventDefault();
           dispButtons.forEach(b => {
             b.style.background = "#fff";
-            b.style.borderColor = "#cbd5e0";
-            b.style.color = "#2d3748";
+            b.style.borderColor = "var(--color-border)";
+            b.style.color = "var(--color-text)";
           });
-          btn.style.background = "#2c5282";
-          btn.style.borderColor = "#2c5282";
+          btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
+          btn.style.borderColor = "var(--color-primary)";
           btn.style.color = "#fff";
           selectedDisposition = disp;
-          console.log('[Widget] Selected disposition:', disp);
         }
       }, [disp]);
       
@@ -1425,42 +1509,32 @@ const U = {
     const stavOptions = ["Novostavba", "Po rekonstrukci", "Dobrý", "Špatný"];
     
     const stavGrid = U.el("div", {
-      style: {
-        display: "grid",
-        gridTemplateColumns: "repeat(2, 1fr)",
-        gap: "8px",
-        marginBottom: "16px"
-      }
+      style: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginBottom: "16px" }
     });
     
     stavOptions.forEach((stav) => {
       const btn = U.el("button", {
         class: "cg-btn-disp",
         type: "button",
-        style: {
-          background: stav === "Dobrý" ? "#2c5282" : "#fff",
-          border: "2px solid " + (stav === "Dobrý" ? "#2c5282" : "#cbd5e0"),
-          color: stav === "Dobrý" ? "#fff" : "#2d3748",
-          padding: "10px",
-          borderRadius: "4px",
-          cursor: "pointer",
-          fontWeight: "600",
-          transition: "all 0.2s",
-          minHeight: "44px"
-        },
         onclick: (e) => {
           e.preventDefault();
           stavButtons.forEach(b => {
             b.style.background = "#fff";
-            b.style.borderColor = "#cbd5e0";
-            b.style.color = "#2d3748";
+            b.style.borderColor = "var(--color-border)";
+            b.style.color = "var(--color-text)";
           });
-          btn.style.background = "#2c5282";
-          btn.style.borderColor = "#2c5282";
+          btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
+          btn.style.borderColor = "var(--color-primary)";
           btn.style.color = "#fff";
           selectedStav = stav;
         }
       }, [stav]);
+      
+      if (stav === "Dobrý") {
+        btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
+        btn.style.borderColor = "var(--color-primary)";
+        btn.style.color = "#fff";
+      }
       
       stavButtons.push(btn);
       stavGrid.appendChild(btn);
@@ -1471,43 +1545,33 @@ const U = {
     const vlastOptions = ["osobní", "družstevní"];
     
     const vlastGrid = U.el("div", {
-      style: {
-        display: "grid",
-        gridTemplateColumns: "repeat(2, 1fr)",
-        gap: "8px",
-        marginBottom: "16px"
-      }
+      style: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginBottom: "16px" }
     });
     
     vlastOptions.forEach((vlast) => {
       const btn = U.el("button", {
         class: "cg-btn-disp",
         type: "button",
-        style: {
-          background: vlast === "osobní" ? "#2c5282" : "#fff",
-          border: "2px solid " + (vlast === "osobní" ? "#2c5282" : "#cbd5e0"),
-          color: vlast === "osobní" ? "#fff" : "#2d3748",
-          padding: "10px",
-          borderRadius: "4px",
-          cursor: "pointer",
-          fontWeight: "600",
-          transition: "all 0.2s",
-          minHeight: "44px",
-          textTransform: "capitalize"
-        },
+        style: { textTransform: "capitalize" },
         onclick: (e) => {
           e.preventDefault();
           vlastButtons.forEach(b => {
             b.style.background = "#fff";
-            b.style.borderColor = "#cbd5e0";
-            b.style.color = "#2d3748";
+            b.style.borderColor = "var(--color-border)";
+                        b.style.color = "var(--color-text)";
           });
-          btn.style.background = "#2c5282";
-          btn.style.borderColor = "#2c5282";
+          btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
+          btn.style.borderColor = "var(--color-primary)";
           btn.style.color = "#fff";
           selectedVlast = vlast;
         }
       }, [vlast.charAt(0).toUpperCase() + vlast.slice(1)]);
+      
+      if (vlast === "osobní") {
+        btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
+        btn.style.borderColor = "var(--color-primary)";
+        btn.style.color = "#fff";
+      }
       
       vlastButtons.push(btn);
       vlastGrid.appendChild(btn);
@@ -1541,7 +1605,6 @@ const U = {
           vymera: vymera 
         };
         
-        console.log('[Widget] Byt params:', params);
         renderLeadBoxPricing(params);
       }
     }, ["Pokračovat k odhadu"]);
@@ -1564,209 +1627,258 @@ const U = {
   }
 
   function stepParamsDum(adresa) {
-  let selectedTypDomu = "Rodinný dům";
-  let selectedTyp = "Cihlová";
-  let selectedStav = "Dobrý";
-  let selectedZatepleni = "NE";
-  let selectedOkna = "NE";
-  let selectedParkovani = "Žádné";
+    let selectedTypDomu = "Rodinný dům";
+    let selectedTyp = "Cihlová";
+    let selectedStav = "Dobrý";
+    let selectedZatepleni = "NE";
+    let selectedOkna = "NE";
+    let selectedParkovani = "Žádné";
 
-  // 1. Typ domu
-  const typDomuLabel = U.el("label", {}, ["Typ domu"]);
-  const typDomuOptions = ["Rodinný dům", "Řadový", "Dvojdům", "Vila", "Chata/Chalupa"];
-  const typDomuButtons = [];
-  const typDomuGrid = U.el("div", { style: { display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:"8px", marginBottom:"16px" } });
-  typDomuOptions.forEach((opt) => {
-    const btn = U.el("button", { class:"cg-btn-disp", type:"button", style:{ background: opt==="Rodinný dům"?"#2c5282":"#fff", border:"2px solid " + (opt==="Rodinný dům"?"#2c5282":"#cbd5e0"), color: opt==="Rodinný dům"?"#fff":"#2d3748", borderRadius:"10px", padding:"10px 12px", fontWeight:"600", transition:"all 0.2s", minHeight:"44px" },
-      onclick:(e)=>{ e.preventDefault(); typDomuButtons.forEach(b=>{b.style.background="#fff"; b.style.borderColor="#cbd5e0"; b.style.color="#2d3748";}); btn.style.background="#2c5282"; btn.style.borderColor="#2c5282"; btn.style.color="#fff"; selectedTypDomu = opt; }
-    }, [opt]);
-    typDomuButtons.push(btn); typDomuGrid.appendChild(btn);
-  });
-
-  // 2. Typ stavby - upraveno "Jiná" na "Nevím"
-  const typLabel = U.el("label", {}, ["Typ stavby"]);
-  const typOptions = ["Cihlová", "Dřevostavba", "Smíšená", "Nevím"];
-  const typButtons = [];
-  const typGrid = U.el("div", {
-    style: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginBottom: "16px" }
-  });
-  typOptions.forEach((typ) => {
-    const btn = U.el("button", {
-      class: "cg-btn-disp",
-      type: "button",
-      style: {
-        background: typ === "Cihlová" ? "#2c5282" : "#fff",
-        border: "2px solid " + (typ === "Cihlová" ? "#2c5282" : "#cbd5e0"),
-        color: typ === "Cihlová" ? "#fff" : "#2d3748",
-        padding: "10px",
-        borderRadius: "4px",
-        cursor: "pointer",
-        fontWeight: "600",
-        transition: "all 0.2s",
-        minHeight: "44px"
-      },
-      onclick: (e) => {
-        e.preventDefault();
-        typButtons.forEach(b => {
-          b.style.background = "#fff";
-          b.style.borderColor = "#cbd5e0";
-          b.style.color = "#2d3748";
-        });
-        btn.style.background = "#2c5282";
-        btn.style.borderColor = "#2c5282";
+    const typDomuLabel = U.el("label", {}, ["Typ domu"]);
+    const typDomuOptions = ["Rodinný dům", "Řadový", "Dvojdům", "Vila", "Chata/Chalupa"];
+    const typDomuButtons = [];
+    const typDomuGrid = U.el("div", { style: { display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:"8px", marginBottom:"16px" } });
+    
+    typDomuOptions.forEach((opt) => {
+      const btn = U.el("button", { 
+        class:"cg-btn-disp", 
+        type:"button", 
+        onclick:(e)=>{ 
+          e.preventDefault(); 
+          typDomuButtons.forEach(b=>{
+            b.style.background="#fff"; 
+            b.style.borderColor="var(--color-border)"; 
+            b.style.color="var(--color-text)";
+          }); 
+          btn.style.background="linear-gradient(135deg, #FF8C42, #FF6B35)"; 
+          btn.style.borderColor="var(--color-primary)";
+          btn.style.color="#fff"; 
+          selectedTypDomu=opt;
+        }
+      }, [opt]);
+      
+      if (opt === "Rodinný dům") {
+        btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
+        btn.style.borderColor = "var(--color-primary)";
         btn.style.color = "#fff";
-        selectedTyp = typ;
-      }
-    }, [typ]);
-    typButtons.push(btn);
-    typGrid.appendChild(btn);
-  });
-
-  // 3. Stav domu
-  const stavLabel = U.el("label", {}, ["Stav domu"]);
-  const stavOptions = ["Novostavba", "Po rekonstrukci", "Dobrý", "Horší"];
-  const stavButtons = [];
-  const stavGrid = U.el("div", { style: { display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:"8px", marginBottom:"16px" } });
-  stavOptions.forEach((opt) => {
-    const btn = U.el("button", { class:"cg-btn-disp", type:"button", style:{ background: opt==="Dobrý"?"#2c5282":"#fff", border:"2px solid " + (opt==="Dobrý"?"#2c5282":"#cbd5e0"), color: opt==="Dobrý"?"#fff":"#2d3748", borderRadius:"10px", padding:"10px 12px", fontWeight:"600", transition:"all 0.2s", minHeight:"44px" },
-      onclick:(e)=>{ e.preventDefault(); stavButtons.forEach(b=>{b.style.background="#fff"; b.style.borderColor="#cbd5e0"; b.style.color="#2d3748";}); btn.style.background="#2c5282"; btn.style.borderColor="#2c5282"; btn.style.color="#fff"; selectedStav = opt; }
-    }, [opt]);
-    stavButtons.push(btn); stavGrid.appendChild(btn);
-  });
-
-  // 4. Zateplený?
-  const zatepleniLabel = U.el("label", {}, ["Zateplený?"]);
-  const zatepleniOptions = ["ANO", "NE"];
-  const zatepleniButtons = [];
-  const zatepleniGrid = U.el("div", { style: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginBottom: "16px" } });
-  zatepleniOptions.forEach((opt) => {
-    const btn = U.el("button", {
-      class: "cg-btn-disp",
-      type: "button",
-      style: {
-        background: opt === "NE" ? "#2c5282" : "#fff",
-        border: "2px solid " + (opt === "NE" ? "#2c5282" : "#cbd5e0"),
-        color: opt === "NE" ? "#fff" : "#2d3748",
-        padding: "10px",
-        borderRadius: "4px",
-        cursor: "pointer",
-        fontWeight: "600",
-        transition: "all 0.2s",
-        minHeight: "44px"
-      },
-      onclick: (e) => {
-        e.preventDefault();
-        zatepleniButtons.forEach(b => {
-          b.style.background = "#fff";
-          b.style.borderColor = "#cbd5e0";
-          b.style.color = "#2d3748";
-        });
-        btn.style.background = "#2c5282";
-        btn.style.borderColor = "#2c5282";
-        btn.style.color = "#fff";
-        selectedZatepleni = opt;
-      }
-    }, [opt]);
-    zatepleniButtons.push(btn);
-    zatepleniGrid.appendChild(btn);
-  });
-
-  // 5. Nová okna?
-  const oknaLabel = U.el("label", {}, ["Nová okna?"]);
-  const oknaOptions = ["ANO", "NE"];
-  const oknaButtons = [];
-  const oknaGrid = U.el("div", { style: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginBottom: "16px" } });
-  oknaOptions.forEach((opt) => {
-    const btn = U.el("button", {
-      class: "cg-btn-disp",
-      type: "button",
-      style: {
-        background: opt === "NE" ? "#2c5282" : "#fff",
-        border: "2px solid " + (opt === "NE" ? "#2c5282" : "#cbd5e0"),
-        color: opt === "NE" ? "#fff" : "#2d3748",
-        padding: "10px",
-        borderRadius: "4px",
-        cursor: "pointer",
-        fontWeight: "600",
-        transition: "all 0.2s",
-        minHeight: "44px"
-      },
-      onclick: (e) => {
-        e.preventDefault();
-        oknaButtons.forEach(b => {
-          b.style.background = "#fff";
-          b.style.borderColor = "#cbd5e0";
-          b.style.color = "#2d3748";
-        });
-        btn.style.background = "#2c5282";
-        btn.style.borderColor = "#2c5282";
-        btn.style.color = "#fff";
-        selectedOkna = opt;
-      }
-    }, [opt]);
-    oknaButtons.push(btn);
-    oknaGrid.appendChild(btn);
-  });
-
-  // 6. Parkování
-  const parkLabel = U.el("label", {}, ["Parkování"]);
-  const parkOptions = ["Žádné", "Venkovní stání", "Garáž 1×", "Garáž 2×"];
-  const parkButtons = [];
-  const parkGrid = U.el("div", { style: { display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:"8px", marginBottom:"16px" } });
-  parkOptions.forEach((opt) => {
-    const btn = U.el("button", { class:"cg-btn-disp", type:"button", style:{ background: opt==="Žádné"?"#2c5282":"#fff", border:"2px solid " + (opt==="Žádné"?"#2c5282":"#cbd5e0"), color: opt==="Žádné"?"#fff":"#2d3748", borderRadius:"10px", padding:"10px 12px", fontWeight:"600", transition:"all 0.2s", minHeight:"44px" },
-      onclick:(e)=>{ e.preventDefault(); parkButtons.forEach(b=>{b.style.background="#fff"; b.style.borderColor="#cbd5e0"; b.style.color="#2d3748";}); btn.style.background="#2c5282"; btn.style.borderColor="#2c5282"; btn.style.color="#fff"; selectedParkovani = opt; }
-    }, [opt]);
-    parkButtons.push(btn); parkGrid.appendChild(btn);
-  });
-
-  // 7. Výměra domu (m²)
-  const areaLabel = U.el("label", {}, ["Výměra domu (m²)"]);
-  const area = U.input("vymera", "Výměra (m²)", "number");
-
-  const go = U.el("button", { 
-    class: "cg-btn", 
-    type: "button", 
-    onclick: () => {
-      const vymera = parseFloat(area.value || 0);
-      if (!vymera || vymera <= 0) {
-        addAI("⚠️ Prosím zadejte platnou výměru v m².");
-        area.focus();
-        return;
       }
       
-      const params = { 
-        typ: "Dům", 
-        adresa: adresa,
-        typ_domu: selectedTypDomu,
-        typ_stavby: selectedTyp,
-        stav: selectedStav,
-        zatepleni: selectedZatepleni,
-        okna: selectedOkna,
-        parkovani: selectedParkovani,
-        vymera: vymera 
-      };
+      typDomuButtons.push(btn); 
+      typDomuGrid.appendChild(btn);
+    });
+
+    const typLabel = U.el("label", {}, ["Typ stavby"]);
+    const typOptions = ["Cihlová", "Dřevostavba", "Smíšená", "Nevím"];
+    const typButtons = [];
+    const typGrid = U.el("div", {
+      style: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginBottom: "16px" }
+    });
+    
+    typOptions.forEach((typ) => {
+      const btn = U.el("button", {
+        class: "cg-btn-disp",
+        type: "button",
+        onclick: (e) => {
+          e.preventDefault();
+          typButtons.forEach(b => {
+            b.style.background = "#fff";
+            b.style.borderColor = "var(--color-border)";
+            b.style.color = "var(--color-text)";
+          });
+          btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
+          btn.style.borderColor = "var(--color-primary)";
+          btn.style.color = "#fff";
+          selectedTyp = typ;
+        }
+      }, [typ]);
       
-      console.log('[Widget] Dům params:', params);
-      renderLeadBoxPricing(params);
-    }
-  }, ["Pokračovat k odhadu"]);
+      if (typ === "Cihlová") {
+        btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
+        btn.style.borderColor = "var(--color-primary)";
+        btn.style.color = "#fff";
+      }
+      
+      typButtons.push(btn);
+      typGrid.appendChild(btn);
+    });
 
-  const box = U.el("div", { class: "cg-step" }, [
-    U.el("label", {}, ["Parametry domu"]),
-    U.el("div", { class: "hint" }, ["Adresa: " + adresa]),
-    typDomuLabel, typDomuGrid, // 1
-    typLabel, typGrid,         // 2
-    stavLabel, stavGrid,       // 3
-    zatepleniLabel, zatepleniGrid, // 4
-    oknaLabel, oknaGrid,       // 5
-    parkLabel, parkGrid,       // 6
-    areaLabel, area,           // 7
-    U.el("div", { class: "cg-cta" }, [go]),
-  ]);
+    const stavLabel = U.el("label", {}, ["Stav domu"]);
+    const stavOptions = ["Novostavba", "Po rekonstrukci", "Dobrý", "Horší"];
+    const stavButtons = [];
+    const stavGrid = U.el("div", { style: { display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:"8px", marginBottom:"16px" } });
+    
+    stavOptions.forEach((opt) => {
+      const btn = U.el("button", { 
+        class:"cg-btn-disp", 
+        type:"button", 
+        onclick:(e)=>{ 
+          e.preventDefault(); 
+          stavButtons.forEach(b=>{
+            b.style.background="#fff"; 
+            b.style.borderColor="var(--color-border)"; 
+            b.style.color="var(--color-text)";
+          }); 
+          btn.style.background="linear-gradient(135deg, #FF8C42, #FF6B35)"; 
+          btn.style.borderColor="var(--color-primary)";
+          btn.style.color="#fff"; 
+          selectedStav=opt;
+        }
+      }, [opt]);
+      
+      if (opt === "Dobrý") {
+        btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
+        btn.style.borderColor = "var(--color-primary)";
+        btn.style.color = "#fff";
+      }
+      
+      stavButtons.push(btn); 
+      stavGrid.appendChild(btn);
+    });
 
-  addAI("Nacenění – krok 3/3", box);
-}
+    const zatepleniLabel = U.el("label", {}, ["Zateplený?"]);
+    const zatepleniOptions = ["ANO", "NE"];
+    const zatepleniButtons = [];
+    const zatepleniGrid = U.el("div", { style: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginBottom: "16px" } });
+    
+    zatepleniOptions.forEach((opt) => {
+      const btn = U.el("button", {
+        class: "cg-btn-disp",
+        type: "button",
+        onclick: (e) => {
+          e.preventDefault();
+          zatepleniButtons.forEach(b => {
+            b.style.background = "#fff";
+            b.style.borderColor = "var(--color-border)";
+            b.style.color = "var(--color-text)";
+          });
+          btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
+          btn.style.borderColor = "var(--color-primary)";
+          btn.style.color = "#fff";
+          selectedZatepleni = opt;
+        }
+      }, [opt]);
+      
+      if (opt === "NE") {
+        btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
+        btn.style.borderColor = "var(--color-primary)";
+        btn.style.color = "#fff";
+      }
+      
+      zatepleniButtons.push(btn);
+      zatepleniGrid.appendChild(btn);
+    });
+
+    const oknaLabel = U.el("label", {}, ["Nová okna?"]);
+    const oknaOptions = ["ANO", "NE"];
+    const oknaButtons = [];
+    const oknaGrid = U.el("div", { style: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginBottom: "16px" } });
+    
+    oknaOptions.forEach((opt) => {
+      const btn = U.el("button", {
+        class: "cg-btn-disp",
+        type: "button",
+        onclick: (e) => {
+          e.preventDefault();
+          oknaButtons.forEach(b => {
+            b.style.background = "#fff";
+            b.style.borderColor = "var(--color-border)";
+            b.style.color = "var(--color-text)";
+          });
+          btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
+          btn.style.borderColor = "var(--color-primary)";
+          btn.style.color = "#fff";
+          selectedOkna = opt;
+        }
+      }, [opt]);
+      
+      if (opt === "NE") {
+        btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
+        btn.style.borderColor = "var(--color-primary)";
+        btn.style.color = "#fff";
+      }
+      
+      oknaButtons.push(btn);
+      oknaGrid.appendChild(btn);
+    });
+
+    const parkLabel = U.el("label", {}, ["Parkování"]);
+    const parkOptions = ["Žádné", "Venkovní stání", "Garáž 1×", "Garáž 2×"];
+    const parkButtons = [];
+    const parkGrid = U.el("div", { style: { display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:"8px", marginBottom:"16px" } });
+    
+    parkOptions.forEach((opt) => {
+      const btn = U.el("button", { 
+        class:"cg-btn-disp", 
+        type:"button", 
+        onclick:(e)=>{ 
+          e.preventDefault(); 
+          parkButtons.forEach(b=>{
+            b.style.background="#fff"; 
+            b.style.borderColor="var(--color-border)"; 
+            b.style.color="var(--color-text)";
+          }); 
+          btn.style.background="linear-gradient(135deg, #FF8C42, #FF6B35)"; 
+          btn.style.borderColor="var(--color-primary)";
+          btn.style.color="#fff"; 
+          selectedParkovani=opt;
+        }
+      }, [opt]);
+      
+      if (opt === "Žádné") {
+        btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
+        btn.style.borderColor = "var(--color-primary)";
+        btn.style.color = "#fff";
+      }
+      
+      parkButtons.push(btn); 
+      parkGrid.appendChild(btn);
+    });
+
+    const areaLabel = U.el("label", {}, ["Výměra domu (m²)"]);
+    const area = U.input("vymera", "Výměra (m²)", "number");
+
+    const go = U.el("button", { 
+      class: "cg-btn", 
+      type: "button", 
+      onclick: () => {
+        const vymera = parseFloat(area.value || 0);
+        if (!vymera || vymera <= 0) {
+          addAI("⚠️ Prosím zadejte platnou výměru v m².");
+          area.focus();
+          return;
+        }
+        
+        const params = { 
+          typ: "Dům", 
+          adresa: adresa,
+          typ_domu: selectedTypDomu,
+          typ_stavby: selectedTyp,
+          stav: selectedStav,
+          zatepleni: selectedZatepleni,
+          okna: selectedOkna,
+          parkovani: selectedParkovani,
+          vymera: vymera 
+        };
+        
+        renderLeadBoxPricing(params);
+      }
+    }, ["Pokračovat k odhadu"]);
+
+    const box = U.el("div", { class: "cg-step" }, [
+      U.el("label", {}, ["Parametry domu"]),
+      U.el("div", { class: "hint" }, ["Adresa: " + adresa]),
+      typDomuLabel, typDomuGrid,
+      typLabel, typGrid,
+      stavLabel, stavGrid,
+      zatepleniLabel, zatepleniGrid,
+      oknaLabel, oknaGrid,
+      parkLabel, parkGrid,
+      areaLabel, area,
+      U.el("div", { class: "cg-cta" }, [go]),
+    ]);
+
+    addAI("Nacenění – krok 3/3", box);
+  }
 
   function stepParamsPozemek(obec) {
     let selectedKategorie = "Bydlení";
@@ -1774,55 +1886,39 @@ const U = {
 
     const katLabel = U.el("label", {}, ["Kategorie pozemku"]);
     const katButtons = [];
-    // --- OPRAVENO: jen povolené kategorie ---
     const katOptions = [
-      "Bydlení",
-      "Komerční",
-      "Lesy",
-      "Louky",
-      "Pole",
-      "Sady/vinice",
-      "Zahrady"
+      "Bydlení", "Komerční", "Lesy", "Louky", 
+      "Pole", "Sady/vinice", "Zahrady"
     ];
 
     const katGrid = U.el("div", {
-      style: {
-        display: "grid",
-        gridTemplateColumns: "repeat(2, 1fr)",
-        gap: "8px",
-        marginBottom: "16px"
-      }
+      style: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginBottom: "16px" }
     });
 
     katOptions.forEach((kat) => {
       const btn = U.el("button", {
         class: "cg-btn-disp",
         type: "button",
-        style: {
-          background: kat === "Bydlení" ? "#2c5282" : "#fff",
-          border: "2px solid " + (kat === "Bydlení" ? "#2c5282" : "#cbd5e0"),
-          color: kat === "Bydlení" ? "#fff" : "#2d3748",
-          padding: "10px",
-          borderRadius: "4px",
-          cursor: "pointer",
-          fontWeight: "600",
-          transition: "all 0.2s",
-          minHeight: "44px",
-          textTransform: "capitalize"
-        },
         onclick: (e) => {
           e.preventDefault();
           katButtons.forEach(b => {
             b.style.background = "#fff";
-            b.style.borderColor = "#cbd5e0";
-            b.style.color = "#2d3748";
+            b.style.borderColor = "var(--color-border)";
+            b.style.color = "var(--color-text)";
           });
-          btn.style.background = "#2c5282";
-          btn.style.borderColor = "#2c5282";
+          btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
+          btn.style.borderColor = "var(--color-primary)";
           btn.style.color = "#fff";
           selectedKategorie = kat;
         }
       }, [kat]);
+      
+      if (kat === "Bydlení") {
+        btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
+        btn.style.borderColor = "var(--color-primary)";
+        btn.style.color = "#fff";
+      }
+      
       katButtons.push(btn);
       katGrid.appendChild(btn);
     });
@@ -1835,38 +1931,22 @@ const U = {
     const spoluvlOptions = ["ANO", "NE"];
 
     const spoluvlGrid = U.el("div", {
-      style: {
-        display: "grid",
-        gridTemplateColumns: "repeat(2, 1fr)",
-        gap: "8px",
-        marginBottom: "16px"
-      }
+      style: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginBottom: "16px" }
     });
 
     spoluvlOptions.forEach((opt) => {
       const btn = U.el("button", {
         class: "cg-btn-disp",
         type: "button",
-        style: {
-          background: opt === "NE" ? "#2c5282" : "#fff",
-          border: "2px solid " + (opt === "NE" ? "#2c5282" : "#cbd5e0"),
-          color: opt === "NE" ? "#fff" : "#2d3748",
-          padding: "10px",
-          borderRadius: "4px",
-          cursor: "pointer",
-          fontWeight: "600",
-          transition: "all 0.2s",
-          minHeight: "44px"
-        },
         onclick: (e) => {
           e.preventDefault();
           spoluvlButtons.forEach(b => {
             b.style.background = "#fff";
-            b.style.borderColor = "#cbd5e0";
-            b.style.color = "#2d3748";
+            b.style.borderColor = "var(--color-border)";
+            b.style.color = "var(--color-text)";
           });
-          btn.style.background = "#2c5282";
-          btn.style.borderColor = "#2c5282";
+          btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
+          btn.style.borderColor = "var(--color-primary)";
           btn.style.color = "#fff";
           selectedSpoluvl = opt;
           if (opt === "ANO") {
@@ -1877,6 +1957,13 @@ const U = {
           }
         }
       }, [opt]);
+      
+      if (opt === "NE") {
+        btn.style.background = "linear-gradient(135deg, #FF8C42, #FF6B35)";
+        btn.style.borderColor = "var(--color-primary)";
+        btn.style.color = "#fff";
+      }
+      
       spoluvlButtons.push(btn);
       spoluvlGrid.appendChild(btn);
     });
@@ -1929,7 +2016,6 @@ const U = {
   function renderLeadBoxPricing(params) {
     S.tempPricing = params;
     U.saveSession();
-    const consentId = "cgConsent_" + Math.random().toString(36).slice(2);
 
     const box = U.el("div", { class: "leadbox" }, [
       U.el("div", {}, ["Pro ověření, že nejste robot, prosíme o zadání vašich kontaktů."]),
@@ -1938,13 +2024,13 @@ const U = {
       U.el("input", { id: "lead_phone", name:"phone", placeholder:"Telefon (+420…)" }),
       U.el("div", {}, ["Odesláním souhlasíte se zpracováním osobních údajů."]),
       U.el("div", { class: "cg-cta" }, [
-        U.el("button", { class: "cg-btn", type: "button", onclick: () => saveLeadPricing(consentId) }, ["Odeslat a zobrazit odhad"])
+        U.el("button", { class: "cg-btn", type: "button", onclick: () => saveLeadPricing() }, ["Odeslat a zobrazit odhad"])
       ])
     ]);
     addAI("Kontaktní ověření", box);
   }
 
-  async function saveLeadPricing(consentId) {
+  async function saveLeadPricing() {
     const btn = shadow.querySelector(".leadbox .cg-btn");
     if (btn) { btn.disabled = true; btn.textContent = "Odesílám…"; }
 
@@ -1954,9 +2040,9 @@ const U = {
     const name  = (nameEl  && nameEl.value)  ? nameEl.value.trim() : "";
     const email = (emailEl && emailEl.value) ? emailEl.value.trim() : "";
     const phone = (phoneEl && phoneEl.value) ? phoneEl.value.trim() : "";
-    const consent = true;
-if (!name || !U.emailOk(email) || !U.phoneOk(phone)) {
-      addAI("Zkontrolujte prosím kontaktní údaje a potvrďte souhlas.");
+    
+    if (!name || !U.emailOk(email) || !U.phoneOk(phone)) {
+      addAI("Zkontrolujte prosím kontaktní údaje.");
       if (btn) { btn.disabled = false; btn.textContent = "Odeslat a zobrazit odhad"; }
       return;
     }
@@ -1971,7 +2057,7 @@ if (!name || !U.emailOk(email) || !U.phoneOk(phone)) {
       message: "Žádost o odhad z chatbota",
       source: "chat_widget_pricing",
       timestamp: new Date().toISOString(),
-      path: "/lead",  // ← DO SHEETU "leads" (nacenění)
+      path: "/lead",
       pricing_params: JSON.stringify(S.tempPricing || {}),
     };
 
@@ -2000,18 +2086,16 @@ if (!name || !U.emailOk(email) || !U.phoneOk(phone)) {
     if (btn) { btn.disabled = false; btn.textContent = "Odesláno"; }
 
     const P = S.tempPricing || {};
-    // Ensure dataset for selected type is loaded (lazy)
     try {
       const kind = (P.typ === "Byt") ? "byt" : (P.typ === "Dům") ? "dum" : "pozemek";
       if (!window.PRICES || !window.PRICES[kind]) {
         addLoading("⏳ Načítám data pro odhad…");
         await Promise.resolve(loadData(kind));
       }
-    } catch(e) { console.warn('[Widget] wait for data failed', e); }
+    } catch(e) {}
     
     let res = null;
     
-    // Volání estimátoru s novými parametry
     if (P.typ === "Byt") {
       res = window.CG_Estimator.estimateByt(
         window.PRICES ? window.PRICES.byt : null, 
@@ -2046,11 +2130,9 @@ if (!name || !U.emailOk(email) || !U.phoneOk(phone)) {
       return;
     }
     
-    const typ = params.typ || "Nemovitost";
-    
     const box = U.el("div", { class: "cg-step" }, [
       U.el("label", {}, ["Odhad ceny"]),
-      U.el("div", { style: { fontSize: "22px", fontWeight: "800", margin: "12px 0", color: "#2c5282" } },
+      U.el("div", { style: { fontSize: "22px", fontWeight: "800", margin: "12px 0", color: "var(--color-primary)" } },
         [`${(res.low?.toLocaleString?.("cs-CZ") || res.low || "-")} Kč - ${(res.mid?.toLocaleString?.("cs-CZ") || res.mid || "-")} Kč`]
       ),
       U.el("div", { style: { fontSize: "14px", margin: "8px 0", opacity: "0.9" } },
@@ -2067,32 +2149,30 @@ if (!name || !U.emailOk(email) || !U.phoneOk(phone)) {
   }
 
   function stepContactVerify() {
-    const consentId = "cgConsent_" + Math.random().toString(36).slice(2);
     const box = U.el("div", { class: "leadbox" }, [
       U.el("div", {}, ["Zanechte na sebe kontakt, ozvu se vám co nejdříve."]),
       U.el("input", { id: "c_name",  name:"name",  placeholder:"Jméno" }),
       U.el("input", { id: "c_email", name:"email", type:"email", placeholder:"E-mail" }),
       U.el("input", { id: "c_phone", name:"phone", placeholder:"Telefon (+420…)" }),
       U.el("div", {}, ["Odesláním souhlasíte se zpracováním osobních údajů."]),
-      U.el("div", { class: "cg-cta" }, [ U.el("button", { class:"cg-btn", type:"button", onclick: () => saveLeadContact(consentId) }, ["Odeslat"]) ])
+      U.el("div", { class: "cg-cta" }, [ U.el("button", { class:"cg-btn", type:"button", onclick: () => saveLeadContact() }, ["Odeslat"]) ])
     ]);
     addAI("Kontaktní formulář", box);
   }
 
-  async function saveLeadContact(consentId) {
+  async function saveLeadContact() {
     const btn = shadow.querySelector(".leadbox .cg-btn");
     if (btn) { btn.disabled = true; btn.textContent = "Odesílám…"; }
     const name  = (shadow.querySelector("#c_name")  || {}).value || "";
     const email = (shadow.querySelector("#c_email") || {}).value || "";
     const phone = (shadow.querySelector("#c_phone") || {}).value || "";
-    const consent = true;
-if (!name.trim() || !U.emailOk(email) || !U.phoneOk(phone) || !consent) {
-      addAI("Zkontrolujte prosím kontaktní údaje a potvrďte souhlas.");
+    
+    if (!name.trim() || !U.emailOk(email) || !U.phoneOk(phone)) {
+      addAI("Zkontrolujte prosím kontaktní údaje.");
       if (btn) { btn.disabled = false; btn.textContent = "Odeslat"; }
       return;
     }
 
-    // Získat poslední 3 zprávy z konverzace
     const last3 = S.chat.messages.slice(-3);
 
     const payload = {
@@ -2105,8 +2185,8 @@ if (!name.trim() || !U.emailOk(email) || !U.phoneOk(phone) || !consent) {
       message: "Žádost o kontakt z chatbota",
       source: "chat_widget_contact",
       timestamp: new Date().toISOString(),
-      path: "/chatbot-lead",  // ← ZMĚNĚNO NA /chatbot-lead (do sheetu "Chatbot leads")
-      last_messages: JSON.stringify(last3)  // ← POSLEDNÍ 3 ZPRÁVY
+      path: "/chatbot-lead",
+      last_messages: JSON.stringify(last3)
     };
 
     try {
@@ -2142,15 +2222,12 @@ if (!name.trim() || !U.emailOk(email) || !U.phoneOk(phone) || !consent) {
     
     try {
       if (S.intent.contactOffer) {
-        console.log('[Widget] Contact offer active, checking response');
         const yesRe = /^(ano|jo|ok|okej|jasne|prosim|dobre|spustit|otevrit|zobraz(it)?|muzete|urcite)(\b|!|\.)?$/i;
         const noRe  = /^(ne|radeji\s+ne|pozdeji|ted\s+ne|neni)(\b|!|\.)?$/i;
         
         const trimmed = q.trim();
-        console.log('[Widget] Checking answer:', trimmed, 'against yes pattern');
         
         if (yesRe.test(trimmed)) {
-          console.log('[Widget] YES detected - opening contact form');
           addME(q);
           U.clearIntents();
           stepContactVerify();
@@ -2163,13 +2240,10 @@ if (!name.trim() || !U.emailOk(email) || !U.phoneOk(phone) || !consent) {
         }
         S.intent.contactOffer = false;
       }
-    } catch(e) {
-      console.error('[Widget] Contact offer check error:', e);
-    }
+    } catch(e) {}
 
     try {
       if (S.intent.upOffer) {
-        console.log('[Widget] UP offer active, checking response');
         const yesRe = /^(ano|jo|ok|okej|jasne|prosim|dobre|poslat|zaslat)(\b|!|\.)?$/i;
         const noRe  = /^(ne|radeji\s+ne|pozdeji|ted\s+ne|neni)(\b|!|\.)?$/i;
         if (yesRe.test(q.trim())) {
@@ -2190,22 +2264,17 @@ if (!name.trim() || !U.emailOk(email) || !U.phoneOk(phone) || !consent) {
 
     try {
       if (S.intent.waitingForLocation) {
-        console.log('[Widget] waitingForLocation active, user input:', q);
         addME(q);
         S.intent.waitingForLocation = false;
         
         if (needsUP(q)) {
-          console.log('[Widget] User provided full UP query, using as-is');
           handleUPQuery(q);
         } else {
-          console.log('[Widget] User provided location only, prepending "územní plán"');
           handleUPQuery("územní plán " + q);
         }
         return;
       }
-    } catch(e) {
-      console.error('[Widget] waitingForLocation check error:', e);
-    }
+    } catch(e) {}
 
     if (!q) return;
     
@@ -2215,7 +2284,7 @@ if (!name.trim() || !U.emailOk(email) || !U.phoneOk(phone) || !consent) {
     
     addME(q);
     
-    setTimeout(async () => {
+    setTimeout(() => {
       S.processing = false;
       chatTextarea.disabled = false;
       chatSendBtn.disabled = false;
@@ -2228,7 +2297,8 @@ if (!name.trim() || !U.emailOk(email) || !U.phoneOk(phone) || !consent) {
     }
     
     if (needsUP(q)) {
-      try { if (!S.data.up && !(window.PRICES && window.PRICES.up)) { loadData('up'); } } catch(e){} handleUPQuery(q);
+      try { if (!S.data.up && !(window.PRICES && window.PRICES.up)) { loadData('up'); } } catch(e){} 
+      handleUPQuery(q);
       return;
     }
     
@@ -2247,7 +2317,11 @@ if (!name.trim() || !U.emailOk(email) || !U.phoneOk(phone) || !consent) {
     
     (async () => {
       try {
-        const typing = U.el("div", { class: "chat-msg ai" }, ["· · ·"]);
+        const typing = U.el("div", { class: "chat-msg ai" });
+        const avatar = U.el("img", { class: "msg-avatar", src: FOX_AVATAR, alt: "AI" });
+        const content = U.el("div", { class: "msg-content" }, ["· · ·"]);
+        typing.appendChild(avatar);
+        typing.appendChild(content);
         chatMessages.appendChild(typing); 
         chatMessages.scrollTop = chatMessages.scrollHeight;
         
@@ -2286,7 +2360,7 @@ if (!name.trim() || !U.emailOk(email) || !U.phoneOk(phone) || !consent) {
           }
           
           if (!resp || !resp.ok) { 
-            addAI("Omlouvám se, teď se mi nedaří získat odpověď od AI. Zkuste to prosím za chvíli."); 
+            addAI("Omlouvám se, teď se mi nedaří získat odpověď od AI."); 
             return; 
           }
         }
@@ -2304,10 +2378,10 @@ if (!name.trim() || !U.emailOk(email) || !U.phoneOk(phone) || !consent) {
           txt = await resp.text(); 
         }
         
-        txt = (txt && String(txt).trim()) || "Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS apod.";
+        txt = (txt && String(txt).trim()) || "Rozumím. Ptejte se na cokoliv k nemovitostem.";
         addAI(txt);
       } catch (e) { 
-        addAI("Omlouvám se, došlo k chybě při komunikaci s AI. Zkuste to prosím znovu."); 
+        addAI("Omlouvám se, došlo k chybě při komunikaci s AI."); 
         console.error("[Widget] AI chat error:", e); 
       }
     })();
@@ -2322,23 +2396,8 @@ if (!name.trim() || !U.emailOk(email) || !U.phoneOk(phone) || !consent) {
         S.cfg = await U.fetchJson(CFG_URL);
         console.log('[Widget] Config loaded:', S.cfg);
       }
-      
-      if (S.cfg && S.cfg.data_urls) {
-        const d = S.cfg.data_urls;
-        
-        // Zjistit formát dat
-        const isExcel = (d.byty && d.byty.endsWith('.xlsx')) || S.cfg.data_format === 'excel';
-        
-        if (isExcel) {
-          console.log('[Widget] Data loading deferred (Excel, lazy)');
-        } else {
-          console.log('[Widget] Data loading deferred (JSON, lazy)');
-        }
-        
-      }
     } catch (e) {
-      console.error('[Widget] Config/data loading error:', e);
-      addAI("Chyba načítání konfigurace/dat: " + String(e));
+      console.error('[Widget] Config loading error:', e);
     }
   })();
 
@@ -2349,14 +2408,17 @@ if (!name.trim() || !U.emailOk(email) || !U.phoneOk(phone) || !consent) {
       console.log('[Widget] Rendering start screen...');
       
       if (U.loadSession() && S.chat.messages.length > 0) {
-        console.log('[Widget] Session restored, showing previous messages');
+        console.log('[Widget] Session restored');
         S.chat.messages.forEach(msg => {
           if (msg.role === 'user') {
-            const b = U.el("div", { class: "chat-msg me" }, [msg.content]);
-            chatMessages.appendChild(b);
+            addME(msg.content);
           } else {
-            const b = U.el("div", { class: "chat-msg ai" }, [msg.content]);
-            chatMessages.appendChild(b);
+            const msgWrapper = U.el("div", { class: "chat-msg ai" });
+            const avatar = U.el("img", { class: "msg-avatar", src: FOX_AVATAR, alt: "AI" });
+            const content = U.el("div", { class: "msg-content" }, [msg.content]);
+            msgWrapper.appendChild(avatar);
+            msgWrapper.appendChild(content);
+            chatMessages.appendChild(msgWrapper);
           }
         });
         chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -2386,6 +2448,6 @@ if (!name.trim() || !U.emailOk(email) || !U.phoneOk(phone) || !consent) {
     } 
   });
 
-  console.log('[Widget] Initialization complete (v8.0)');
+  console.log('[Widget] Initialization complete (v8.0 - New Design)');
 
 })();
