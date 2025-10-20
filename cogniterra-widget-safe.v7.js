@@ -323,59 +323,63 @@
   }
   
   /* === Header with Logo === */
-  .chat-header {
-    background: linear-gradient(135deg, var(--green), var(--green-soft));
-    color: #fff;
-    padding: 18px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: none;
-    box-shadow: var(--shadow-btn);
-  }
-  
-  .chat-header-content {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 1;
-  }
-  
-  .chat-header-logo {
-    height: 62px;
-    width: auto;
-  }
-  
-  .chat-header-title {
-    font-weight: var(--font-weight-bold);
-    font-size: 17px;
-    letter-spacing: -0.2px;
-  }
-  
-  .chat-close-btn {
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
-    color: #fff;
-    cursor: pointer;
-    font-size: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    transition: background 0.2s ease;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-  }
-  
-  .chat-close-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
-  }
-  
-  .chat-close-btn:active {
-    background: rgba(255, 255, 255, 0.4);
-  }
+ /* === Čistý, užší header === */
+.chat-header {
+  background: #76C68E;
+  color: #fff;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e0e0e0;
+  box-shadow: none;
+  min-height: 60px;
+}
+
+.chat-header-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.chat-header-logo {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+}
+
+.chat-header-title {
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: -0.2px;
+  color: #fff;
+}
+
+.chat-close-btn {
+  background: rgba(255, 255, 255, 0.25);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  transition: background 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.chat-close-btn:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.chat-close-btn:active {
+  background: rgba(255, 255, 255, 0.45);
+}
   
   /* === Messages Area === */
   .chat-messages {
