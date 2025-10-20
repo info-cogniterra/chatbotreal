@@ -20,8 +20,8 @@
     width: 70px;
     height: 70px;
     border-radius: 0;
-    background: linear-gradient(135deg, #1F6A3A, #76C68E);
-    box-shadow: 0 10px 26px rgba(31, 106, 58, 0.35);
+    background: transparent;
+    box-shadow: none;
     border: none;
     color: #fff;
     display: flex;
@@ -34,12 +34,12 @@
     -webkit-user-select: none;
     touch-action: manipulation;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-    overflow: hidden;
+    overflow: visible;
   }
   
   .cg-launcher:hover {
-    transform: scale(1.05);
-    box-shadow: 0 12px 32px rgba(31, 106, 58, 0.45);
+    transform: scale(1.1);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
   }
   
   .cg-launcher:active {
