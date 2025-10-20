@@ -20,7 +20,7 @@
     width: 70px;
     height: 70px;
     border-radius: 0;
-    background: transparent;
+    background: transparent !important;
     box-shadow: none;
     border: none;
     color: #fff;
@@ -39,11 +39,12 @@
   
   .cg-launcher:hover {
     transform: scale(1.1);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    box-shadow: transparent !important;
   }
   
   .cg-launcher:active {
     transform: scale(0.98);
+    background: transparent !important;
   }
   
   .cg-launcher-avatar {
@@ -67,7 +68,7 @@
     box-shadow: 0 4px 16px rgba(0,0,0,0.15);
     font: 600 14px/1.4 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     white-space: nowrap;
-    opacity: 0;
+    opacity: 1;
     pointer-events: none;
     transition: opacity 0.3s ease, transform 0.3s ease;
   }
@@ -83,11 +84,6 @@
     border-left: 8px solid #fff;
     border-top: 8px solid transparent;
     border-bottom: 8px solid transparent;
-  }
-  
-  .cg-launcher:hover .cg-launcher-bubble {
-    opacity: 1;
-    transform: translateY(50%) translateX(-5px);
   }
   
   /* Panel - Brand Colors */
