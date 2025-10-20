@@ -2481,4 +2481,4 @@
   console.log('[Widget] Initialization complete (v8.1 - Brand Colors)');
 
 })();
-      }
+      
