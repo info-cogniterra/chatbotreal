@@ -411,8 +411,8 @@
   }
   
   .msg-avatar {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     flex-shrink: 0;
     object-fit: cover;
