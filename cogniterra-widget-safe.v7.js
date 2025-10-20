@@ -436,11 +436,12 @@
   .msg-avatar {
     width: 40px;
     height: 40px;
-    border-radius: 50%;
+    border-radius: 0;
     flex-shrink: 0;
-    object-fit: cover;
-    border: 2px solid #fff;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    object-fit: contain;
+    border: none;
+    box-shadow: none;
+    background: transparent;
   }
   
   .msg-content {
