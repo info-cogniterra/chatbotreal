@@ -398,10 +398,15 @@
 }
 
 .chat-header-title {
-  font-weight: 600;
-  font-size: 16px;
-  letter-spacing: -0.2px;
-  color: var(--header-text);
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: -0.3px;
+  background: linear-gradient(135deg, var(--gold), rgba(255, 255, 255, 0.95));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.15));
+  text-shadow: none;
 }
 
 .chat-close-btn {
@@ -434,7 +439,10 @@
     flex: 1;
     padding: 20px;
     overflow-y: auto;
-    background: var(--gray-50);
+    background: 
+      radial-gradient(900px 300px at 10% -5%, color-mix(in oklab, var(--green) 6%, transparent) 0%, transparent 60%),
+      radial-gradient(800px 280px at 95% 105%, color-mix(in oklab, var(--gold) 8%, transparent) 0%, transparent 65%),
+      var(--gray-50);
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -511,6 +519,7 @@
     background: var(--surface);
     border-bottom-left-radius: 6px;
     color: var(--text);
+    border: 1px solid var(--border-color);
   }
   
   .chat-msg.me .msg-content {
@@ -650,7 +659,11 @@
     margin: 0 0 8px;
     font-weight: var(--font-weight-bold);
     font-size: 17px;
-    color: var(--text);
+    background: linear-gradient(135deg, var(--gold), var(--green));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 1px 0 rgba(0,0,0,0.06));
   }
   
   .cg-card p {

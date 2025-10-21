@@ -73,6 +73,12 @@
     transition: opacity 0.3s ease, transform 0.3s ease;
   }
   
+  /* Hide bubble when panel is open */
+  .cg-launcher-bubble.cg-hidden {
+    opacity: 0;
+    transform: translateY(50%) scale(0.8);
+  }
+  
   .cg-launcher-bubble::after {
     content: '';
     position: absolute;
@@ -312,6 +318,7 @@ html.cg-open, body.cg-open {
     var checkPanel = function() {
       var panel = document.querySelector('.cg-panel');
       var launcher = document.querySelector('.cg-launcher');
+      var bubble = document.querySelector('.cg-launcher-bubble');
       if (!panel) {
         setTimeout(checkPanel, 50);
         return;
@@ -324,6 +331,10 @@ html.cg-open, body.cg-open {
         if (launcher && window.innerWidth < 768) {
           launcher.classList.add('cg-hidden');
         }
+        // Hide the speech bubble when panel is open
+        if (bubble) {
+          bubble.classList.add('cg-hidden');
+        }
       };
       
       var off = function(){ 
@@ -332,6 +343,10 @@ html.cg-open, body.cg-open {
         document.body.classList.remove('cg-open');
         if (launcher) {
           launcher.classList.remove('cg-hidden');
+        }
+        // Show the speech bubble when panel is closed
+        if (bubble) {
+          bubble.classList.remove('cg-hidden');
         }
       };
       
