@@ -53,6 +53,32 @@
 
   console.log('[Widget] Session:', S.session);
 
+  // Dark mode detection
+  let isDarkMode = false;
+  function updateDarkMode() {
+    const htmlEl = document.documentElement;
+    isDarkMode = htmlEl.classList.contains('dark') || 
+                 (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    console.log('[Widget] Dark mode:', isDarkMode);
+    
+    // Update shadow root if needed
+    if (shadow && shadow.host) {
+      shadow.host.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+    }
+  }
+  
+  // Initial dark mode check
+  updateDarkMode();
+  
+  // Watch for dark mode changes
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateDarkMode);
+  }
+  
+  // Watch for class changes on html element
+  const observer = new MutationObserver(updateDarkMode);
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
   // Fox avatar URL
   const FOX_AVATAR = 'https://raw.githubusercontent.com/info-cogniterra/chatbotreal/main/assets/avatar.png';
   const LOGO_URL = 'https://raw.githubusercontent.com/info-cogniterra/chatbotreal/main/assets/brand-icon.png';
@@ -254,7 +280,7 @@
     }
   };
 
-  // === NEW BRAND DESIGN STYLES ===
+  // === NEW BRAND DESIGN STYLES WITH DARK MODE ===
   const style = document.createElement("style");
   style.textContent = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -269,18 +295,23 @@
     border: none;
     background: transparent;
     
-    /* Brand colors */
+    /* Brand colors - consistent across modes */
     --gold: #D4AF37;
     --green: #1F6A3A;
     --green-soft: #76C68E;
     
-    /* Neutrals */
+    /* Light mode (default) */
     --surface: #ffffff;
     --text: #0f0f0f;
     --muted: #5f6368;
     --gray-50: #fafafa;
+    --gray-100: #f5f5f5;
+    --gray-200: #e5e5e5;
     --gray-600: #4b5563;
     --gray-900: #111827;
+    --border-color: rgba(0, 0, 0, 0.06);
+    --header-bg: #76C68E;
+    --header-text: #fff;
     
     /* Radius */
     --radius-sm: 12px;
@@ -297,6 +328,23 @@
     --font-weight-semibold: 600;
     --font-weight-bold: 800;
     --font-weight-black: 900;
+  }
+  
+  /* Dark mode overrides */
+  :host([data-theme="dark"]) {
+    --surface: #0f1115;
+    --text: #e7e7e7;
+    --muted: #9aa4b2;
+    --gray-50: #111318;
+    --gray-100: #141720;
+    --gray-200: #293042;
+    --gray-600: #9ca3af;
+    --gray-900: #f1f5f9;
+    --border-color: rgba(255, 255, 255, 0.08);
+    --header-bg: #1F6A3A;
+    --header-text: #e7e7e7;
+    --shadow-card: 0 14px 36px rgba(0, 0, 0, 0.55);
+    --shadow-btn: 0 12px 32px rgba(31, 106, 58, 0.35);
   }
   
   * {
@@ -323,15 +371,15 @@
   }
   
   /* === Header with Logo === */
- /* === Čistý, užší header === */
+ /* === Clean, narrower header with dynamic colors === */
 .chat-header {
-  background: #76C68E;
-  color: #fff;
+  background: var(--header-bg);
+  color: var(--header-text);
   padding: 12px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
   box-shadow: none;
   min-height: 60px;
 }
@@ -353,13 +401,13 @@
   font-weight: 600;
   font-size: 16px;
   letter-spacing: -0.2px;
-  color: #fff;
+  color: var(--header-text);
 }
 
 .chat-close-btn {
   background: rgba(255, 255, 255, 0.25);
   border: none;
-  color: #fff;
+  color: var(--header-text);
   cursor: pointer;
   font-size: 18px;
   display: flex;

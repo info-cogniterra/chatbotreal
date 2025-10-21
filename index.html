@@ -626,15 +626,18 @@ footer .social a:hover {
 </style>
 
 
-<style data-global="unified-bg-fullpage-latest">
-  /* === ONE unified page background (latest gradient) === */
+<style data-global="unified-bg-simplified">
+  /* === Simplified unified page background with dark mode === */
   body.unified-bg{
     background:
       radial-gradient(1000px 360px at 8% -10%, color-mix(in oklab, var(--green) 18%, transparent) 0%, transparent 62%),
       radial-gradient(900px 320px at 110% 120%, color-mix(in oklab, var(--gold) 24%, transparent) 0%, transparent 65%),
       linear-gradient(180deg, #ffffff, #f9faf9);
-    background-attachment: fixed;
+    background-repeat: no-repeat;
+    background-attachment: scroll;
+    background-size: cover;
   }
+  
   html.dark body.unified-bg{
     background:
       radial-gradient(1000px 360px at 8% -10%, color-mix(in oklab, var(--green) 26%, transparent) 0%, transparent 62%),
@@ -642,244 +645,21 @@ footer .social a:hover {
       linear-gradient(180deg, #0c0f14, #0b0d10);
   }
 
-  /* === Kill local backgrounds & separators from KPI down === */
-  .kpi-soft,
-  .section-offer-premium,
-  .section-brand-soft,
-  .section-brand-premium,
-  #home-sluzby,
-  #home-reviews,
-  #partners,
-  #kontakt-form {
+  /* Keep sections transparent */
+  .kpi-soft, .section-offer-premium, .section-brand-soft, .section-brand-premium,
+  #home-sluzby, #home-reviews, #partners, #kontakt-form {
     background: transparent !important;
     border-top: none !important;
     border-bottom: none !important;
   }
 
-  /* Remove long HR/dividers if any */
-  hr, .section-divider, .hairline-x { display:none !important; }
-
-  /* Remove footer border to keep continuous flow */
-  footer { border-top: none !important; }
-
-  /* Optional: make partners edge fade match unified bg */
+  /* Footer separator */
+  footer { border-top: 1px solid rgba(0,0,0,.08) !important; }
+  html.dark footer { border-top: 1px solid rgba(255,255,255,.12) !important; }
+  
+  /* Partners fade match */
   :root .partners-fade{ --fade-bg:#fff; }
   html.dark .partners-fade{ --fade-bg:#0b0d10; }
-</style>
-
-
-<style data-kpi="unified-bg-override">
-  main .kpi-soft{ background: transparent !important; }
-</style>
-
-
-<style data-global="unified-bg-fullpage-FIX">
-  body.unified-bg{
-    background:
-      radial-gradient(1000px 360px at 8% -10%, color-mix(in oklab, var(--green) 18%, transparent) 0%, transparent 62%),
-      radial-gradient(900px 320px at 110% 120%, color-mix(in oklab, var(--gold) 24%, transparent) 0%, transparent 65%),
-      linear-gradient(180deg, #ffffff, #f9faf9) !important;
-    background-repeat: no-repeat, no-repeat, no-repeat;
-    background-attachment: scroll, scroll, scroll;
-    background-size: cover, cover, cover;
-  }
-  html.dark body.unified-bg{
-    background:
-      radial-gradient(1000px 360px at 8% -10%, color-mix(in oklab, var(--green) 26%, transparent) 0%, transparent 62%),
-      radial-gradient(900px 320px at 110% 120%, color-mix(in oklab, var(--gold) 30%, transparent) 0%, transparent 65%),
-      linear-gradient(180deg, #0c0f14, #0b0d10) !important;
-  }
-
-  /* Make sure sections don't override backgrounds */
-  .kpi-soft, .section-offer-premium, .section-brand-soft, .section-brand-premium,
-  #home-sluzby, #home-reviews, #partners, #kontakt-form {
-    background: transparent !important;
-    border-top: none !important;
-    border-bottom: none !important;
-  }
-
-  /* Footer should remain separated */
-  footer { border-top: 1px solid rgba(0,0,0,.08) !important; }
-  html.dark footer { border-top: 1px solid rgba(255,255,255,.12) !important; }
-</style>
-
-
-<style data-global="unified-bg-fullpage-BOLD">
-  /* Stronger, more visible gradient across the whole page */
-  body.unified-bg{
-    background:
-      radial-gradient(1100px 400px at 10% -12%, color-mix(in oklab, var(--green) 42%, transparent) 0%, transparent 64%),
-      radial-gradient(1100px 380px at 105% 118%, color-mix(in oklab, var(--gold) 52%, transparent) 0%, transparent 66%),
-      linear-gradient(180deg, #ffffff 0%, #f4f7f2 40%, #f9faf9 100%) !important;
-    background-repeat: no-repeat, no-repeat, no-repeat;
-    background-attachment: scroll, scroll, scroll;
-    background-size: cover, cover, cover;
-  }
-  html.dark body.unified-bg{
-    background:
-      radial-gradient(1100px 400px at 10% -12%, color-mix(in oklab, var(--green) 48%, transparent) 0%, transparent 64%),
-      radial-gradient(1100px 380px at 105% 118%, color-mix(in oklab, var(--gold) 58%, transparent) 0%, transparent 66%),
-      linear-gradient(180deg, #0b0d10 0%, #0c1114 45%, #0b0d10 100%) !important;
-  }
-  /* Slightly soften on very small screens to avoid overpowering */
-  @media (max-width: 480px){
-    body.unified-bg{
-      background:
-        radial-gradient(900px 320px at 12% -10%, color-mix(in oklab, var(--green) 34%, transparent) 0%, transparent 62%),
-        radial-gradient(900px 300px at 100% 118%, color-mix(in oklab, var(--gold) 44%, transparent) 0%, transparent 64%),
-        linear-gradient(180deg, #ffffff 0%, #f5f8f4 45%, #f9faf9 100%) !important;
-    }
-    html.dark body.unified-bg{
-      background:
-        radial-gradient(900px 320px at 12% -10%, color-mix(in oklab, var(--green) 42%, transparent) 0%, transparent 62%),
-        radial-gradient(900px 300px at 100% 118%, color-mix(in oklab, var(--gold) 50%, transparent) 0%, transparent 64%),
-        linear-gradient(180deg, #0b0d10 0%, #0c1013 45%, #0b0d10 100%) !important;
-    }
-  }
-</style>
-
-
-<style data-global="unified-bg-fullpage-GLOW">
-  /* Stronger gradient + top glow (first third) */
-  body.unified-bg{
-    background:
-      /* Top-center soft glow to add 'šmrnc' pod hero */
-      radial-gradient(1200px 420px at 50% -8%, rgba(255,255,245,0.92) 0%, rgba(255,255,245,0.62) 22%, rgba(255,255,245,0.28) 48%, transparent 70%),
-      /* Left green aura (stronger) */
-      radial-gradient(1200px 420px at 10% -12%, color-mix(in oklab, var(--green) 62%, transparent) 0%, transparent 66%),
-      /* Right gold aura (stronger) */
-      radial-gradient(1200px 400px at 104% 118%, color-mix(in oklab, var(--gold) 66%, transparent) 0%, transparent 68%),
-      /* Depth linear gradient */
-      linear-gradient(180deg, #ffffff 0%, #f2f6ee 38%, #f9faf9 100%) !important;
-    background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
-    background-attachment: scroll, scroll, scroll, scroll;
-    background-size: cover, cover, cover, cover;
-  }
-  html.dark body.unified-bg{
-    background:
-      /* Top glow — subtle in dark */
-      radial-gradient(1200px 420px at 50% -8%, rgba(255,255,240,0.12) 0%, rgba(255,255,240,0.08) 26%, transparent 60%),
-      radial-gradient(1200px 420px at 10% -12%, color-mix(in oklab, var(--green) 58%, transparent) 0%, transparent 66%),
-      radial-gradient(1200px 400px at 104% 118%, color-mix(in oklab, var(--gold) 62%, transparent) 0%, transparent 68%),
-      linear-gradient(180deg, #0b0d10 0%, #0c1114 40%, #0b0d10 100%) !important;
-  }
-
-  /* Make sure sections below don't override this look */
-  .kpi-soft, .section-offer-premium, .section-brand-soft, .section-brand-premium,
-  #home-sluzby, #home-reviews, #partners, #kontakt-form {
-    background: transparent !important;
-    border-top: none !important;
-    border-bottom: none !important;
-  }
-  footer { border-top: 1px solid rgba(0,0,0,.08) !important; }
-  html.dark footer { border-top: 1px solid rgba(255,255,255,.12) !important; }
-</style>
-
-
-<style data-global="unified-bg-fullpage-GLOW-FORCE">
-  /* Make sure body participates in stacking context */
-  body.gradient-bg{ position: relative; min-height: 100%; }
-  /* Render gradient as a fixed full-viewport layer so nothing can cover it */
-  body.gradient-bg::before{
-    content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-    background:
-      /* strong top glow */
-      radial-gradient(1200px 420px at 50% -8%, rgba(255,255,245,0.95) 0%, rgba(255,255,245,0.58) 24%, rgba(255,255,245,0.22) 52%, transparent 72%),
-      /* left green */
-      radial-gradient(1200px 460px at 8% -12%, color-mix(in oklab, var(--green) 68%, transparent) 0%, transparent 66%),
-      /* right gold */
-      radial-gradient(1200px 440px at 104% 118%, color-mix(in oklab, var(--gold) 72%, transparent) 0%, transparent 68%),
-      /* base depth */
-      linear-gradient(180deg, #0b0d10 0%, #0e1316 42%, #0b0d10 100%);
-    background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
-    background-attachment: fixed, fixed, fixed, fixed;
-    opacity: 1;
-  }
-  /* Light mode variant (if site uses light by default) */
-  html:not(.dark) body.gradient-bg::before{
-    background:
-      radial-gradient(1200px 420px at 50% -8%, rgba(255,255,245,0.92) 0%, rgba(255,255,245,0.62) 22%, rgba(255,255,245,0.28) 48%, transparent 70%),
-      radial-gradient(1200px 460px at 8% -12%, color-mix(in oklab, var(--green) 62%, transparent) 0%, transparent 66%),
-      radial-gradient(1200px 440px at 104% 118%, color-mix(in oklab, var(--gold) 66%, transparent) 0%, transparent 68%),
-      linear-gradient(180deg, #ffffff 0%, #f1f6ef 38%, #f9faf9 100%);
-  }
-
-  /* Kill local backgrounds and borders on sections below hero so gradient shows through */
-  .kpi-soft, .section-offer-premium, .section-brand-soft, .section-brand-premium,
-  #home-sluzby, #home-reviews, #partners, #kontakt-form {
-    background: transparent !important;
-    border-top: none !important;
-    border-bottom: none !important;
-  }
-  /* Keep footer separated */
-  footer { border-top: 1px solid rgba(255,255,255,.10) !important; background: transparent !important; }
-  html:not(.dark) footer { border-top: 1px solid rgba(0,0,0,.08) !important; }
-</style>
-
-
-<style data-global="gradient-main-only">
-  /* Turn off the full-page gradient layer */
-  body.gradient-bg::before{ content: none !important; }
-  /* Apply gradient only to <main class="gradient-area"> so it stops before footer */
-  main.gradient-area{ position: relative; z-index: 0; }
-  main.gradient-area::before{
-    content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
-    background:
-      radial-gradient(1200px 420px at 50% -8%, rgba(255,255,245,0.95) 0%, rgba(255,255,245,0.58) 24%, rgba(255,255,245,0.22) 52%, transparent 72%),
-      radial-gradient(1200px 460px at 8% -12%, color-mix(in oklab, var(--green) 68%, transparent) 0%, transparent 66%),
-      radial-gradient(1200px 440px at 104% 118%, color-mix(in oklab, var(--gold) 72%, transparent) 0%, transparent 68%),
-      linear-gradient(180deg, #0b0d10 0%, #0e1316 42%, #0b0d10 100%);
-    background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
-  }
-  /* Light mode variant */
-  html:not(.dark) main.gradient-area::before{
-    background:
-      radial-gradient(1200px 420px at 50% -8%, rgba(255,255,245,0.92) 0%, rgba(255,255,245,0.62) 22%, rgba(255,255,245,0.28) 48%, transparent 70%),
-      radial-gradient(1200px 460px at 8% -12%, color-mix(in oklab, var(--green) 62%, transparent) 0%, transparent 66%),
-      radial-gradient(1200px 440px at 104% 118%, color-mix(in oklab, var(--gold) 66%, transparent) 0%, transparent 68%),
-      linear-gradient(180deg, #ffffff 0%, #f1f6ef 38%, #f9faf9 100%);
-  }
-  /* Keep sections transparent; footer border remains as separator */
-  .kpi-soft, .section-offer-premium, .section-brand-soft, .section-brand-premium,
-  #home-sluzby, #home-reviews, #partners, #kontakt-form { background: transparent !important; border: 0 !important; }
-  footer { border-top: 1px solid rgba(255,255,255,.10) !important; }
-  html:not(.dark) footer { border-top: 1px solid rgba(0,0,0,.08) !important; }
-</style>
-
-
-<style data-global="gradient-main-only-BOLDER">
-  /* Remove older main gradient layer if present to avoid double stacking */
-  main.gradient-area::before{ content:none !important; }
-  /* Stronger MAIN-only gradient */
-  main.gradient-area{ position: relative; z-index: 0; }
-  main.gradient-area > *{ position: relative; z-index: 1; }
-  main.gradient-area::after{
-    content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
-    background:
-      /* Top glow under hero */
-      radial-gradient(1400px 480px at 50% -10%, rgba(255,255,245,0.98) 0%, rgba(255,255,245,0.65) 26%, rgba(255,255,245,0.22) 56%, transparent 76%),
-      /* Left green */
-      radial-gradient(1400px 520px at 8% -12%, color-mix(in oklab, var(--green) 82%, transparent) 0%, transparent 70%),
-      /* Right gold */
-      radial-gradient(1400px 500px at 104% 118%, color-mix(in oklab, var(--gold) 82%, transparent) 0%, transparent 72%),
-      /* Mid-depth soft tint */
-      linear-gradient(180deg, rgba(243,248,240,0.85) 0%, rgba(247,251,245,0.55) 38%, rgba(249,250,249,0.0) 100%);
-    background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
-  }
-  /* Light mode override */
-  html:not(.dark) main.gradient-area::after{
-    background:
-      radial-gradient(1400px 480px at 50% -10%, rgba(255,255,245,0.96) 0%, rgba(255,255,245,0.62) 24%, rgba(255,255,245,0.24) 54%, transparent 74%),
-      radial-gradient(1400px 520px at 8% -12%, color-mix(in oklab, var(--green) 76%, transparent) 0%, transparent 68%),
-      radial-gradient(1400px 500px at 104% 118%, color-mix(in oklab, var(--gold) 76%, transparent) 0%, transparent 70%),
-      linear-gradient(180deg, rgba(243,248,240,0.85) 0%, rgba(247,251,245,0.50) 36%, rgba(255,255,255,0.0) 100%);
-  }
-
-  /* Keep sections transparent; footer separated */
-  .kpi-soft, .section-offer-premium, .section-brand-soft, .section-brand-premium,
-  #home-sluzby, #home-reviews, #partners, #kontakt-form { background: transparent !important; border: 0 !important; }
-  footer { border-top: 1px solid rgba(255,255,255,.10) !important; }
-  html:not(.dark) footer { border-top: 1px solid rgba(0,0,0,.08) !important; }
 </style>
 
 </head><body class="bg-white text-black dark:bg-neutral-950 dark:text-neutral-50 dark:bg-neutral-950 unified-bg gradient-bg">

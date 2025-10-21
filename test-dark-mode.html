@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="cs" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dark Mode Test - Cogniterra Chatbot</title>
+  <link rel="stylesheet" href="./styles.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--surface);
+      color: var(--text);
+      padding: 20px;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+    
+    .test-panel {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 24px;
+      background: var(--surface);
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
+    }
+    
+    .color-sample {
+      display: inline-block;
+      width: 60px;
+      height: 60px;
+      border-radius: var(--radius-sm);
+      border: 2px solid var(--gray-200);
+      margin: 4px;
+    }
+    
+    .brand-gold {
+      background: var(--gold);
+    }
+    
+    .brand-green {
+      background: var(--green);
+    }
+    
+    .brand-green-soft {
+      background: var(--green-soft);
+    }
+    
+    button {
+      background: linear-gradient(135deg, var(--green), var(--green-soft));
+      color: #fff;
+      border: 0;
+      border-radius: var(--radius-sm);
+      padding: 12px 24px;
+      font-weight: 600;
+      cursor: pointer;
+      margin: 8px 4px;
+    }
+    
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-btn);
+    }
+    
+    .controls {
+      margin: 20px 0;
+      padding: 16px;
+      background: var(--gray-50);
+      border-radius: var(--radius-md);
+    }
+  </style>
+</head>
+<body>
+  <div class="test-panel">
+    <h1>Cogniterra Chatbot - Dark Mode Test</h1>
+    
+    <div class="controls">
+      <h2>Theme Controls</h2>
+      <button onclick="toggleTheme()">Toggle Dark Mode</button>
+      <button onclick="setLight()">Light Mode</button>
+      <button onclick="setDark()">Dark Mode</button>
+    </div>
+    
+    <div class="brand-colors">
+      <h2>Brand Colors</h2>
+      <p>These should stay consistent in both light and dark modes:</p>
+      <div>
+        <div class="color-sample brand-gold" title="Gold: #D4AF37"></div>
+        <div class="color-sample brand-green" title="Green: #1F6A3A"></div>
+        <div class="color-sample brand-green-soft" title="Green Soft: #76C68E"></div>
+      </div>
+      <ul>
+        <li><strong>Gold:</strong> #D4AF37</li>
+        <li><strong>Green:</strong> #1F6A3A</li>
+        <li><strong>Green Soft:</strong> #76C68E</li>
+      </ul>
+    </div>
+    
+    <div class="css-variables">
+      <h2>CSS Variables (should adapt to mode)</h2>
+      <ul>
+        <li><strong>--surface:</strong> <span id="var-surface"></span></li>
+        <li><strong>--text:</strong> <span id="var-text"></span></li>
+        <li><strong>--muted:</strong> <span id="var-muted"></span></li>
+        <li><strong>--gray-50:</strong> <span id="var-gray-50"></span></li>
+        <li><strong>--gray-200:</strong> <span id="var-gray-200"></span></li>
+      </ul>
+    </div>
+    
+    <div class="widget-container" style="margin-top: 24px;">
+      <h2>Chatbot Widget Container</h2>
+      <div id="chatbot-container" style="width: 400px; height: 600px; position: relative; border: 1px solid var(--gray-200); border-radius: var(--radius-lg);"></div>
+      <div data-cogniterra-widget style="width: 100%; height: 100%; position: absolute; top: 0; left: 0;"></div>
+    </div>
+  </div>
+
+  <script>
+    function updateVarDisplay() {
+      const root = document.documentElement;
+      const style = getComputedStyle(root);
+      
+      document.getElementById('var-surface').textContent = style.getPropertyValue('--surface');
+      document.getElementById('var-text').textContent = style.getPropertyValue('--text');
+      document.getElementById('var-muted').textContent = style.getPropertyValue('--muted');
+      document.getElementById('var-gray-50').textContent = style.getPropertyValue('--gray-50');
+      document.getElementById('var-gray-200').textContent = style.getPropertyValue('--gray-200');
+    }
+    
+    function toggleTheme() {
+      document.documentElement.classList.toggle('dark');
+      updateVarDisplay();
+    }
+    
+    function setLight() {
+      document.documentElement.classList.remove('dark');
+      updateVarDisplay();
+    }
+    
+    function setDark() {
+      document.documentElement.classList.add('dark');
+      updateVarDisplay();
+    }
+    
+    // Initialize on load
+    updateVarDisplay();
+    
+    // Watch for changes
+    const observer = new MutationObserver(updateVarDisplay);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+  </script>
+  
+  <script src="./estimator.v2.js"></script>
+  <script src="./embed.js"
+          data-config="./data/v1/widget_config.json"
+          data-widget="./cogniterra-widget-safe.v7.js"
+          data-styles="./styles.css"></script>
+</body>
+</html>
