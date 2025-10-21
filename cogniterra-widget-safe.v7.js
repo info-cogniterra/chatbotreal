@@ -556,9 +556,9 @@ window.addEventListener('focus', updateDarkMode, { passive: true });
 }
 
 .chat-close-btn {
-  background: rgba(255, 255, 255, 0.25);
-  border: none;
-  color: var(--header-text);
+  background: rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  color: var(--text);
   cursor: pointer;
   font-size: 18px;
   display: flex;
@@ -567,17 +567,37 @@ window.addEventListener('focus', updateDarkMode, { passive: true });
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+  font-weight: 600;
 }
 
 .chat-close-btn:hover {
-  background: rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.15);
+  border-color: rgba(0, 0, 0, 0.25);
+  transform: scale(1.05);
 }
 
 .chat-close-btn:active {
-  background: rgba(255, 255, 255, 0.45);
+  background: rgba(0, 0, 0, 0.2);
+  transform: scale(0.95);
+}
+
+/* Dark mode - invertované barvy */
+:host([data-theme="dark"]) .chat-close-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text);
+}
+
+:host([data-theme="dark"]) .chat-close-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+:host([data-theme="dark"]) .chat-close-btn:active {
+  background: rgba(255, 255, 255, 0.3);
 }
   
   /* === Messages Area === */
