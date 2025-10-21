@@ -1847,6 +1847,14 @@
     ]);
     
     addAI("Nacenění – krok 3/3", box);
+     // FIX: Scroll na začátek nového formuláře
+  setTimeout(() => {
+    const panels = chatMessages.querySelectorAll('.chat-panel');
+    const lastPanel = panels[panels.length - 1];
+    if (lastPanel) {
+      lastPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, 50);
   }
 
   function stepParamsDum(adresa) {
@@ -2101,6 +2109,14 @@
     ]);
 
     addAI("Nacenění – krok 3/3", box);
+    // FIX: Scroll na začátek nového formuláře
+  setTimeout(() => {
+    const panels = chatMessages.querySelectorAll('.chat-panel');
+    const lastPanel = panels[panels.length - 1];
+    if (lastPanel) {
+      lastPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, 50);
   }
 
   function stepParamsPozemek(obec) {
@@ -2234,6 +2250,14 @@
       U.el("div", { class: "cg-cta" }, [go]),
     ]);
     addAI("Nacenění – krok 3/3", box);
+     // FIX: Scroll na začátek nového formuláře
+  setTimeout(() => {
+    const panels = chatMessages.querySelectorAll('.chat-panel');
+    const lastPanel = panels[panels.length - 1];
+    if (lastPanel) {
+      lastPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, 50);
   }
 
   function renderLeadBoxPricing(params) {
