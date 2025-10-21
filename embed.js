@@ -70,7 +70,14 @@
     white-space: nowrap;
     opacity: 1;
     pointer-events: none;
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    transition: opacity 0.3s ease, transform 0.3s ease, background 0.3s ease, color 0.3s ease;
+  }
+  
+  /* Dark mode for speech bubble */
+  .cg-launcher-bubble.dark-mode {
+    background: #1a1a1a;
+    color: #f0f0f0;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
   }
   
   /* Hide bubble when panel is open */
@@ -90,6 +97,11 @@
     border-left: 8px solid #fff;
     border-top: 8px solid transparent;
     border-bottom: 8px solid transparent;
+    transition: border-color 0.3s ease;
+  }
+  
+  .cg-launcher-bubble.dark-mode::after {
+    border-left-color: #1a1a1a;
   }
   
   /* Panel - Brand Colors */
@@ -183,6 +195,38 @@
   bubble.className = 'cg-launcher-bubble';
   bubble.textContent = 'Nacením Vaší nemovitost a pomůžu zorientovat se v realitách.';
   btn.appendChild(bubble);
+  
+  // Update bubble theme based on page theme
+  function updateBubbleTheme() {
+    const htmlEl = document.documentElement;
+    const isDark = htmlEl.classList.contains('dark') || 
+                   htmlEl.getAttribute('data-theme') === 'dark' ||
+                   (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    
+    if (isDark) {
+      bubble.classList.add('dark-mode');
+    } else {
+      bubble.classList.remove('dark-mode');
+    }
+  }
+  
+  // Initial theme check
+  updateBubbleTheme();
+  
+  // Listen for theme changes from widget
+  window.addEventListener('cgtr-theme-change', updateBubbleTheme);
+  
+  // Watch for system preference changes
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateBubbleTheme);
+  }
+  
+  // Watch for class and data-theme changes on html element
+  const themeObserver = new MutationObserver(updateBubbleTheme);
+  themeObserver.observe(document.documentElement, { 
+    attributes: true, 
+    attributeFilter: ['class', 'data-theme'] 
+  });
   
   document.body.appendChild(btn);
   
