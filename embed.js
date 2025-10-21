@@ -1,5 +1,39 @@
 // Cogniterra embed loader (v8.1) - Brand Colors
 (function(){
+  // === VIEWPORT META TAG FIX ===
+  (function ensureViewportMeta() {
+    try {
+      let viewport = document.querySelector('meta[name="viewport"]');
+      
+      if (!viewport) {
+        console.log('[CGTR] Creating viewport meta tag');
+        viewport = document.createElement('meta');
+        viewport.name = 'viewport';
+        viewport.content = 'width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover';
+        document.head.appendChild(viewport);
+      } else {
+        const currentContent = viewport.getAttribute('content') || '';
+        let newContent = currentContent;
+        
+        if (!currentContent.includes('viewport-fit')) {
+          newContent += ', viewport-fit=cover';
+        }
+        
+        if (!currentContent.includes('maximum-scale')) {
+          newContent += ', maximum-scale=1';
+        }
+        
+        if (newContent !== currentContent) {
+          console.log('[CGTR] Updating viewport meta tag');
+          viewport.setAttribute('content', newContent.replace(/^,\s*/, '').trim());
+        }
+      }
+    } catch(e) {
+      console.warn('[CGTR] Viewport meta setup failed:', e);
+    }
+  })();
+  // === END VIEWPORT FIX ===
+
   const tag = document.currentScript;
   const CFG = tag.getAttribute('data-config');
   const WIDGET = tag.getAttribute('data-widget');
