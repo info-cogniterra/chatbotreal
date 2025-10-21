@@ -820,6 +820,16 @@
     touch-action: manipulation;
     font-size: 15px;
     font-family: inherit;
+    /* Text wrapping and overflow fixes */
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    line-height: 1.3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
   }
   
   .cg-btn-disp:hover {
