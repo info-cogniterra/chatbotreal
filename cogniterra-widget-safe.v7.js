@@ -395,14 +395,18 @@
   /* === Header with Logo === */
  /* === Header with brand gradient === */
 .chat-header {
-  background: var(--header-bg);
-  color: var(--header-text);
+  background: 
+    radial-gradient(900px 300px at 10% -5%, color-mix(in oklab, var(--green) 6%, transparent) 0%, transparent 60%),
+    radial-gradient(800px 280px at 95% 105%, color-mix(in oklab, var(--gold) 8%, transparent) 0%, transparent 65%),
+    var(--gray-50);
+  color: var(--text);
   padding: 12px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid var(--border-color);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-bottom: 2px solid;
+  border-image: linear-gradient(90deg, var(--gold), var(--green)) 1;
+  box-shadow: none;
   min-height: 60px;
 }
 
@@ -429,6 +433,14 @@
   color: transparent;
   filter: drop-shadow(0 1px 1px rgba(0,0,0,0.15));
   text-shadow: none;
+}
+
+  :host([data-theme="dark"]) .chat-header {
+  background: 
+    radial-gradient(900px 300px at 10% -5%, color-mix(in oklab, var(--green) 8%, transparent) 0%, transparent 60%),
+    radial-gradient(800px 280px at 95% 105%, color-mix(in oklab, var(--gold) 10%, transparent) 0%, transparent 65%),
+    var(--gray-50);
+  color: var(--text);
 }
 
 .chat-close-btn {
@@ -2324,7 +2336,7 @@ function addME(t) {
     href: "https://cogniterra.cz/gdpr/", 
     target: "_blank", 
     rel: "noopener noreferrer",
-    class: "gdpr-link"
+    style: { color: "var(--green)", textDecoration: "underline" }
   }, ["zpracováním osobních údajů"]),
   "."
 ]),
@@ -2460,12 +2472,13 @@ function addME(t) {
       U.el("input", { id: "c_email", name:"email", type:"email", placeholder:"E-mail" }),
       U.el("input", { id: "c_phone", name:"phone", placeholder:"Telefon (+420…)" }),
       U.el("div", {}, [
+  U.el("div", {}, [
   "Odesláním souhlasíte se ",
   U.el("a", { 
     href: "https://cogniterra.cz/gdpr/", 
     target: "_blank", 
     rel: "noopener noreferrer",
-    class: "gdpr-link"
+    style: { color: "var(--green)", textDecoration: "underline" }
   }, ["zpracováním osobních údajů"]),
   "."
 ]),
