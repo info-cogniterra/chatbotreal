@@ -2472,7 +2472,6 @@ function addME(t) {
       U.el("input", { id: "c_email", name:"email", type:"email", placeholder:"E-mail" }),
       U.el("input", { id: "c_phone", name:"phone", placeholder:"Telefon (+420…)" }),
       U.el("div", {}, [
-  U.el("div", {}, [
   "Odesláním souhlasíte se ",
   U.el("a", { 
     href: "https://cogniterra.cz/gdpr/", 
