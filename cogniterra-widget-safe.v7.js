@@ -45,7 +45,7 @@
 
   console.log('[Widget] Session:', S.session);
 
-  // Dark mode detection - IMPROVED with immediate sync
+  // Dark mode detection - FIXED: explicit class overrides system preference
 let isDarkMode = false;
 let themeCheckInterval = null;
 
@@ -53,25 +53,46 @@ function updateDarkMode() {
   const htmlEl = document.documentElement;
   const bodyEl = document.body;
   
-  // Check multiple sources for dark mode
+  // Priority: explicit class/attribute > system preference
+  const hasExplicitLight = htmlEl.classList.contains('light') || 
+                           bodyEl?.classList.contains('light') ||
+                           htmlEl.getAttribute('data-theme') === 'light' ||
+                           bodyEl?.getAttribute('data-theme') === 'light';
+  
+  const hasExplicitDark = htmlEl.classList.contains('dark') || 
+                          bodyEl?.classList.contains('dark') ||
+                          htmlEl.getAttribute('data-theme') === 'dark' ||
+                          bodyEl?.getAttribute('data-theme') === 'dark';
+  
+  const systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  
+  // Logic: explicit overrides system
   const wasInDark = isDarkMode;
-  isDarkMode = htmlEl.classList.contains('dark') || 
-               bodyEl?.classList.contains('dark') ||
-               htmlEl.getAttribute('data-theme') === 'dark' ||
-               bodyEl?.getAttribute('data-theme') === 'dark' ||
-               (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  isDarkMode = hasExplicitLight ? false : (hasExplicitDark ? true : systemDark);
   
-  // Log only when changed
+  // Log only when changed with detailed reason
   if (wasInDark !== isDarkMode) {
-    console.log('[Widget] Dark mode changed:', isDarkMode);
+    console.log('[Widget] Theme changed:', wasInDark ? 'dark' : 'light', '→', isDarkMode ? 'dark' : 'light', {
+      reason: hasExplicitLight ? 'explicit light class' : 
+              (hasExplicitDark ? 'explicit dark class' : 'system preference'),
+      htmlClass: htmlEl.className,
+      bodyClass: bodyEl?.className,
+      systemDark: systemDark
+    });
   }
   
-  // Update shadow root immediately
+  // Update shadow root immediately with force
   if (shadow && shadow.host) {
-    shadow.host.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+    const currentTheme = shadow.host.getAttribute('data-theme');
+    const newTheme = isDarkMode ? 'dark' : 'light';
+    
+    if (currentTheme !== newTheme) {
+      shadow.host.setAttribute('data-theme', newTheme);
+      console.log('[Widget] Shadow DOM theme updated:', newTheme);
+    }
   }
   
-  // Dispatch custom event for other components (like embed.js speech bubble)
+  // Dispatch custom event
   try {
     window.dispatchEvent(new CustomEvent('cgtr-theme-change', { 
       detail: { theme: isDarkMode ? 'dark' : 'light' }
@@ -81,52 +102,100 @@ function updateDarkMode() {
   }
 }
 
-// Initial dark mode check with retry
+// Initial checks with multiple retries (for slow page loads)
 updateDarkMode();
-setTimeout(updateDarkMode, 100); // Retry after DOM is fully ready
-setTimeout(updateDarkMode, 300); // Another retry for slow connections
+setTimeout(updateDarkMode, 50);
+setTimeout(updateDarkMode, 150);
+setTimeout(updateDarkMode, 500);
 
-// Watch for dark mode changes from system preference
+// Watch for system preference changes
 if (window.matchMedia) {
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateDarkMode);
+  const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  
+  // Modern API
+  if (darkModeQuery.addEventListener) {
+    darkModeQuery.addEventListener('change', updateDarkMode);
+  } else if (darkModeQuery.addListener) {
+    // Fallback for older browsers
+    darkModeQuery.addListener(updateDarkMode);
+  }
 }
 
-// Watch for class and data-theme attribute changes on html AND body
-const observer = new MutationObserver(updateDarkMode);
-observer.observe(document.documentElement, { 
+// Create single observer for both html and body
+const themeObserver = new MutationObserver(updateDarkMode);
+
+// Observe html element
+themeObserver.observe(document.documentElement, { 
   attributes: true, 
-  attributeFilter: ['class', 'data-theme'] 
+  attributeFilter: ['class', 'data-theme'],
+  attributeOldValue: true
 });
 
-// Also observe body element (some sites toggle theme here)
-if (document.body) {
-  observer.observe(document.body, { 
-    attributes: true, 
-    attributeFilter: ['class', 'data-theme'] 
-  });
-} else {
-  // Body not ready yet, wait for it
-  document.addEventListener('DOMContentLoaded', () => {
-    observer.observe(document.body, { 
+// Observe body element when ready
+function observeBody() {
+  if (document.body) {
+    themeObserver.observe(document.body, { 
       attributes: true, 
-      attributeFilter: ['class', 'data-theme'] 
+      attributeFilter: ['class', 'data-theme'],
+      attributeOldValue: true
     });
-    updateDarkMode(); // Check again when body is ready
-  });
+    updateDarkMode(); // Re-check after body is ready
+  } else {
+    setTimeout(observeBody, 50);
+  }
 }
+observeBody();
 
-// Aggressive polling on mobile for first 5 seconds (catches slow theme toggles)
+// Mobile-specific aggressive checking (first 3 seconds only)
 if (window.innerWidth <= 768) {
-  let checks = 0;
+  let mobileChecks = 0;
   themeCheckInterval = setInterval(() => {
     updateDarkMode();
-    checks++;
-    if (checks >= 50) { // 50 checks × 100ms = 5 seconds
+    mobileChecks++;
+    if (mobileChecks >= 30) { // 30 × 100ms = 3 seconds
       clearInterval(themeCheckInterval);
-      console.log('[Widget] Mobile theme polling stopped');
+      console.log('[Widget] Mobile theme polling stopped after', mobileChecks, 'checks');
     }
   }, 100);
 }
+
+// Listen for visibility changes (when user returns to tab)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    console.log('[Widget] Page became visible, re-checking theme');
+    updateDarkMode();
+  }
+});
+
+// Listen for focus events (when widget is opened)
+window.addEventListener('focus', () => {
+  console.log('[Widget] Window focused, re-checking theme');
+  updateDarkMode();
+}, { passive: true });
+
+// Re-check when chat panel opens
+setTimeout(() => {
+  const panel = document.querySelector('.cg-panel');
+  if (panel) {
+    const panelObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'style') {
+          const display = getComputedStyle(panel).display;
+          if (display !== 'none') {
+            console.log('[Widget] Panel opened, forcing theme re-check');
+            setTimeout(updateDarkMode, 50);
+            setTimeout(updateDarkMode, 150);
+          }
+        }
+      });
+    });
+    
+    panelObserver.observe(panel, { 
+      attributes: true, 
+      attributeFilter: ['style'] 
+    });
+  }
+}, 1000);
 
 // Listen for visibility changes (when user returns to tab)
 document.addEventListener('visibilitychange', () => {
