@@ -427,7 +427,7 @@
   font-weight: 700;
   font-size: 17px;
   letter-spacing: -0.3px;
-  background: linear-gradient(135deg, var(--gold), rgba(255, 255, 255, 0.95));
+  background: linear-gradient(135deg, var(--gold), var(--green));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -876,21 +876,14 @@
   /* === Lead Box === */
   .leadbox {
   border: none;
-  border-top: 2px solid;
-  border-image: linear-gradient(90deg, var(--gold), var(--green)) 1;
+  border-top: 1px solid var(--border-color);
   padding: 18px;
   border-radius: 0;
-  background: 
-    radial-gradient(900px 300px at 10% -5%, color-mix(in oklab, var(--green) 6%, transparent) 0%, transparent 60%),
-    radial-gradient(800px 280px at 95% 105%, color-mix(in oklab, var(--gold) 8%, transparent) 0%, transparent 65%),
-    var(--gray-50);
+  background: var(--surface);
 }
 
 .leadbox .gdpr-link {
-  background: linear-gradient(135deg, var(--gold), var(--green));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--green);
   text-decoration: none;
   font-weight: var(--font-weight-semibold);
   transition: opacity 0.2s ease;
@@ -902,11 +895,8 @@
 }
 
 :host([data-theme="dark"]) .leadbox {
-  background: 
-    radial-gradient(900px 300px at 10% -5%, color-mix(in oklab, var(--green) 8%, transparent) 0%, transparent 60%),
-    radial-gradient(800px 280px at 95% 105%, color-mix(in oklab, var(--gold) 10%, transparent) 0%, transparent 65%),
-    var(--gray-50);
-  border-top-color: var(--green);
+  background: var(--surface);
+  border-top-color: var(--border-color);
 }
   
   .leadbox input {
