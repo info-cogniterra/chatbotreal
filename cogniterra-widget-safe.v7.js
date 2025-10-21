@@ -807,35 +807,31 @@
   }
   
   .cg-btn-disp {
-    border: 2px solid var(--gray-50);
-    background: var(--surface);
-    color: var(--text);
-    /* Use padding for flexible height instead of fixed min-height */
-    padding: 14px 12px;
-    border-radius: var(--radius-sm);
-    font-weight: var(--font-weight-semibold);
-    cursor: pointer;
-    transition: all 0.2s;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    /* Responsive font-size with slight reduction for longer text */
-    font-size: clamp(14px, 3.5vw, 15px);
-    font-family: inherit;
-    /* Enhanced text wrapping and overflow handling */
-    white-space: normal;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    word-break: break-word;
-    hyphens: auto;
-    /* Improved line-height for multi-line text readability */
-    line-height: 1.4;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    /* Prevent extreme stretching with max-width */
-    max-width: 100%;
-  }
+  border: 2px solid var(--gray-50);
+  background: var(--surface);
+  color: var(--text);
+  padding: 12px 10px;
+  border-radius: var(--radius-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 52px;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  font-size: 13px;
+  font-family: inherit;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+  line-height: 1.3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  max-width: 100%;
+}
   
   .cg-btn-disp:hover {
     border-color: var(--green);
