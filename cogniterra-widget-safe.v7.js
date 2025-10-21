@@ -49,7 +49,7 @@
     chat: { messages: [] },
     intent: {},
     processing: false,
-    quickActionsUsed: { pricing: false, help: false } // FIX 2: Prevence opakovaného spouštění
+    quickActionsUsed: { pricing: false, help: false }, // FIX 2: Prevence opakovaného spouštění
     typeSelected: false  // ← PŘIDAT
  };
 
@@ -1268,6 +1268,23 @@
     displayText = obec || name;
   } else {
     displayText = name;
+  }
+} else {
+  // ← PŘIDAT TUTO CELOU ELSE VĚTEV
+  const locationStr = String(item.location || '').trim();
+  let municipality = '';
+  
+  if (locationStr) {
+    const cleanLocation = locationStr.replace(/,\s*(Česko|Czech Republic)\s*$/i, '').trim();
+    municipality = cleanLocation.split(',')[0].trim();
+  }
+  
+  if (name && municipality) {
+    displayText = `${name}, ${municipality}`;
+  } else if (name) {
+    displayText = name;
+  } else if (municipality) {
+    displayText = municipality;
   }
 }
           
