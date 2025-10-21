@@ -9,13 +9,13 @@
 })();
 
 // cogniterra-widget-safe.v8.js — NEW DESIGN with updated brand colors
-// Build v8.2 — Opravy: avatar lišky, quick actions, autocomplete dark mode
+// Build v8.3 — Oprava: plynulý scroll formulářů s offsetem
 // Date: 2025-01-21 | Author: info-cogniterra
 
 (function () {
   "use strict";
 
-  console.log('[Widget] Initialization started... (v8.2 - Fixes)');
+  console.log('[Widget] Initialization started... (v8.3 - Smooth Scroll)');
 
   const host = document.querySelector("[data-cogniterra-widget]");
   if (!host) {
@@ -1056,6 +1056,8 @@
       e.preventDefault();
       e.stopPropagation();
       console.log('[Widget] Close button clicked');
+      S.typeSelected = false;
+      S.formOpen = false;
       U.saveSession(); 
       S.formOpen=false;
       if (window.CGTR && typeof window.CGTR.hide === 'function') {
@@ -1095,30 +1097,63 @@
   
   console.log('[Widget] UI created successfully');
 
-  // === MESSAGE FUNCTIONS ===
-  function addAI(t, extra) {
-    const msgWrapper = U.el("div", { class: "chat-msg ai" });
-    
-    const avatar = U.el("img", { 
-      class: "msg-avatar",
-      src: FOX_AVATAR,
-      alt: "AI asistent",
-      onerror: function() {
-        this.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%231F6A3A"/></svg>';
-      }
-    });
-    
-    const content = U.el("div", { class: "msg-content" }, [t]);
-    if (extra) content.appendChild(extra);
-    
-    msgWrapper.appendChild(avatar);
-    msgWrapper.appendChild(content);
-    chatMessages.appendChild(msgWrapper);
+ // === MESSAGE FUNCTIONS ===
+function addAI(t, extra, smoothScroll = false) {
+  const msgWrapper = U.el("div", { class: "chat-msg ai" });
+  
+  const avatar = U.el("img", { 
+    class: "msg-avatar",
+    src: FOX_AVATAR,
+    alt: "AI asistent",
+    onerror: function() {
+      this.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%231F6A3A"/></svg>';
+    }
+  });
+  
+  const content = U.el("div", { class: "msg-content" }, [t]);
+  if (extra) content.appendChild(extra);
+  
+  msgWrapper.appendChild(avatar);
+  msgWrapper.appendChild(content);
+  chatMessages.appendChild(msgWrapper);
+  
+  // ← ZMĚNĚNÁ ČÁST - scroll logika
+  if (smoothScroll) {
+    setTimeout(() => {
+      const offsetTop = msgWrapper.offsetTop;
+      chatMessages.scrollTo({
+        top: offsetTop - 80,
+        behavior: 'smooth'
+      });
+    }, 100);
+  } else {
     chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+  // ← KONEC ZMĚNY
+  
+  try { 
+    S.chat.messages.push({ role: "assistant", content: String(t) }); 
+  } catch (e) {}
+  
+  try {
+    const tt = String(t).toLowerCase();
+    const offerContact = /(mohu|můžu|mám|rád|ráda)\s+(také\s+)?(vám\s+)?(ote[vw]ř[ií]t|zobrazit|spustit|poslat|zaslat)\s+(kontaktn[íi]\s+formul[aá][řr]|formul[aá][řr])/i.test(tt) ||
+                         /chcete\s+(ote[vw]ř[ií]t|zobrazit|spustit)\s+(kontaktn[íi]\s+)?formul[aá][řr]/i.test(tt) ||
+                         /zadat\s+sv[eé]\s+(jm[eé]no|kontakt|[uú]daje)/i.test(tt) ||
+                         /(?:abyste|aby|abych)\s+(?:mohl[ai]?)?\s*zadat\s+sv[eé]/i.test(tt);
     
-    try { 
-      S.chat.messages.push({ role: "assistant", content: String(t) }); 
-    } catch (e) {}
+    const offerUP = /(chcete|potrebujete|mam\s+poslat|poslat\s+vam|najit\s+vam).*?(uzemni\s*plan|up)/i.test(tt);
+    
+    if (offerContact) { 
+      console.log('[Widget] AI offered contact form');
+      S.intent.contactOffer = true; 
+    }
+    if (offerUP) {
+      console.log('[Widget] AI offered UP');
+      S.intent.upOffer = true;
+    }
+  } catch (e) {}
+}
     
     try {
       const tt = String(t).toLowerCase();
@@ -1846,15 +1881,8 @@
       U.el("div", { class: "cg-cta" }, [go])
     ]);
     
-    addAI("Nacenění – krok 3/3", box);
-     // FIX: Scroll na začátek nového formuláře
-  setTimeout(() => {
-    const panels = chatMessages.querySelectorAll('.chat-panel');
-    const lastPanel = panels[panels.length - 1];
-    if (lastPanel) {
-      lastPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, 50);
+    addAI("Nacenění – krok 3/3", box, true);
+
   }
 
   function stepParamsDum(adresa) {
@@ -2108,15 +2136,8 @@
       U.el("div", { class: "cg-cta" }, [go]),
     ]);
 
-    addAI("Nacenění – krok 3/3", box);
-    // FIX: Scroll na začátek nového formuláře
-  setTimeout(() => {
-    const panels = chatMessages.querySelectorAll('.chat-panel');
-    const lastPanel = panels[panels.length - 1];
-    if (lastPanel) {
-      lastPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, 50);
+    addAI("Nacenění – krok 3/3", box, true);
+    
   }
 
   function stepParamsPozemek(obec) {
@@ -2249,15 +2270,8 @@
       podilContainer,
       U.el("div", { class: "cg-cta" }, [go]),
     ]);
-    addAI("Nacenění – krok 3/3", box);
-     // FIX: Scroll na začátek nového formuláře
-  setTimeout(() => {
-    const panels = chatMessages.querySelectorAll('.chat-panel');
-    const lastPanel = panels[panels.length - 1];
-    if (lastPanel) {
-      lastPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, 50);
+     addAI("Nacenění – krok 3/3", box, true);
+
   }
 
   function renderLeadBoxPricing(params) {
@@ -2695,6 +2709,6 @@
     } 
   });
 
-  console.log('[Widget] Initialization complete (v8.2 - Fixes Applied)');
+  console.log('[Widget] Initialization complete (v8.3 - Smooth Scroll)');
 
 })();
