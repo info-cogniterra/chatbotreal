@@ -1540,7 +1540,6 @@
           class: "cg-card", 
           type: "button", 
           onclick: () => startHelp(),
-          disabled: S.quickActionsUsed.help // FIX 2: Disable pokud už bylo použito
         }, [
           U.el("h3", {}, ["Potřebuji pomoct"]),
           U.el("p", {}, ["Zeptejte se na postup, dokumenty nebo pravidla."])
