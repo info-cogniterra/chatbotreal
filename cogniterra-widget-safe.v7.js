@@ -79,8 +79,8 @@
   const observer = new MutationObserver(updateDarkMode);
   observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 
-  // Fox avatar URL - disabled as per requirements
-  const FOX_AVATAR = ''; // Avatar removed as per requirement #7
+  // Fox avatar URL
+  const FOX_AVATAR = 'https://raw.githubusercontent.com/info-cogniterra/chatbotreal/main/assets/avatar.png';
   const LOGO_URL = 'https://raw.githubusercontent.com/info-cogniterra/chatbotreal/main/assets/brand-icon.png';
   
   // === Global data cache for lazy loading ===
@@ -298,7 +298,7 @@
     /* Brand colors - consistent across modes */
     --gold: #D4AF37;
     --green: #1F6A3A;
-    --green-soft: #4A9B62;
+    --green-soft: #76C68E;
     
     /* Light mode (default) */
     --surface: #ffffff;
@@ -310,7 +310,7 @@
     --gray-600: #4b5563;
     --gray-900: #111827;
     --border-color: rgba(0, 0, 0, 0.06);
-    --header-bg: #4A9B62;
+    --header-bg: #76C68E;
     --header-text: #fff;
     
     /* Radius */
@@ -494,15 +494,14 @@
   }
   
   .msg-avatar {
-    width: 0;
-    height: 0;
+    width: 40px;
+    height: 40px;
     border-radius: 0;
     flex-shrink: 0;
     object-fit: contain;
     border: none;
     box-shadow: none;
     background: transparent;
-    display: none; /* Hide avatar as per requirement #7 */
   }
   
   .msg-content {
@@ -564,25 +563,20 @@
     min-height: 48px;
     max-height: 120px;
     border-radius: var(--radius-sm);
-    border: 1px solid var(--gray-200);
+    border: 1px solid var(--gray-50);
     background: var(--gray-50);
     color: var(--text);
     padding: 14px 16px;
     font-family: var(--font-sans);
     font-size: 15px;
     line-height: 1.4;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-  }
-  
-  .chat-input-area textarea::placeholder {
-    color: var(--muted);
-    opacity: 0.7;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
   
   .chat-input-area textarea:focus {
     outline: none;
     border-color: var(--green);
-    box-shadow: 0 0 0 3px rgba(31, 106, 58, 0.15);
+    box-shadow: 0 0 0 3px rgba(31, 106, 58, 0.1);
     background: var(--surface);
   }
   
@@ -891,11 +885,11 @@
   /* === Mapy.cz Autocomplete === */
   .mapy-suggest-container {
     position: absolute;
-    background: var(--surface);
-    border: 1px solid var(--gray-200);
+    background: white;
+    border: 1px solid var(--gray-50);
     border-top: none;
     border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-    box-shadow: 0 8px 16px rgba(0,0,0,0.25);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.12);
     max-height: 240px;
     overflow-y: auto;
     z-index: 10000;
@@ -907,10 +901,10 @@
   .mapy-suggest-item {
     padding: 12px 16px;
     cursor: pointer;
-    border-bottom: 1px solid var(--gray-200);
+    border-bottom: 1px solid var(--gray-50);
     font-size: 14px;
     color: var(--text);
-    background: var(--surface);
+    background: white;
     transition: background 0.15s ease;
     user-select: none;
     -webkit-user-select: none;
@@ -922,11 +916,11 @@
   }
   
   .mapy-suggest-item:hover {
-    background: var(--gray-100) !important;
+    background: var(--gray-50) !important;
   }
   
   .mapy-suggest-item:active {
-    background: var(--gray-200) !important;
+    background: #E2E8F0 !important;
   }
   
   /* === Mobile Responsive === */
@@ -963,25 +957,6 @@
       width: 40px;
       height: 40px;
       font-size: 22px;
-    }
-    
-    /* Fix button width on mobile - prevent overflow */
-    .cg-btn-disp {
-      font-size: 14px;
-      padding: 10px 8px;
-      white-space: normal;
-      word-wrap: break-word;
-      min-height: 44px;
-      line-height: 1.3;
-    }
-    
-    .cg-cta {
-      flex-wrap: wrap;
-    }
-    
-    .cg-btn {
-      width: 100%;
-      margin: 4px 0;
     }
   }
   `;
@@ -1128,19 +1103,11 @@
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
   
-  function addPanel(el, scrollToTop = false) {
+  function addPanel(el) {
     const w = U.el("div", { class: "chat-panel" }, []);
     w.appendChild(el);
     chatMessages.appendChild(w);
-    
-    if (scrollToTop) {
-      // Scroll to show the beginning of the new panel
-      setTimeout(() => {
-        w.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
-    } else {
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
+    chatMessages.scrollTop = chatMessages.scrollHeight;
   }
   
   function addLoading(text) {
@@ -1536,52 +1503,12 @@
   }
 
   function stepChooseType() {
-    let selectedType = null;
-    const buttons = [];
-    
-    const createTypeButton = (type, label) => {
-      const btn = U.el("button", { 
-        class: "cg-btn-disp", 
-        type: "button", 
-        onclick: (e) => {
-          e.preventDefault();
-          // Reset all buttons
-          buttons.forEach(b => {
-            b.style.background = "var(--surface)";
-            b.style.borderColor = "var(--gray-50)";
-            b.style.color = "var(--text)";
-          });
-          // Highlight selected
-          btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
-          btn.style.borderColor = "var(--green)";
-          btn.style.color = "#fff";
-          selectedType = type;
-        }
-      }, [label]);
-      buttons.push(btn);
-      return btn;
-    };
-    
-    const byt = createTypeButton("Byt", "Byt");
-    const dum = createTypeButton("Dům", "Dům");
-    const poz = createTypeButton("Pozemek", "Pozemek");
-    
-    const nextBtn = U.el("button", { 
-      class: "cg-btn", 
-      type: "button", 
-      onclick: () => {
-        if (!selectedType) {
-          addAI("⚠️ Prosím vyberte typ nemovitosti.");
-          return;
-        }
-        stepLocation(selectedType);
-      }
-    }, ["Pokračovat"]);
-    
+    const byt = U.el("button", { class: "cg-btn", type: "button", onclick: () => stepLocation("Byt") }, ["Byt"]);
+    const dum = U.el("button", { class: "cg-btn", type: "button", onclick: () => stepLocation("Dům") }, ["Dům"]);
+    const poz = U.el("button", { class: "cg-btn", type: "button", onclick: () => stepLocation("Pozemek") }, ["Pozemek"]);
     const box = U.el("div", { class: "cg-step" }, [
       U.el("label", {}, ["Vyberte typ nemovitosti"]),
-      U.el("div", { style: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", margin: "12px 0" } }, [byt, dum, poz]),
-      U.el("div", { class: "cg-cta" }, [nextBtn])
+      U.el("div", { class: "cg-cta" }, [byt, dum, poz])
     ]);
     addAI("Nacenění – krok 1/3", box);
   }
@@ -1792,8 +1719,7 @@
       U.el("div", { class: "cg-cta" }, [go])
     ]);
     
-    addAI("Nacenění – krok 3/3");
-    addPanel(box, true); // Scroll to beginning of new options
+    addAI("Nacenění – krok 3/3", box);
   }
 
   function stepParamsDum(adresa) {
@@ -2047,8 +1973,7 @@
       U.el("div", { class: "cg-cta" }, [go]),
     ]);
 
-    addAI("Nacenění – krok 3/3");
-    addPanel(box, true); // Scroll to beginning of new options
+    addAI("Nacenění – krok 3/3", box);
   }
 
   function stepParamsPozemek(obec) {
@@ -2181,8 +2106,7 @@
       podilContainer,
       U.el("div", { class: "cg-cta" }, [go]),
     ]);
-    addAI("Nacenění – krok 3/3");
-    addPanel(box, true); // Scroll to beginning of new options
+    addAI("Nacenění – krok 3/3", box);
   }
 
   function renderLeadBoxPricing(params) {
@@ -2194,16 +2118,7 @@
       U.el("input", { id: "lead_name",  name:"name",  placeholder:"Jméno" }),
       U.el("input", { id: "lead_email", name:"email", type:"email", placeholder:"E-mail" }),
       U.el("input", { id: "lead_phone", name:"phone", placeholder:"Telefon (+420…)" }),
-      U.el("div", { style: { fontSize: "13px", color: "var(--muted)", marginTop: "8px" } }, [
-        "Odesláním souhlasíte se ",
-        U.el("a", { 
-          href: "https://cogniterra.cz/gdpr/", 
-          target: "_blank", 
-          rel: "noopener noreferrer",
-          style: { color: "var(--green)", textDecoration: "underline" }
-        }, ["zpracováním osobních údajů"]),
-        "."
-      ]),
+      U.el("div", {}, ["Odesláním souhlasíte se zpracováním osobních údajů."]),
       U.el("div", { class: "cg-cta" }, [
         U.el("button", { class: "cg-btn", type: "button", onclick: () => saveLeadPricing() }, ["Odeslat a zobrazit odhad"])
       ])
@@ -2335,16 +2250,7 @@
       U.el("input", { id: "c_name",  name:"name",  placeholder:"Jméno" }),
       U.el("input", { id: "c_email", name:"email", type:"email", placeholder:"E-mail" }),
       U.el("input", { id: "c_phone", name:"phone", placeholder:"Telefon (+420…)" }),
-      U.el("div", { style: { fontSize: "13px", color: "var(--muted)", marginTop: "8px" } }, [
-        "Odesláním souhlasíte se ",
-        U.el("a", { 
-          href: "https://cogniterra.cz/gdpr/", 
-          target: "_blank", 
-          rel: "noopener noreferrer",
-          style: { color: "var(--green)", textDecoration: "underline" }
-        }, ["zpracováním osobních údajů"]),
-        "."
-      ]),
+      U.el("div", {}, ["Odesláním souhlasíte se zpracováním osobních údajů."]),
       U.el("div", { class: "cg-cta" }, [ U.el("button", { class:"cg-btn", type:"button", onclick: () => saveLeadContact() }, ["Odeslat"]) ])
     ]);
     addAI("Kontaktní formulář", box);

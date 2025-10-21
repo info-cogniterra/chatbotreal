@@ -5,7 +5,7 @@
   /* Brand colors - consistent across light and dark mode */
   --gold: #D4AF37;
   --green: #1F6A3A;
-  --green-soft: #4A9B62;
+  --green-soft: #76C68E;
   
   /* Light mode colors */
   --surface: #ffffff;
@@ -74,14 +74,13 @@ body {
 }
 
 .message-avatar {
-  width: 0;
-  height: 0;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   flex-shrink: 0;
   object-fit: cover;
-  border: none;
-  box-shadow: none;
-  display: none; /* Hide avatar as per requirement #7 */
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .message-content {
