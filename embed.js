@@ -231,18 +231,39 @@
   btn.appendChild(bubble);
   
   // Update bubble theme based on page theme
-  function updateBubbleTheme() {
-    const htmlEl = document.documentElement;
-    const isDark = htmlEl.classList.contains('dark') || 
-                   htmlEl.getAttribute('data-theme') === 'dark' ||
-                   (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    
-    if (isDark) {
-      bubble.classList.add('dark-mode');
-    } else {
-      bubble.classList.remove('dark-mode');
-    }
+  // Update bubble theme based on page theme - FIXED: explicit class overrides system
+function updateBubbleTheme() {
+  const htmlEl = document.documentElement;
+  const bodyEl = document.body;
+  
+  // Priority: explicit class/attribute > system preference
+  const hasExplicitLight = htmlEl.classList.contains('light') || 
+                           bodyEl?.classList.contains('light') ||
+                           htmlEl.getAttribute('data-theme') === 'light' ||
+                           bodyEl?.getAttribute('data-theme') === 'light';
+  
+  const hasExplicitDark = htmlEl.classList.contains('dark') || 
+                          bodyEl?.classList.contains('dark') ||
+                          htmlEl.getAttribute('data-theme') === 'dark' ||
+                          bodyEl?.getAttribute('data-theme') === 'dark';
+  
+  const systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  
+  // Logic: explicit overrides system
+  const isDark = hasExplicitLight ? false : (hasExplicitDark ? true : systemDark);
+  
+  if (isDark) {
+    bubble.classList.add('dark-mode');
+  } else {
+    bubble.classList.remove('dark-mode');
   }
+  
+  console.log('[CGTR] Bubble theme updated:', isDark ? 'dark' : 'light', {
+    reason: hasExplicitLight ? 'explicit light' : 
+            (hasExplicitDark ? 'explicit dark' : 'system preference')
+  });
+}
+  
   
   // Initial theme check
   updateBubbleTheme();
@@ -256,11 +277,40 @@
   }
   
   // Watch for class and data-theme changes on html element
-  const themeObserver = new MutationObserver(updateBubbleTheme);
-  themeObserver.observe(document.documentElement, { 
+const themeObserver = new MutationObserver(updateBubbleTheme);
+themeObserver.observe(document.documentElement, { 
+  attributes: true, 
+  attributeFilter: ['class', 'data-theme'] 
+});
+
+// Also watch body element
+if (document.body) {
+  themeObserver.observe(document.body, { 
     attributes: true, 
     attributeFilter: ['class', 'data-theme'] 
   });
+} else {
+  // Body not ready yet
+  document.addEventListener('DOMContentLoaded', () => {
+    if (document.body) {
+      themeObserver.observe(document.body, { 
+        attributes: true, 
+        attributeFilter: ['class', 'data-theme'] 
+      });
+      updateBubbleTheme();
+    }
+  });
+}
+
+// Mobile polling for first 3 seconds
+if (window.innerWidth <= 768) {
+  let checks = 0;
+  const interval = setInterval(() => {
+    updateBubbleTheme();
+    checks++;
+    if (checks >= 30) clearInterval(interval);
+  }, 100);
+}
   
   document.body.appendChild(btn);
   
