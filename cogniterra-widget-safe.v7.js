@@ -1633,8 +1633,11 @@ function addME(t) {
   }
 
   function renderStart() { 
+  // Auto-focus jen na desktopu
+  if (window.innerWidth > 768) {
     try{chatTextarea.focus();}catch(e){}
-    addAI("Dobrý den, rád Vám pomohu s vaší nemovitostí. Vyberte, co potřebujete.");
+  }
+  addAI("Dobrý den, rád Vám pomohu s vaší nemovitostí. Vyberte, co potřebujete.");
 
     const cards = U.el("div", { class: "cg-start" }, [
       U.el("div", { class: "cg-cards" }, [
