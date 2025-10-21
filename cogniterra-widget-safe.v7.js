@@ -45,45 +45,98 @@
 
   console.log('[Widget] Session:', S.session);
 
-  // Dark mode detection
-  let isDarkMode = false;
-  function updateDarkMode() {
-    const htmlEl = document.documentElement;
-    // Check for dark mode: class, data-theme attribute, or system preference
-    isDarkMode = htmlEl.classList.contains('dark') || 
-                 htmlEl.getAttribute('data-theme') === 'dark' ||
-                 (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    console.log('[Widget] Dark mode:', isDarkMode);
-    
-    // Update shadow root if needed
-    if (shadow && shadow.host) {
-      shadow.host.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
-    }
-    
-    // Dispatch custom event for other components (like embed.js speech bubble)
-    try {
-      window.dispatchEvent(new CustomEvent('cgtr-theme-change', { 
-        detail: { theme: isDarkMode ? 'dark' : 'light' }
-      }));
-    } catch(e) {
-      console.warn('[Widget] Could not dispatch theme event:', e);
-    }
+  // Dark mode detection - IMPROVED with immediate sync
+let isDarkMode = false;
+let themeCheckInterval = null;
+
+function updateDarkMode() {
+  const htmlEl = document.documentElement;
+  const bodyEl = document.body;
+  
+  // Check multiple sources for dark mode
+  const wasInDark = isDarkMode;
+  isDarkMode = htmlEl.classList.contains('dark') || 
+               bodyEl?.classList.contains('dark') ||
+               htmlEl.getAttribute('data-theme') === 'dark' ||
+               bodyEl?.getAttribute('data-theme') === 'dark' ||
+               (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  
+  // Log only when changed
+  if (wasInDark !== isDarkMode) {
+    console.log('[Widget] Dark mode changed:', isDarkMode);
   }
   
-  // Initial dark mode check
-  updateDarkMode();
-  
-  // Watch for dark mode changes from system preference
-  if (window.matchMedia) {
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateDarkMode);
+  // Update shadow root immediately
+  if (shadow && shadow.host) {
+    shadow.host.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
   }
   
-  // Watch for class and data-theme attribute changes on html element
-  const observer = new MutationObserver(updateDarkMode);
-  observer.observe(document.documentElement, { 
+  // Dispatch custom event for other components (like embed.js speech bubble)
+  try {
+    window.dispatchEvent(new CustomEvent('cgtr-theme-change', { 
+      detail: { theme: isDarkMode ? 'dark' : 'light' }
+    }));
+  } catch(e) {
+    console.warn('[Widget] Could not dispatch theme event:', e);
+  }
+}
+
+// Initial dark mode check with retry
+updateDarkMode();
+setTimeout(updateDarkMode, 100); // Retry after DOM is fully ready
+setTimeout(updateDarkMode, 300); // Another retry for slow connections
+
+// Watch for dark mode changes from system preference
+if (window.matchMedia) {
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateDarkMode);
+}
+
+// Watch for class and data-theme attribute changes on html AND body
+const observer = new MutationObserver(updateDarkMode);
+observer.observe(document.documentElement, { 
+  attributes: true, 
+  attributeFilter: ['class', 'data-theme'] 
+});
+
+// Also observe body element (some sites toggle theme here)
+if (document.body) {
+  observer.observe(document.body, { 
     attributes: true, 
     attributeFilter: ['class', 'data-theme'] 
   });
+} else {
+  // Body not ready yet, wait for it
+  document.addEventListener('DOMContentLoaded', () => {
+    observer.observe(document.body, { 
+      attributes: true, 
+      attributeFilter: ['class', 'data-theme'] 
+    });
+    updateDarkMode(); // Check again when body is ready
+  });
+}
+
+// Aggressive polling on mobile for first 5 seconds (catches slow theme toggles)
+if (window.innerWidth <= 768) {
+  let checks = 0;
+  themeCheckInterval = setInterval(() => {
+    updateDarkMode();
+    checks++;
+    if (checks >= 50) { // 50 checks × 100ms = 5 seconds
+      clearInterval(themeCheckInterval);
+      console.log('[Widget] Mobile theme polling stopped');
+    }
+  }, 100);
+}
+
+// Listen for visibility changes (when user returns to tab)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    updateDarkMode();
+  }
+});
+
+// Listen for focus events (when widget is opened)
+window.addEventListener('focus', updateDarkMode, { passive: true });
 
   // Fox avatar URL
   const FOX_AVATAR = 'https://raw.githubusercontent.com/info-cogniterra/chatbotreal/main/assets/avatar.png';
