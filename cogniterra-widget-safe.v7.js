@@ -1,25 +1,3 @@
-// === Unified viewport height handler ===
-(function setVH(){
-  function updateVH(){
-    // Na mobilu neaktualizuj při změně klávesnice
-    if (window.innerWidth <= 768 && window.visualViewport) {
-      // Použij pouze visualViewport.height když není klávesnice
-      const vh = window.visualViewport.height;
-      if (Math.abs(vh - window.innerHeight) < 100) {
-        document.documentElement.style.setProperty('--vh', vh + 'px');
-      }
-    } else {
-      const vh = window.innerHeight;
-      document.documentElement.style.setProperty('--vh', vh + 'px');
-    }
-  }
-  updateVH();
-  window.addEventListener('resize', updateVH, {passive:true});
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', updateVH, {passive:true});
-  }
-})();
-
 // cogniterra-widget-safe.v8.js — NEW DESIGN with updated brand colors
 // Build v8.3 — Oprava: plynulý scroll formulářů s offsetem
 // Date: 2025-01-21 | Author: info-cogniterra
@@ -389,20 +367,20 @@
   
   /* === Chat Container === */
   .chat-container {
-    font: 15px/1.6 var(--font-sans);
-    color: var(--text);
-    background: var(--surface);
-    border-radius: var(--radius-lg);
-    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-    width: 100%;
-    max-width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    position: absolute;
-    inset: 0;
-  }
+  font: 15px/1.6 var(--font-sans);
+  color: var(--text);
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative; /* ← ZMĚNA */
+}
   
   /* === Header with Logo === */
  /* === Header with brand gradient === */
@@ -1062,58 +1040,85 @@
   
   /* === Mobile Responsive === */
 @media (max-width: 480px) {
-  .chat-container {
-    width: 100%;
-    height: 100%;
-    max-width: 100%;
-    border-radius: 0;
-    /* Fix pro poskakující klávesnici */
-    position: fixed;
-    overflow: hidden;
+  /* Host element - fullscreen */
+  :host {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 999999;
   }
   
+  /* Container - native viewport height */
+  .chat-container {
+    width: 100%;
+    height: 100vh; /* Native viewport */
+    height: 100dvh; /* Dynamic viewport - ignoruje klávesnici */
+    max-width: 100%;
+    border-radius: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Header - sticky top */
+  .chat-header {
+    padding: 16px;
+    padding-top: max(16px, env(safe-area-inset-top));
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  
+  /* Messages area - scrollable */
   .chat-messages {
-    /* Zajistí stabilní scrollování i při otevřené klávesnici */
-    height: calc(100% - 60px - 76px); /* header + input area */
+    flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    /* Klávesnice přirozeně "pushne" obsah nahoru */
   }
   
+  /* Input area - "pushnutelné" klávesnicí */
   .chat-input-area {
-    position: sticky;
-    bottom: 0;
+    padding: 14px 16px;
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
+    flex-shrink: 0;
     background: var(--surface);
-    z-index: 10;
+    border-top: 1px solid var(--border-color);
+    /* KLÍČ: Žádný position fixed/sticky! */
+    /* Nechá se přirozeně posouvat klávesnicí jako Messenger */
   }
-    
-    .chat-header {
-      padding: 16px;
-      padding-top: calc(16px + env(safe-area-inset-top));
-    }
-    
-    .chat-input-area {
-      padding: 14px 16px;
-      padding-bottom: calc(14px + env(safe-area-inset-bottom));
-    }
-    
-    .chat-input-area textarea,
-    .cg-input,
-    .cg-select,
-    .leadbox input {
-      font-size: 16px;
-    }
-    
-    .msg-content {
-      max-width: 82%;
-    }
-    
-    .chat-close-btn {
-      width: 40px;
-      height: 40px;
-      font-size: 22px;
-    }
+  
+  /* Zabrání iOS auto-zoom */
+  .chat-input-area textarea,
+  .cg-input,
+  .cg-select,
+  .leadbox input {
+    font-size: 16px !important;
   }
+  
+  /* Message bubbles */
+  .msg-content {
+    max-width: 82%;
+  }
+  
+  /* Close button */
+  .chat-close-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 22px;
+  }
+}
   `;
   shadow.appendChild(style);
 
