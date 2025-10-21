@@ -295,10 +295,14 @@
     border: none;
     background: transparent;
     
-    /* Brand colors - consistent across modes */
+    /* Brand colors - Cogniterra palette */
     --gold: #D4AF37;
-    --green: #1F6A3A;
+    --green: #295f2d;
+    --green-light: #3b7a3f;
     --green-soft: #76C68E;
+    
+    /* Button gradient */
+    --btn-gradient: linear-gradient(90deg, #295f2d 0%, #3b7a3f 100%);
     
     /* Light mode (default) */
     --surface: #ffffff;
@@ -310,7 +314,7 @@
     --gray-600: #4b5563;
     --gray-900: #111827;
     --border-color: rgba(0, 0, 0, 0.06);
-    --header-bg: #76C68E;
+    --header-bg: linear-gradient(90deg, #244e28 0%, #31662f 100%);
     --header-text: #fff;
     
     /* Radius */
@@ -320,7 +324,7 @@
     
     /* Shadows */
     --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.04);
-    --shadow-btn: 0 10px 26px rgba(31, 106, 58, 0.22);
+    --shadow-btn: 0 10px 26px rgba(41, 95, 45, 0.22);
     
     /* Typography */
     --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -332,19 +336,19 @@
   
   /* Dark mode overrides */
   :host([data-theme="dark"]) {
-    --surface: #0f1115;
-    --text: #e7e7e7;
+    --surface: #0d0d0d;
+    --text: #f0f0f0;
     --muted: #9aa4b2;
-    --gray-50: #111318;
-    --gray-100: #141720;
+    --gray-50: #111111;
+    --gray-100: #1a1a1a;
     --gray-200: #293042;
     --gray-600: #9ca3af;
     --gray-900: #f1f5f9;
     --border-color: rgba(255, 255, 255, 0.08);
-    --header-bg: #1F6A3A;
-    --header-text: #e7e7e7;
+    --header-bg: linear-gradient(90deg, #1f4422 0%, #295f2d 100%);
+    --header-text: #f0f0f0;
     --shadow-card: 0 14px 36px rgba(0, 0, 0, 0.55);
-    --shadow-btn: 0 12px 32px rgba(31, 106, 58, 0.35);
+    --shadow-btn: 0 12px 32px rgba(41, 95, 45, 0.35);
   }
   
   * {
@@ -371,7 +375,7 @@
   }
   
   /* === Header with Logo === */
- /* === Clean, narrower header with dynamic colors === */
+ /* === Header with brand gradient === */
 .chat-header {
   background: var(--header-bg);
   color: var(--header-text);
@@ -380,7 +384,7 @@
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--border-color);
-  box-shadow: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   min-height: 60px;
 }
 
@@ -516,14 +520,14 @@
   }
   
   .chat-msg.ai .msg-content {
-    background: var(--surface);
+    background: #1b1b1b;
     border-bottom-left-radius: 6px;
-    color: var(--text);
-    border: 1px solid var(--border-color);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.05);
   }
   
   .chat-msg.me .msg-content {
-    background: linear-gradient(135deg, var(--green), var(--green-soft));
+    background: #2e3b31;
     color: #fff;
     border-bottom-right-radius: 6px;
   }

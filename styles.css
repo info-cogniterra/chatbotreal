@@ -2,10 +2,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 :root {
-  /* Brand colors - consistent across light and dark mode */
+  /* Brand colors - Cogniterra palette */
   --gold: #D4AF37;
-  --green: #1F6A3A;
+  --green: #295f2d;
+  --green-light: #3b7a3f;
   --green-soft: #76C68E;
+  
+  /* Button gradient */
+  --btn-gradient: linear-gradient(90deg, #295f2d 0%, #3b7a3f 100%);
   
   /* Light mode colors */
   --surface: #ffffff;
@@ -24,7 +28,7 @@
   
   /* Shadows */
   --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.04);
-  --shadow-btn: 0 10px 26px rgba(31, 106, 58, 0.22);
+  --shadow-btn: 0 10px 26px rgba(41, 95, 45, 0.22);
   --shadow-elevated: 0 20px 60px rgba(0, 0, 0, 0.2);
   
   /* Typography */
@@ -37,16 +41,16 @@
 
 /* Dark mode color overrides */
 .dark, html.dark {
-  --surface: #0f1115;
-  --text: #e7e7e7;
+  --surface: #0d0d0d;
+  --text: #f0f0f0;
   --muted: #9aa4b2;
-  --gray-50: #111318;
-  --gray-100: #141720;
+  --gray-50: #111111;
+  --gray-100: #1a1a1a;
   --gray-200: #293042;
   --gray-600: #9ca3af;
   --gray-900: #f1f5f9;
   --shadow-card: 0 14px 36px rgba(0, 0, 0, 0.55);
-  --shadow-btn: 0 12px 32px rgba(31, 106, 58, 0.35);
+  --shadow-btn: 0 12px 32px rgba(41, 95, 45, 0.35);
   --shadow-elevated: 0 24px 80px rgba(0, 0, 0, 0.6);
 }
 
@@ -94,13 +98,18 @@ body {
 }
 
 .chat-message.ai .message-content, .message.ai .message-content {
-  background: var(--surface);
+  background: #1b1b1b;
   border-bottom-left-radius: 4px;
-  color: var(--text);
+  color: #fff;
+}
+
+.dark .chat-message.ai .message-content, .dark .message.ai .message-content {
+  background: #1b1b1b;
+  color: #fff;
 }
 
 .chat-message.me .message-content, .message.me .message-content {
-  background: linear-gradient(135deg, var(--green), var(--green-soft));
+  background: #2e3b31;
   color: #fff;
   border-bottom-right-radius: 4px;
 }
@@ -189,10 +198,16 @@ body {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+.dark .cg-select, .dark .cg-input {
+  background: #1a1a1a;
+  color: #f0f0f0;
+  border-color: #355e39;
+}
+
 .cg-select:focus, .cg-input:focus {
   outline: none;
-  border-color: var(--green);
-  box-shadow: 0 0 0 3px rgba(31, 106, 58, 0.1);
+  border-color: #355e39;
+  box-shadow: 0 0 0 3px rgba(53, 94, 57, 0.1);
   background: var(--surface);
 }
 
@@ -205,20 +220,21 @@ body {
 }
 
 .cg-btn {
-  background: linear-gradient(135deg, var(--green), var(--green-soft));
+  background: var(--btn-gradient);
   color: #fff;
   border: 0;
   border-radius: var(--radius-sm);
   padding: 12px 20px;
   font: var(--font-weight-semibold) 15px var(--font-sans);
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
   box-shadow: var(--shadow-btn);
 }
 
 .cg-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 12px 32px rgba(31, 106, 58, 0.3);
+  box-shadow: 0 12px 32px rgba(41, 95, 45, 0.3);
+  filter: brightness(1.1);
 }
 
 .cg-btn:active {
