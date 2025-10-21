@@ -1,11 +1,23 @@
 // === Unified viewport height handler ===
 (function setVH(){
   function updateVH(){
-    const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-    document.documentElement.style.setProperty('--vh', vh + 'px');
+    // Na mobilu neaktualizuj při změně klávesnice
+    if (window.innerWidth <= 768 && window.visualViewport) {
+      // Použij pouze visualViewport.height když není klávesnice
+      const vh = window.visualViewport.height;
+      if (Math.abs(vh - window.innerHeight) < 100) {
+        document.documentElement.style.setProperty('--vh', vh + 'px');
+      }
+    } else {
+      const vh = window.innerHeight;
+      document.documentElement.style.setProperty('--vh', vh + 'px');
+    }
   }
   updateVH();
   window.addEventListener('resize', updateVH, {passive:true});
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', updateVH, {passive:true});
+  }
 })();
 
 // cogniterra-widget-safe.v8.js — NEW DESIGN with updated brand colors
@@ -593,10 +605,13 @@
   }
   
   .chat-input-area textarea {
-    flex: 1;
-    resize: none;
-    min-height: 48px;
-    max-height: 120px;
+  flex: 1;
+  resize: none;
+  min-height: 48px;
+  max-height: 120px;
+  /* Zabraň scrollování při focusu na mobilu */
+  scroll-margin-bottom: 0;
+  -webkit-overflow-scrolling: touch;
     border-radius: var(--radius-sm);
     border: 1px solid var(--gray-50);
     background: var(--gray-50);
@@ -1046,13 +1061,31 @@
   }
   
   /* === Mobile Responsive === */
-  @media (max-width: 480px) {
-    .chat-container {
-      width: 100%;
-      height: 100%;
-      max-width: 100%;
-      border-radius: 0;
-    }
+@media (max-width: 480px) {
+  .chat-container {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    border-radius: 0;
+    /* Fix pro poskakující klávesnici */
+    position: fixed;
+    overflow: hidden;
+  }
+  
+  .chat-messages {
+    /* Zajistí stabilní scrollování i při otevřené klávesnici */
+    height: calc(100% - 60px - 76px); /* header + input area */
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .chat-input-area {
+    position: sticky;
+    bottom: 0;
+    background: var(--surface);
+    z-index: 10;
+  }
     
     .chat-header {
       padding: 16px;
@@ -1624,16 +1657,19 @@ function addME(t) {
 
   // FIX 2: Funkce startHelp s prevencí opakovaného spuštění
   function startHelp() { 
-    if (S.quickActionsUsed.help) {
-      addAI("Chat je již otevřený. Ptejte se na cokoliv.");
-      return;
-    }
-    S.quickActionsUsed.help = true;
-    U.saveSession();
-    chatInputArea.style.display='flex'; 
-    try{chatTextarea.focus();}catch(e){}
-    addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS apod.");
+  if (S.quickActionsUsed.help) {
+    addAI("Chat je již otevřený. Ptejte se na cokoliv.");
+    return;
   }
+  S.quickActionsUsed.help = true;
+  U.saveSession();
+  chatInputArea.style.display='flex'; 
+  // Neprovádět automatický focus na mobilu
+  if (window.innerWidth > 768) {
+    try{chatTextarea.focus();}catch(e){}
+  }
+  addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS apod.");
+}
 
   // FIX 2: Funkce startPricing s prevencí opakovaného spuštění
   function startPricing() {
