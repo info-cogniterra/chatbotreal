@@ -577,10 +577,16 @@
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
   
+  :host([data-theme="dark"]) .chat-input-area textarea {
+    background: #1a1a1a;
+    color: #f0f0f0;
+    border-color: #355e39;
+  }
+  
   .chat-input-area textarea:focus {
     outline: none;
-    border-color: var(--green);
-    box-shadow: 0 0 0 3px rgba(31, 106, 58, 0.1);
+    border-color: #355e39;
+    box-shadow: 0 0 0 3px rgba(53, 94, 57, 0.1);
     background: var(--surface);
   }
   
@@ -591,13 +597,13 @@
   
   .chat-input-area button {
     border: 0;
-    background: linear-gradient(135deg, var(--green), var(--green-soft));
+    background: var(--btn-gradient);
     color: #fff;
     padding: 0 24px;
     border-radius: var(--radius-sm);
     font-weight: var(--font-weight-semibold);
     cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
     min-height: 48px;
     box-shadow: var(--shadow-btn);
     -webkit-tap-highlight-color: transparent;
@@ -606,7 +612,8 @@
   
   .chat-input-area button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 12px 32px rgba(31, 106, 58, 0.3);
+    box-shadow: 0 12px 32px rgba(41, 95, 45, 0.3);
+    filter: brightness(1.1);
   }
   
   .chat-input-area button:active {
@@ -712,10 +719,17 @@
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
   
+  :host([data-theme="dark"]) .cg-input, 
+  :host([data-theme="dark"]) .cg-select {
+    background: #1a1a1a;
+    color: #f0f0f0;
+    border-color: #355e39;
+  }
+  
   .cg-input:focus, .cg-select:focus {
     outline: none;
-    border-color: var(--green);
-    box-shadow: 0 0 0 3px rgba(31, 106, 58, 0.1);
+    border-color: #355e39;
+    box-shadow: 0 0 0 3px rgba(53, 94, 57, 0.1);
     background: var(--surface);
   }
   
@@ -728,13 +742,13 @@
   
   .cg-btn {
     border: 0;
-    background: linear-gradient(135deg, var(--green), var(--green-soft));
+    background: var(--btn-gradient);
     color: #fff;
     padding: 12px 20px;
     border-radius: var(--radius-sm);
     font-weight: var(--font-weight-semibold);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.2s ease, filter 0.2s ease;
     min-height: 48px;
     box-shadow: var(--shadow-btn);
     -webkit-tap-highlight-color: transparent;
@@ -743,7 +757,8 @@
   
   .cg-btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 12px 32px rgba(31, 106, 58, 0.3);
+    box-shadow: 0 12px 32px rgba(41, 95, 45, 0.3);
+    filter: brightness(1.1);
   }
   
   .cg-btn:active {
@@ -789,7 +804,7 @@
   
   .cg-btn-disp:active,
   .cg-btn-disp.selected {
-    background: linear-gradient(135deg, var(--green), var(--green-soft)) !important;
+    background: var(--btn-gradient) !important;
     border-color: var(--green) !important;
     color: #fff !important;
   }
@@ -1594,7 +1609,7 @@
             b.style.borderColor = "var(--gray-50)";
             b.style.color = "var(--text)";
           });
-          btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+          btn.style.background = "var(--btn-gradient)";
           btn.style.borderColor = "var(--green)";
           btn.style.color = "#fff";
           selectedDisposition = disp;
@@ -1624,7 +1639,7 @@
             b.style.borderColor = "var(--gray-50)";
             b.style.color = "var(--text)";
           });
-          btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+          btn.style.background = "var(--btn-gradient)";
           btn.style.borderColor = "var(--green)";
           btn.style.color = "#fff";
           selectedStav = stav;
@@ -1632,7 +1647,7 @@
       }, [stav]);
       
       if (stav === "Dobrý") {
-        btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+        btn.style.background = "var(--btn-gradient)";
         btn.style.borderColor = "var(--green)";
         btn.style.color = "#fff";
         }      
@@ -1660,7 +1675,7 @@
             b.style.borderColor = "var(--gray-50)";
             b.style.color = "var(--text)";
           });
-          btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+          btn.style.background = "var(--btn-gradient)";
           btn.style.borderColor = "var(--green)";
           btn.style.color = "#fff";
           selectedVlast = vlast;
@@ -1668,7 +1683,7 @@
       }, [vlast.charAt(0).toUpperCase() + vlast.slice(1)]);
       
       if (vlast === "osobní") {
-        btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+        btn.style.background = "var(--btn-gradient)";
         btn.style.borderColor = "var(--green)";
         btn.style.color = "#fff";
       }
@@ -1750,7 +1765,7 @@
             b.style.borderColor="var(--gray-50)"; 
             b.style.color="var(--text)";
           }); 
-          btn.style.background="linear-gradient(135deg, var(--green), var(--green-soft))"; 
+          btn.style.background="var(--btn-gradient)"; 
           btn.style.borderColor="var(--green)";
           btn.style.color="#fff"; 
           selectedTypDomu=opt;
@@ -1758,7 +1773,7 @@
       }, [opt]);
       
       if (opt === "Rodinný dům") {
-        btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+        btn.style.background = "var(--btn-gradient)";
         btn.style.borderColor = "var(--green)";
         btn.style.color = "#fff";
       }
@@ -1785,7 +1800,7 @@
             b.style.borderColor = "var(--gray-50)";
             b.style.color = "var(--text)";
           });
-          btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+          btn.style.background = "var(--btn-gradient)";
           btn.style.borderColor = "var(--green)";
           btn.style.color = "#fff";
           selectedTyp = typ;
@@ -1793,7 +1808,7 @@
       }, [typ]);
       
       if (typ === "Cihlová") {
-        btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+        btn.style.background = "var(--btn-gradient)";
         btn.style.borderColor = "var(--green)";
         btn.style.color = "#fff";
       }
@@ -1818,7 +1833,7 @@
             b.style.borderColor="var(--gray-50)"; 
             b.style.color="var(--text)";
           }); 
-          btn.style.background="linear-gradient(135deg, var(--green), var(--green-soft))"; 
+          btn.style.background="var(--btn-gradient)"; 
           btn.style.borderColor="var(--green)";
           btn.style.color="#fff"; 
           selectedStav=opt;
@@ -1826,7 +1841,7 @@
       }, [opt]);
       
       if (opt === "Dobrý") {
-        btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+        btn.style.background = "var(--btn-gradient)";
         btn.style.borderColor = "var(--green)";
         btn.style.color = "#fff";
       }
@@ -1851,7 +1866,7 @@
             b.style.borderColor = "var(--gray-50)";
             b.style.color = "var(--text)";
           });
-          btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+          btn.style.background = "var(--btn-gradient)";
           btn.style.borderColor = "var(--green)";
           btn.style.color = "#fff";
           selectedZatepleni = opt;
@@ -1859,7 +1874,7 @@
       }, [opt]);
       
       if (opt === "NE") {
-        btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+        btn.style.background = "var(--btn-gradient)";
         btn.style.borderColor = "var(--green)";
         btn.style.color = "#fff";
       }
@@ -1884,7 +1899,7 @@
             b.style.borderColor = "var(--gray-50)";
             b.style.color = "var(--text)";
           });
-          btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+          btn.style.background = "var(--btn-gradient)";
           btn.style.borderColor = "var(--green)";
           btn.style.color = "#fff";
           selectedOkna = opt;
@@ -1892,7 +1907,7 @@
       }, [opt]);
       
       if (opt === "NE") {
-        btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+        btn.style.background = "var(--btn-gradient)";
         btn.style.borderColor = "var(--green)";
         btn.style.color = "#fff";
       }
@@ -1917,7 +1932,7 @@
             b.style.borderColor="var(--gray-50)"; 
             b.style.color="var(--text)";
           }); 
-          btn.style.background="linear-gradient(135deg, var(--green), var(--green-soft))"; 
+          btn.style.background="var(--btn-gradient)"; 
           btn.style.borderColor="var(--green)";
           btn.style.color="#fff"; 
           selectedParkovani=opt;
@@ -1925,7 +1940,7 @@
       }, [opt]);
       
       if (opt === "Žádné") {
-        btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+        btn.style.background = "var(--btn-gradient)";
         btn.style.borderColor = "var(--green)";
         btn.style.color = "#fff";
       }
@@ -2006,7 +2021,7 @@
             b.style.borderColor = "var(--gray-50)";
             b.style.color = "var(--text)";
           });
-          btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+          btn.style.background = "var(--btn-gradient)";
           btn.style.borderColor = "var(--green)";
           btn.style.color = "#fff";
           selectedKategorie = kat;
@@ -2014,7 +2029,7 @@
       }, [kat]);
       
       if (kat === "Bydlení") {
-        btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+        btn.style.background = "var(--btn-gradient)";
         btn.style.borderColor = "var(--green)";
         btn.style.color = "#fff";
       }
@@ -2045,7 +2060,7 @@
             b.style.borderColor = "var(--gray-50)";
             b.style.color = "var(--text)";
           });
-          btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+          btn.style.background = "var(--btn-gradient)";
           btn.style.borderColor = "var(--green)";
           btn.style.color = "#fff";
           selectedSpoluvl = opt;
@@ -2059,7 +2074,7 @@
       }, [opt]);
       
       if (opt === "NE") {
-        btn.style.background = "linear-gradient(135deg, var(--green), var(--green-soft))";
+        btn.style.background = "var(--btn-gradient)";
         btn.style.borderColor = "var(--green)";
         btn.style.color = "#fff";
       }
