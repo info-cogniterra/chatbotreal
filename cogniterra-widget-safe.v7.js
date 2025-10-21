@@ -1176,19 +1176,19 @@ function addAI(t, extra, smoothScroll = false) {
   }
 
   // FIX 1: Odstranění fialového avatara - uživatelské zprávy bez avatara
-  function addME(t) {
-    try { 
-      S.chat.messages.push({ role:"user", content: String(t) }); 
-    } catch(_){}
-    
-    const msgWrapper = U.el("div", { class: "chat-msg me" });
-    const content = U.el("div", { class: "msg-content" }, [t]);
-    
-    msgWrapper.appendChild(content);
-    // FIX 1: Žádný avatar pro uživatelské zprávy
-    chatMessages.appendChild(msgWrapper);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-  }
+function addME(t) {
+  try { 
+    S.chat.messages.push({ role:"user", content: String(t) }); 
+  } catch(_){}
+  
+  const msgWrapper = U.el("div", { class: "chat-msg me" });
+  const content = U.el("div", { class: "msg-content" }, [t]);
+  
+  msgWrapper.appendChild(content);
+  // FIX 1: Žádný avatar pro uživatelské zprávy
+  chatMessages.appendChild(msgWrapper);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
   
   function addPanel(el) {
     const w = U.el("div", { class: "chat-panel" }, []);
