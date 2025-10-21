@@ -1154,26 +1154,6 @@ function addAI(t, extra, smoothScroll = false) {
     }
   } catch (e) {}
 }
-    
-    try {
-      const tt = String(t).toLowerCase();
-      const offerContact = /(mohu|můžu|mám|rád|ráda)\s+(také\s+)?(vám\s+)?(ote[vw]ř[ií]t|zobrazit|spustit|poslat|zaslat)\s+(kontaktn[íi]\s+formul[aá][řr]|formul[aá][řr])/i.test(tt) ||
-                           /chcete\s+(ote[vw]ř[ií]t|zobrazit|spustit)\s+(kontaktn[íi]\s+)?formul[aá][řr]/i.test(tt) ||
-                           /zadat\s+sv[eé]\s+(jm[eé]no|kontakt|[uú]daje)/i.test(tt) ||
-                           /(?:abyste|aby|abych)\s+(?:mohl[ai]?)?\s*zadat\s+sv[eé]/i.test(tt);
-      
-      const offerUP = /(chcete|potrebujete|mam\s+poslat|poslat\s+vam|najit\s+vam).*?(uzemni\s*plan|up)/i.test(tt);
-      
-      if (offerContact) { 
-        console.log('[Widget] AI offered contact form');
-        S.intent.contactOffer = true; 
-      }
-      if (offerUP) {
-        console.log('[Widget] AI offered UP');
-        S.intent.upOffer = true;
-      }
-    } catch (e) {}
-  }
 
   // FIX 1: Odstranění fialového avatara - uživatelské zprávy bez avatara
 function addME(t) {
