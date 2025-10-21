@@ -1629,7 +1629,7 @@ function addME(t) {
 
   function renderStart() { 
     try{chatTextarea.focus();}catch(e){}
-    addAI("Dobrý den, rád vám pomohu s vaší nemovitostí. Vyberte, co potřebujete.");
+    addAI("Dobrý den, rád Vám pomohu s vaší nemovitostí. Vyberte, co potřebujete.");
 
     const cards = U.el("div", { class: "cg-start" }, [
       U.el("div", { class: "cg-cards" }, [
@@ -1639,15 +1639,15 @@ function addME(t) {
           onclick: () => startPricing(),
         }, [
           U.el("h3", {}, ["Nacenit nemovitost"]),
-          U.el("p", {}, ["Rychlý odhad a krátký dotazník (1–2 min)."])
+          U.el("p", {}, ["Rychlý odhad během jedné minuty."])
         ]),
         U.el("button", { 
           class: "cg-card", 
           type: "button", 
           onclick: () => startHelp(),
         }, [
-          U.el("h3", {}, ["Potřebuji pomoct"]),
-          U.el("p", {}, ["Zeptejte se na postup, dokumenty nebo pravidla."])
+          U.el("h3", {}, ["Potřebuji pomoc"]),
+          U.el("p", {}, ["Pomohu Vám zorientovat se v nemovitostech, územních plánech i našich službách."])
         ])
       ])
     ]);
@@ -2493,7 +2493,7 @@ function addME(t) {
 
   function stepContactVerify() {
     const box = U.el("div", { class: "leadbox" }, [
-      U.el("div", {}, ["Zanechte na sebe kontakt, ozvu se vám co nejdříve."]),
+      U.el("div", {}, ["Zanechte na sebe kontakt, ozveme se Vám co nejdříve."]),
       U.el("input", { id: "c_name",  name:"name",  placeholder:"Jméno" }),
       U.el("input", { id: "c_email", name:"email", type:"email", placeholder:"E-mail" }),
       U.el("input", { id: "c_phone", name:"phone", placeholder:"Telefon (+420…)" }),
