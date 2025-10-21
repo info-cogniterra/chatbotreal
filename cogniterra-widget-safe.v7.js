@@ -1582,20 +1582,56 @@
     return;
   }
   
+  // Uchovej reference na tlačítka pro možnost jejich deaktivace
+  let allButtons = [];
+  
   const byt = U.el("button", { class: "cg-btn", type: "button", onclick: () => {
+    if (S.typeSelected) return; // Dvojitá ochrana
     S.typeSelected = true;
+    U.saveSession(); // Ulož stav okamžitě
+    
+    // Deaktivuj všechna tlačítka
+    allButtons.forEach(btn => {
+      btn.disabled = true;
+      btn.style.opacity = "0.5";
+      btn.style.cursor = "not-allowed";
+    });
+    
     stepLocation("Byt");
   }}, ["Byt"]);
   
   const dum = U.el("button", { class: "cg-btn", type: "button", onclick: () => {
+    if (S.typeSelected) return; // Dvojitá ochrana
     S.typeSelected = true;
+    U.saveSession(); // Ulož stav okamžitě
+    
+    // Deaktivuj všechna tlačítka
+    allButtons.forEach(btn => {
+      btn.disabled = true;
+      btn.style.opacity = "0.5";
+      btn.style.cursor = "not-allowed";
+    });
+    
     stepLocation("Dům");
   }}, ["Dům"]);
   
   const poz = U.el("button", { class: "cg-btn", type: "button", onclick: () => {
+    if (S.typeSelected) return; // Dvojitá ochrana
     S.typeSelected = true;
+    U.saveSession(); // Ulож stav okamžitě
+    
+    // Deaktivuj všechna tlačítka
+    allButtons.forEach(btn => {
+      btn.disabled = true;
+      btn.style.opacity = "0.5";
+      btn.style.cursor = "not-allowed";
+    });
+    
     stepLocation("Pozemek");
   }}, ["Pozemek"]);
+  
+  // Ulož reference pro pozdější deaktivaci
+  allButtons = [byt, dum, poz];
   
   const box = U.el("div", { class: "cg-step" }, [
     U.el("label", {}, ["Vyberte typ nemovitosti"]),
