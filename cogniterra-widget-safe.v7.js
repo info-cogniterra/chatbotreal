@@ -57,7 +57,9 @@
   let isDarkMode = false;
   function updateDarkMode() {
     const htmlEl = document.documentElement;
+    // Check for dark mode: class, data-theme attribute, or system preference
     isDarkMode = htmlEl.classList.contains('dark') || 
+                 htmlEl.getAttribute('data-theme') === 'dark' ||
                  (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
     console.log('[Widget] Dark mode:', isDarkMode);
     
@@ -65,19 +67,31 @@
     if (shadow && shadow.host) {
       shadow.host.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
     }
+    
+    // Dispatch custom event for other components (like embed.js speech bubble)
+    try {
+      window.dispatchEvent(new CustomEvent('cgtr-theme-change', { 
+        detail: { theme: isDarkMode ? 'dark' : 'light' }
+      }));
+    } catch(e) {
+      console.warn('[Widget] Could not dispatch theme event:', e);
+    }
   }
   
   // Initial dark mode check
   updateDarkMode();
   
-  // Watch for dark mode changes
+  // Watch for dark mode changes from system preference
   if (window.matchMedia) {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateDarkMode);
   }
   
-  // Watch for class changes on html element
+  // Watch for class and data-theme attribute changes on html element
   const observer = new MutationObserver(updateDarkMode);
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+  observer.observe(document.documentElement, { 
+    attributes: true, 
+    attributeFilter: ['class', 'data-theme'] 
+  });
 
   // Fox avatar URL
   const FOX_AVATAR = 'https://raw.githubusercontent.com/info-cogniterra/chatbotreal/main/assets/avatar.png';
@@ -520,14 +534,14 @@
   }
   
   .chat-msg.ai .msg-content {
-    background: #1b1b1b;
+    background: var(--surface);
     border-bottom-left-radius: 6px;
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--text);
+    border: 1px solid var(--border-color);
   }
   
   .chat-msg.me .msg-content {
-    background: #2e3b31;
+    background: var(--green);
     color: #fff;
     border-bottom-right-radius: 6px;
   }
