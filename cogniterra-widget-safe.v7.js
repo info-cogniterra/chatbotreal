@@ -50,7 +50,8 @@
     intent: {},
     processing: false,
     quickActionsUsed: { pricing: false, help: false } // FIX 2: Prevence opakovaného spouštění
-  };
+    typeSelected: false  // ← PŘIDAT
+ };
 
   console.log('[Widget] Session:', S.session);
 
@@ -1232,7 +1233,7 @@
       
       try {
         // FIX 3: Pro pozemky používáme regional.municipality (obce), pro ostatní regional.address (adresy)
-        const type = isPozemek ? 'regional.municipality' : 'regional.address';
+        const type = 'regional.address';  // PRO VŠECHNY
         const url = `https://api.mapy.cz/v1/geocode?lang=cs&limit=10&type=${type}&query=${encodeURIComponent(query)}&apikey=${key}`;
         
         console.log('[Widget] Fetching geocoding for:', query, 'type:', type);
@@ -1260,25 +1261,15 @@
           let displayText = '';
           
           if (isPozemek) {
-            // FIX 3: Pro pozemky zobrazujeme pouze název obce
-            displayText = name;
-          } else {
-            const locationStr = String(item.location || '').trim();
-            let municipality = '';
-            
-            if (locationStr) {
-              const cleanLocation = locationStr.replace(/,\s*(Česko|Czech Republic)\s*$/i, '').trim();
-              municipality = cleanLocation.split(',')[0].trim();
-            }
-            
-            if (name && municipality) {
-              displayText = `${name}, ${municipality}`;
-            } else if (name) {
-              displayText = name;
-            } else if (municipality) {
-              displayText = municipality;
-            }
-          }
+  const locationStr = String(item.location || '').trim();
+  if (locationStr) {
+    const parts = locationStr.replace(/,\s*(Česko|Czech Republic)\s*$/i, '').trim().split(',');
+    const obec = parts[parts.length - 1].trim();
+    displayText = obec || name;
+  } else {
+    displayText = name;
+  }
+}
           
           if (displayText && displayText.length > 2) {
             results.push(displayText);
@@ -1524,7 +1515,6 @@
           class: "cg-card", 
           type: "button", 
           onclick: () => startPricing(),
-          disabled: S.quickActionsUsed.pricing // FIX 2: Disable pokud už bylo použito
         }, [
           U.el("h3", {}, ["Nacenit nemovitost"]),
           U.el("p", {}, ["Rychlý odhad a krátký dotazník (1–2 min)."])
@@ -1571,15 +1561,32 @@
   }
 
   function stepChooseType() {
-    const byt = U.el("button", { class: "cg-btn", type: "button", onclick: () => stepLocation("Byt") }, ["Byt"]);
-    const dum = U.el("button", { class: "cg-btn", type: "button", onclick: () => stepLocation("Dům") }, ["Dům"]);
-    const poz = U.el("button", { class: "cg-btn", type: "button", onclick: () => stepLocation("Pozemek") }, ["Pozemek"]);
-    const box = U.el("div", { class: "cg-step" }, [
-      U.el("label", {}, ["Vyberte typ nemovitosti"]),
-      U.el("div", { class: "cg-cta" }, [byt, dum, poz])
-    ]);
-    addAI("Nacenění – krok 1/3", box);
+  if (S.typeSelected) {
+    addAI("Typ nemovitosti již byl vybrán.");
+    return;
   }
+  
+  const byt = U.el("button", { class: "cg-btn", type: "button", onclick: () => {
+    S.typeSelected = true;
+    stepLocation("Byt");
+  }}, ["Byt"]);
+  
+  const dum = U.el("button", { class: "cg-btn", type: "button", onclick: () => {
+    S.typeSelected = true;
+    stepLocation("Dům");
+  }}, ["Dům"]);
+  
+  const poz = U.el("button", { class: "cg-btn", type: "button", onclick: () => {
+    S.typeSelected = true;
+    stepLocation("Pozemek");
+  }}, ["Pozemek"]);
+  
+  const box = U.el("div", { class: "cg-step" }, [
+    U.el("label", {}, ["Vyberte typ nemovitosti"]),
+    U.el("div", { class: "cg-cta" }, [byt, dum, poz])
+  ]);
+  addAI("Nacenění – krok 1/3", box);
+}
 
   function stepLocation(typ) {
     const isPozemek = (typ === "Pozemek");
