@@ -9,13 +9,13 @@
 })();
 
 // cogniterra-widget-safe.v8.js — NEW DESIGN with updated brand colors
-// Build v8.1 — Zelená a zlatá paleta, světlý režim
-// Date: 2025-01-20 | Author: info-cogniterra
+// Build v8.2 — Opravy: avatar lišky, quick actions, autocomplete dark mode
+// Date: 2025-01-21 | Author: info-cogniterra
 
 (function () {
   "use strict";
 
-  console.log('[Widget] Initialization started... (v8.1 - Brand Colors)');
+  console.log('[Widget] Initialization started... (v8.2 - Fixes)');
 
   const host = document.querySelector("[data-cogniterra-widget]");
   if (!host) {
@@ -48,7 +48,8 @@
     tempPricing: null,
     chat: { messages: [] },
     intent: {},
-    processing: false
+    processing: false,
+    quickActionsUsed: { pricing: false, help: false } // FIX 2: Prevence opakovaného spouštění
   };
 
   console.log('[Widget] Session:', S.session);
@@ -265,7 +266,8 @@
           flow: S.flow,
           tempPricing: S.tempPricing,
           messages: S.chat.messages.slice(-10),
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          quickActionsUsed: S.quickActionsUsed
         };
         localStorage.setItem('cgtr_session_' + S.session, JSON.stringify(sessionData));
         console.log('[Widget] Session saved');
@@ -283,6 +285,7 @@
             S.flow = data.flow;
             S.tempPricing = data.tempPricing;
             S.chat.messages = data.messages || [];
+            S.quickActionsUsed = data.quickActionsUsed || { pricing: false, help: false };
             console.log('[Widget] Session restored');
             return true;
           }
@@ -488,7 +491,7 @@
     display: flex;
     gap: 10px;
     margin: 8px 0;
-    align-items: flex-start;
+    align-items: flex-end; /* FIX 1: Změna z flex-start na flex-end pro umístění avatara dolů */
     animation: slideIn 0.3s ease;
   }
   
@@ -520,6 +523,7 @@
     border: none;
     box-shadow: none;
     background: transparent;
+    align-self: flex-end; /* FIX 1: Zajišťuje, že avatar bude vždy dole */
   }
   
   .msg-content {
@@ -678,6 +682,12 @@
   
   .cg-card:active {
     transform: translateY(0);
+  }
+  
+  .cg-card:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
   }
   
   .cg-card h3 {
@@ -916,13 +926,14 @@
   }
   
   /* === Mapy.cz Autocomplete === */
+  /* FIX 3: Přidán dark mode support pro autocomplete */
   .mapy-suggest-container {
     position: absolute;
-    background: white;
-    border: 1px solid var(--gray-50);
+    background: var(--surface);
+    border: 1px solid var(--border-color);
     border-top: none;
     border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-    box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+    box-shadow: var(--shadow-card);
     max-height: 240px;
     overflow-y: auto;
     z-index: 10000;
@@ -931,17 +942,29 @@
     pointer-events: auto;
   }
   
+  :host([data-theme="dark"]) .mapy-suggest-container {
+    background: #1a1a1a;
+    border-color: #355e39;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  }
+  
   .mapy-suggest-item {
     padding: 12px 16px;
     cursor: pointer;
-    border-bottom: 1px solid var(--gray-50);
+    border-bottom: 1px solid var(--border-color);
     font-size: 14px;
     color: var(--text);
-    background: white;
+    background: var(--surface);
     transition: background 0.15s ease;
     user-select: none;
     -webkit-user-select: none;
     pointer-events: auto;
+  }
+  
+  :host([data-theme="dark"]) .mapy-suggest-item {
+    background: #1a1a1a;
+    color: #f0f0f0;
+    border-bottom-color: #355e39;
   }
   
   .mapy-suggest-item:last-child {
@@ -952,8 +975,16 @@
     background: var(--gray-50) !important;
   }
   
+  :host([data-theme="dark"]) .mapy-suggest-item:hover {
+    background: #2a2a2a !important;
+  }
+  
   .mapy-suggest-item:active {
     background: #E2E8F0 !important;
+  }
+  
+  :host([data-theme="dark"]) .mapy-suggest-item:active {
+    background: #355e39 !important;
   }
   
   /* === Mobile Responsive === */
@@ -1108,30 +1139,17 @@
     } catch (e) {}
   }
 
+  // FIX 1: Odstranění fialového avatara - uživatelské zprávy bez avatara
   function addME(t) {
     try { 
       S.chat.messages.push({ role:"user", content: String(t) }); 
     } catch(_){}
     
     const msgWrapper = U.el("div", { class: "chat-msg me" });
-    
-    const userInitial = U.el("div", { 
-      class: "msg-avatar",
-      style: {
-        background: "linear-gradient(135deg, #667EEA, #764BA2)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "#fff",
-        fontWeight: "700",
-        fontSize: "16px"
-      }
-    }, ["👤"]);
-    
     const content = U.el("div", { class: "msg-content" }, [t]);
     
     msgWrapper.appendChild(content);
-    msgWrapper.appendChild(userInitial);
+    // FIX 1: Žádný avatar pro uživatelské zprávy
     chatMessages.appendChild(msgWrapper);
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
@@ -1161,10 +1179,8 @@
     return msgWrapper;
   }
 
-  // [Zbytek kódu zůstává stejný jako v původním souboru - attachSuggest, estimátor, formuláře atd.]
-  // Pro úsporu místa zde pokračuji pouze s hlavními změnami...
-
   // Mapy.cz Geocoding API autocomplete
+  // FIX 3: Opraveno pro pozemky - správné použití type parametru
   function attachSuggest(inputEl, isPozemek) {
     if (!inputEl) {
       console.warn('[Widget] attachSuggest: no input element');
@@ -1215,6 +1231,7 @@
       }
       
       try {
+        // FIX 3: Pro pozemky používáme regional.municipality (obce), pro ostatní regional.address (adresy)
         const type = isPozemek ? 'regional.municipality' : 'regional.address';
         const url = `https://api.mapy.cz/v1/geocode?lang=cs&limit=10&type=${type}&query=${encodeURIComponent(query)}&apikey=${key}`;
         
@@ -1243,6 +1260,7 @@
           let displayText = '';
           
           if (isPozemek) {
+            // FIX 3: Pro pozemky zobrazujeme pouze název obce
             displayText = name;
           } else {
             const locationStr = String(item.location || '').trim();
@@ -1378,11 +1396,6 @@
     estimatePozemek(m,p){ return {low: 0, mid: 0, high: 0, per_m2: 0, note:"MVP"}; }
   };
 
-  // [Zbytek funkcionality - needsUP, handleUPQuery, renderStart, startPricing, 
-  // stepChooseType, stepLocation, stepParamsByt, stepParamsDum, stepParamsPozemek,
-  // renderLeadBoxPricing, saveLeadPricing, renderEstimate, stepContactVerify,
-  // saveLeadContact, needPricing, ask - zůstávají stejné]
-
   function needsUP(q) {
     const s = U.norm(q);
     console.log('[Widget] Checking UP need for:', q);
@@ -1507,11 +1520,21 @@
 
     const cards = U.el("div", { class: "cg-start" }, [
       U.el("div", { class: "cg-cards" }, [
-        U.el("button", { class: "cg-card", type: "button", onclick: () => startPricing() }, [
+        U.el("button", { 
+          class: "cg-card", 
+          type: "button", 
+          onclick: () => startPricing(),
+          disabled: S.quickActionsUsed.pricing // FIX 2: Disable pokud už bylo použito
+        }, [
           U.el("h3", {}, ["Nacenit nemovitost"]),
           U.el("p", {}, ["Rychlý odhad a krátký dotazník (1–2 min)."])
         ]),
-        U.el("button", { class: "cg-card", type: "button", onclick: () => startHelp() }, [
+        U.el("button", { 
+          class: "cg-card", 
+          type: "button", 
+          onclick: () => startHelp(),
+          disabled: S.quickActionsUsed.help // FIX 2: Disable pokud už bylo použito
+        }, [
           U.el("h3", {}, ["Potřebuji pomoct"]),
           U.el("p", {}, ["Zeptejte se na postup, dokumenty nebo pravidla."])
         ])
@@ -1521,14 +1544,26 @@
     addPanel(cards);
   }
 
+  // FIX 2: Funkce startHelp s prevencí opakovaného spuštění
   function startHelp() { 
+    if (S.quickActionsUsed.help) {
+      addAI("Chat je již otevřený. Ptejte se na cokoliv.");
+      return;
+    }
+    S.quickActionsUsed.help = true;
+    U.saveSession();
     chatInputArea.style.display='flex'; 
     try{chatTextarea.focus();}catch(e){}
     addAI("Rozumím. Ptejte se na cokoliv k nemovitostem, ISNS apod.");
   }
 
+  // FIX 2: Funkce startPricing s prevencí opakovaného spuštění
   function startPricing() {
-    if (S.formOpen) { addAI("Dotazník už je otevřený."); return; }
+    if (S.formOpen || S.quickActionsUsed.pricing) { 
+      addAI("Dotazník už je otevřený."); 
+      return; 
+    }
+    S.quickActionsUsed.pricing = true;
     S.formOpen = true;
     S.flow = "pricing";
     U.saveSession();
@@ -2577,7 +2612,6 @@
     } 
   });
 
-  console.log('[Widget] Initialization complete (v8.1 - Brand Colors)');
+  console.log('[Widget] Initialization complete (v8.2 - Fixes Applied)');
 
 })();
-      
