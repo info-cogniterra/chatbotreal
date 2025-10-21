@@ -810,7 +810,7 @@
   border: 2px solid var(--gray-50);
   background: var(--surface);
   color: var(--text);
-  padding: 12px 10px;
+  padding: 11px 8px;
   border-radius: var(--radius-sm);
   font-weight: var(--font-weight-semibold);
   cursor: pointer;
@@ -823,8 +823,8 @@
   white-space: normal;
   word-wrap: break-word;
   overflow-wrap: break-word;
-  word-break: break-word;
-  hyphens: auto;
+  word-break: normal;
+  hyphens: manual;
   line-height: 1.3;
   display: flex;
   align-items: center;
@@ -1901,7 +1901,7 @@ function addME(t) {
     let selectedParkovani = "Žádné";
 
     const typDomuLabel = U.el("label", {}, ["Typ domu"]);
-    const typDomuOptions = ["Rodinný dům", "Řadový", "Dvojdům", "Vila", "Chata/Chalupa"];
+    const typDomuOptions = ["Rodinný dům", "Řadový", "Dvojdům", "Vila", "Chata/Chal."];
     const typDomuButtons = [];
     const typDomuGrid = U.el("div", { class: "cg-btn-grid" });
     
@@ -1969,7 +1969,7 @@ function addME(t) {
     });
 
     const stavLabel = U.el("label", {}, ["Stav domu"]);
-    const stavOptions = ["Novostavba", "Po rekonstrukci", "Dobrý", "Horší"];
+    const stavOptions = ["Novostavba", "Po rekonstr.", "Dobrý", "Horší"];
     const stavButtons = [];
     const stavGrid = U.el("div", { class: "cg-btn-grid" });
     
