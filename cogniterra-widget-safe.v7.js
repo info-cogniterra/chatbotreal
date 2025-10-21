@@ -810,26 +810,31 @@
     border: 2px solid var(--gray-50);
     background: var(--surface);
     color: var(--text);
-    padding: 12px;
+    /* Use padding for flexible height instead of fixed min-height */
+    padding: 14px 12px;
     border-radius: var(--radius-sm);
     font-weight: var(--font-weight-semibold);
     cursor: pointer;
     transition: all 0.2s;
-    min-height: 48px;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
-    font-size: 15px;
+    /* Responsive font-size with slight reduction for longer text */
+    font-size: clamp(14px, 3.5vw, 15px);
     font-family: inherit;
-    /* Text wrapping and overflow fixes */
+    /* Enhanced text wrapping and overflow handling */
     white-space: normal;
     word-wrap: break-word;
     overflow-wrap: break-word;
+    word-break: break-word;
     hyphens: auto;
-    line-height: 1.3;
+    /* Improved line-height for multi-line text readability */
+    line-height: 1.4;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
+    /* Prevent extreme stretching with max-width */
+    max-width: 100%;
   }
   
   .cg-btn-disp:hover {
@@ -842,6 +847,22 @@
     background: var(--btn-gradient) !important;
     border-color: var(--green) !important;
     color: #fff !important;
+  }
+  
+  /* Grid container for buttons - ensures equal heights per row */
+  .cg-btn-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+    /* Ensure buttons stretch to equal heights within each row */
+    grid-auto-rows: 1fr;
+  }
+  
+  .cg-btn-grid .cg-btn-disp {
+    /* Ensure buttons stretch to fill their grid cell */
+    height: 100%;
+    min-height: 0;
   }
   
   /* === Lead Box === */
@@ -1726,7 +1747,7 @@ function addME(t) {
     let selectedVlast = "osobní";
     
     const dispGrid = U.el("div", { 
-      style: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginBottom: "16px" } 
+      class: "cg-btn-grid"
     });
     
     const dispButtons = [];
@@ -1758,7 +1779,7 @@ function addME(t) {
     const stavOptions = ["Novostavba", "Po rekonstrukci", "Dobrý", "Špatný"];
     
     const stavGrid = U.el("div", {
-      style: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginBottom: "16px" }
+      class: "cg-btn-grid"
     });
     
     stavOptions.forEach((stav) => {
@@ -1793,7 +1814,7 @@ function addME(t) {
     const vlastOptions = ["osobní", "družstevní"];
     
     const vlastGrid = U.el("div", {
-      style: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginBottom: "16px" }
+      class: "cg-btn-grid"
     });
     
     vlastOptions.forEach((vlast) => {
@@ -1886,7 +1907,7 @@ function addME(t) {
     const typDomuLabel = U.el("label", {}, ["Typ domu"]);
     const typDomuOptions = ["Rodinný dům", "Řadový", "Dvojdům", "Vila", "Chata/Chalupa"];
     const typDomuButtons = [];
-    const typDomuGrid = U.el("div", { style: { display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:"8px", marginBottom:"16px" } });
+    const typDomuGrid = U.el("div", { class: "cg-btn-grid" });
     
     typDomuOptions.forEach((opt) => {
       const btn = U.el("button", { 
@@ -1920,7 +1941,7 @@ function addME(t) {
     const typOptions = ["Cihlová", "Dřevostavba", "Smíšená", "Nevím"];
     const typButtons = [];
     const typGrid = U.el("div", {
-      style: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginBottom: "16px" }
+      class: "cg-btn-grid"
     });
     
     typOptions.forEach((typ) => {
@@ -1954,7 +1975,7 @@ function addME(t) {
     const stavLabel = U.el("label", {}, ["Stav domu"]);
     const stavOptions = ["Novostavba", "Po rekonstrukci", "Dobrý", "Horší"];
     const stavButtons = [];
-    const stavGrid = U.el("div", { style: { display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:"8px", marginBottom:"16px" } });
+    const stavGrid = U.el("div", { class: "cg-btn-grid" });
     
     stavOptions.forEach((opt) => {
       const btn = U.el("button", { 
@@ -1987,7 +2008,7 @@ function addME(t) {
     const zatepleniLabel = U.el("label", {}, ["Zateplený?"]);
     const zatepleniOptions = ["ANO", "NE"];
     const zatepleniButtons = [];
-    const zatepleniGrid = U.el("div", { style: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginBottom: "16px" } });
+    const zatepleniGrid = U.el("div", { class: "cg-btn-grid" });
     
     zatepleniOptions.forEach((opt) => {
       const btn = U.el("button", {
@@ -2020,7 +2041,7 @@ function addME(t) {
     const oknaLabel = U.el("label", {}, ["Nová okna?"]);
     const oknaOptions = ["ANO", "NE"];
     const oknaButtons = [];
-    const oknaGrid = U.el("div", { style: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginBottom: "16px" } });
+    const oknaGrid = U.el("div", { class: "cg-btn-grid" });
     
     oknaOptions.forEach((opt) => {
       const btn = U.el("button", {
@@ -2053,7 +2074,7 @@ function addME(t) {
     const parkLabel = U.el("label", {}, ["Parkování"]);
     const parkOptions = ["Žádné", "Venkovní stání", "Garáž 1×", "Garáž 2×"];
     const parkButtons = [];
-    const parkGrid = U.el("div", { style: { display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:"8px", marginBottom:"16px" } });
+    const parkGrid = U.el("div", { class: "cg-btn-grid" });
     
     parkOptions.forEach((opt) => {
       const btn = U.el("button", { 
@@ -2142,7 +2163,7 @@ function addME(t) {
     ];
 
     const katGrid = U.el("div", {
-      style: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginBottom: "16px" }
+      class: "cg-btn-grid"
     });
 
     katOptions.forEach((kat) => {
@@ -2181,7 +2202,7 @@ function addME(t) {
     const spoluvlOptions = ["ANO", "NE"];
 
     const spoluvlGrid = U.el("div", {
-      style: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginBottom: "16px" }
+      class: "cg-btn-grid"
     });
 
     spoluvlOptions.forEach((opt) => {
