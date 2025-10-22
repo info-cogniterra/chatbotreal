@@ -1,0 +1,174 @@
+---
+name: Deploy to Active24
+
+'on':
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare deployment files
+        run: |
+          echo "📋 Checking required files..."
+
+          # Check required files exist
+          REQUIRED_FILES=(
+            "index.html"
+            "embed.js"
+            "estimator.v2.js"
+            "cogniterra-widget-safe.v7.js"
+            "styles.css"
+          )
+
+          REQUIRED_DIRS=(
+            "data"
+            "assets"
+          )
+
+          MISSING=0
+
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "❌ Missing required file: $file"
+              MISSING=1
+            else
+              echo "✅ Found: $file"
+            fi
+          done
+
+          for dir in "${REQUIRED_DIRS[@]}"; do
+            if [ ! -d "$dir" ]; then
+              echo "❌ Missing required directory: $dir"
+              MISSING=1
+            else
+              echo "✅ Found: $dir/"
+            fi
+          done
+
+          if [ $MISSING -eq 1 ]; then
+            echo ""
+            echo "❌ Deployment failed: Missing required files/dirs"
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ All required files present"
+          echo "📦 Ready for deployment"
+
+      - name: Validate HTML syntax
+        run: |
+          echo "🔍 Validating HTML files..."
+
+          # Basic HTML validation - check for basic structure
+          if grep -q "<!DOCTYPE html>" index.html && \
+             grep -q "<html" index.html && \
+             grep -q "</html>" index.html; then
+            echo "✅ HTML structure valid"
+          else
+            echo "⚠️  Warning: HTML may have structural issues"
+          fi
+
+      - name: Validate JavaScript syntax
+        run: |
+          echo "🔍 Checking JavaScript files..."
+
+          # Install Node.js for basic syntax checking
+          if command -v node &> /dev/null; then
+            FILES="embed.js estimator.v2.js"
+            FILES="$FILES cogniterra-widget-safe.v7.js"
+            for jsfile in $FILES; do
+              if node -c "$jsfile" 2>/dev/null; then
+                echo "✅ $jsfile - syntax OK"
+              else
+                echo "⚠️  Warning: $jsfile may have syntax issues"
+              fi
+            done
+          else
+            echo "ℹ️  Node.js not available, skipping JS validation"
+          fi
+
+      - name: Display deployment summary
+        run: |
+          echo "📊 Deployment Summary"
+          echo "===================="
+          echo ""
+          echo "Files to deploy:"
+          SIZE_HTML=$(stat -c%s index.html 2>/dev/null || \
+            stat -f%z index.html)
+          SIZE_EMBED=$(stat -c%s embed.js 2>/dev/null || \
+            stat -f%z embed.js)
+          SIZE_EST=$(stat -c%s estimator.v2.js 2>/dev/null || \
+            stat -f%z estimator.v2.js)
+          SIZE_WID=$(stat -c%s cogniterra-widget-safe.v7.js \
+            2>/dev/null || stat -f%z cogniterra-widget-safe.v7.js)
+          SIZE_CSS=$(stat -c%s styles.css 2>/dev/null || \
+            stat -f%z styles.css)
+          echo "- index.html ($SIZE_HTML bytes)"
+          echo "- embed.js ($SIZE_EMBED bytes)"
+          echo "- estimator.v2.js ($SIZE_EST bytes)"
+          echo "- cogniterra-widget-safe.v7.js ($SIZE_WID bytes)"
+          echo "- styles.css ($SIZE_CSS bytes)"
+          echo "- data/ directory"
+          echo "- assets/ directory"
+          echo ""
+          echo "Target: Active24 FTP Server"
+          echo "Directory: /public_html/chatbot/"
+
+      - name: Deploy to Active24 via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.ACTIVE24_FTP_HOST }}
+          username: ${{ secrets.ACTIVE24_FTP_USERNAME }}
+          password: ${{ secrets.ACTIVE24_FTP_PASSWORD }}
+          server-dir: /public_html/chatbot/
+          local-dir: ./
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/.github/**
+            **/README.md
+            **/.gitignore
+            **/package*.json
+            **/*.md
+
+      - name: Deployment success notification
+        if: success()
+        run: |
+          echo ""
+          echo "🎉 =================================="
+          echo "🎉  DEPLOYMENT SUCCESSFUL!"
+          echo "🎉 =================================="
+          echo ""
+          echo "✅ All files deployed to Active24"
+          echo "🌐 Your chatbot widget is now live"
+          echo ""
+          echo "Deployed at: $(date '+%Y-%m-%d %H:%M:%S UTC')"
+
+      - name: Deployment failure notification
+        if: failure()
+        run: |
+          echo ""
+          echo "❌ =================================="
+          echo "❌  DEPLOYMENT FAILED!"
+          echo "❌ =================================="
+          echo ""
+          echo "Please check the logs above for details."
+          echo "Common issues:"
+          echo "  - Invalid FTP credentials"
+          echo "  - Incorrect server path"
+          echo "  - Network connectivity issues"
+          echo "  - Missing required files"
+          echo ""
+          echo "Check GitHub Secrets configuration:"
+          echo "  - ACTIVE24_FTP_HOST"
+          echo "  - ACTIVE24_FTP_USERNAME"
+          echo "  - ACTIVE24_FTP_PASSWORD"
