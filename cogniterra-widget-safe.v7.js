@@ -1,11 +1,12 @@
 // cogniterra-widget-safe.v8.js — NEW DESIGN with updated brand colors
 // Build v8.3 — Oprava: plynulý scroll formulářů s offsetem
+// --- VERZE S PŘIDANÝMI ANIMACEMI A MIKRO-INTERAKCEMI ---
 // Date: 2025-01-21 | Author: info-cogniterra
 
 (function () {
   "use strict";
 
-  console.log('[Widget] Initialization started... (v8.3 - Smooth Scroll)');
+  console.log('[Widget] Initialization started... (v8.3 - Smooth Scroll + Animations)');
 
   const host = document.querySelector("[data-cogniterra-widget]");
   if (!host) {
@@ -637,19 +638,21 @@ window.addEventListener('focus', updateDarkMode, { passive: true });
     gap: 10px;
     margin: 8px 0;
     align-items: flex-end; /* FIX 1: Změna z flex-start na flex-end pro umístění avatara dolů */
-    animation: slideIn 0.3s ease;
+    animation: slideInMessage 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* <-- ZMĚNA: Feature 4 */
   }
   
-  @keyframes slideIn {
+  /* <-- NAHRAZENO: Feature 4 */
+  @keyframes slideInMessage {
     from {
       opacity: 0;
-      transform: translateY(10px);
+      transform: translateY(20px) scale(0.95);
     }
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateY(0) scale(1);
     }
   }
+  /* <-- KONEC NAHRAZENÍ */
   
   .chat-msg.ai {
     flex-direction: row;
@@ -1180,6 +1183,164 @@ window.addEventListener('focus', updateDarkMode, { passive: true });
     background: #355e39 !important;
   }
   
+  /* === NOVÉ STYLY (Features 1, 2, 6, 7, 8, 9, 12) === */
+
+  /* Feature 1: Animované načítací tečky */
+  .loading-dots {
+    display: inline-flex;
+    gap: 4px;
+  }
+  .loading-dots .dot {
+    animation: dotPulse 1.4s infinite ease-in-out;
+    opacity: 0.3;
+  }
+  .loading-dots .dot:nth-child(1) {
+    animation-delay: 0s;
+  }
+  .loading-dots .dot:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  .loading-dots .dot:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+  @keyframes dotPulse {
+    0%, 60%, 100% {
+      opacity: 0.3;
+      transform: scale(1);
+    }
+    30% {
+      opacity: 1;
+      transform: scale(1.2);
+    }
+  }
+
+  /* Feature 2 & 5: Typing indicator (jako Messenger) */
+  .typing-indicator {
+    display: flex;
+    gap: 4px;
+    padding: 12px 16px;
+  }
+  .typing-indicator span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green-soft);
+    animation: typingBounce 1.4s infinite ease-in-out;
+  }
+  .typing-indicator span:nth-child(1) { animation-delay: 0s; }
+  .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typingBounce {
+    0%, 60%, 100% {
+      transform: translateY(0);
+    }
+    30% {
+      transform: translateY(-10px);
+    }
+  }
+
+  /* Feature 6: Mikro-interakce na tlačítka */
+  .cg-btn, .cg-card, .cg-btn-disp {
+    position: relative;
+    overflow: hidden;
+  }
+  .cg-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+  }
+  .cg-btn:active::before {
+    width: 300px;
+    height: 300px;
+  }
+
+  /* Feature 7: Zvýraznění nové zprávy */
+  .chat-msg.highlight {
+    animation: highlightPulse 1s ease;
+  }
+  @keyframes highlightPulse {
+    0%, 100% {
+      box-shadow: none;
+    }
+    50% {
+      box-shadow: 0 0 20px rgba(41, 95, 45, 0.3);
+    }
+  }
+
+  /* Feature 8: Skeleton loading pro formuláře */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--gray-100) 25%,
+      var(--gray-200) 50%,
+      var(--gray-100) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeletonLoading 1.5s infinite;
+    border-radius: var(--radius-sm);
+    height: 48px;
+  }
+  @keyframes skeletonLoading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* Feature 9: Progress bar pro víceStepové formuláře */
+  .progress-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--gray-200);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--btn-gradient);
+    transition: width 0.4s ease;
+  }
+
+  /* Feature 12: Toast notifikace místo alert */
+  .toast {
+    position: absolute; /* Změna na absolute vůči shadow root */
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--gray-900);
+    color: var(--surface);
+    padding: 12px 24px;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-card);
+    z-index: 10000;
+  }
+  @keyframes toastSlideIn {
+    from {
+      opacity: 0;
+      transform: translate(-50%, 20px);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+  }
+  @keyframes toastSlideOut {
+    from {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+    to {
+      opacity: 0;
+      transform: translate(-50%, -20px);
+    }
+  }
+  
   /* === Mobile Responsive === */
 @media (max-width: 480px) {
   /* Host element - fullscreen */
@@ -1260,6 +1421,13 @@ window.addEventListener('focus', updateDarkMode, { passive: true });
     height: 40px;
     font-size: 22px;
   }
+  
+  /* Toast na mobilu */
+  .toast {
+    bottom: 80px;
+    width: 90%;
+    text-align: center;
+  }
 }
   `;
   shadow.appendChild(style);
@@ -1335,6 +1503,158 @@ window.addEventListener('focus', updateDarkMode, { passive: true });
   console.log('[Widget] UI created successfully');
 
  // === MESSAGE FUNCTIONS ===
+
+// === NOVÉ FUNKCE (Features 3, 5, 9, 10, 11, 12) ===
+
+/**
+ * Feature 10: Haptic feedback na mobilu
+ */
+function vibrate(pattern = [10]) {
+  if (navigator.vibrate) {
+    try {
+      navigator.vibrate(pattern);
+    } catch(e) {
+      // Může selhat, pokud je zakázáno
+    }
+  }
+}
+
+/**
+ * Feature 11: Smooth scroll s easing
+ */
+function smoothScrollToBottom() {
+  const duration = 300;
+  const start = chatMessages.scrollTop;
+  const end = chatMessages.scrollHeight;
+  const change = end - start;
+  if (change <= 0) return; // Už je dole
+  
+  const startTime = performance.now();
+  
+  function easeInOutQuad(t) {
+    return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+  }
+  
+  function animateScroll(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const easedProgress = easeInOutQuad(progress);
+    
+    chatMessages.scrollTop = start + change * easedProgress;
+    
+    if (progress < 1) {
+      requestAnimationFrame(animateScroll);
+    }
+  }
+  
+  requestAnimationFrame(animateScroll);
+}
+
+/**
+ * Feature 12: Toast notifikace místo alert
+ */
+function showToast(message, type = 'info') {
+  vibrate([10, 50, 10]); // Haptická odezva na chybu/info
+  const toast = U.el("div", { 
+    class: `toast toast-${type}`,
+    style: { animation: 'toastSlideIn 0.3s ease' }
+  }, [message]);
+  
+  // Připojení do shadow root kontejneru
+  chatContainer.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.animation = 'toastSlideOut 0.3s ease forwards';
+    setTimeout(() => {
+      if (toast.parentElement) {
+        toast.parentElement.removeChild(toast);
+      }
+    }, 300);
+  }, 3000);
+}
+
+/**
+ * Feature 9: Progress bar pro víceStepové formuláře
+ */
+function addProgressBar(currentStep, totalSteps) {
+  const progress = U.el("div", { class: "progress-bar" }, [
+    U.el("div", { 
+      class: "progress-fill",
+      style: { width: `${(currentStep / totalSteps) * 100}%` }
+    })
+  ]);
+  return progress;
+}
+
+/**
+ * Feature 3: Typing efekt pro AI odpovědi
+ */
+function addAIWithTyping(text, extra, speed = 30) {
+  const msgWrapper = U.el("div", { class: "chat-msg ai" });
+  const avatar = U.el("img", { class: "msg-avatar", src: FOX_AVATAR, alt: "AI" });
+  const content = U.el("div", { class: "msg-content" }, [""]);
+  
+  msgWrapper.appendChild(avatar);
+  msgWrapper.appendChild(content);
+  chatMessages.appendChild(msgWrapper);
+  
+  let index = 0;
+  const typeInterval = setInterval(() => {
+    if (index < text.length) {
+      content.textContent += text.charAt(index);
+      index++;
+      chatMessages.scrollTop = chatMessages.scrollHeight; // Rychlý scroll během psaní
+    } else {
+      clearInterval(typeInterval);
+      if (extra) content.appendChild(extra);
+      smoothScrollToBottom(); // Finální plynulý scroll
+    }
+  }, speed);
+
+  try { 
+    S.chat.messages.push({ role: "assistant", content: String(text) }); 
+  } catch (e) {}
+  
+  // Logika pro intenty (zůstává stejná jako v addAI)
+  try {
+    const tt = String(text).toLowerCase();
+    const offerContact = /(mohu|můžu|mám|rád|ráda)\s+(také\s+)?(vám\s+)?(ote[vw]ř[ií]t|zobrazit|spustit|poslat|zaslat)\s+(kontaktn[íi]\s+formul[aá][řr]|formul[aá][řr])/i.test(tt) ||
+                         /chcete\s+(ote[vw]ř[ií]t|zobrazit|spustit)\s+(kontaktn[íi]\s+)?formul[aá][řr]/i.test(tt) ||
+                         /zadat\s+sv[eé]\s+(jm[eé]no|kontakt|[uú]daje)/i.test(tt) ||
+                         /(?:abyste|aby|abych)\s+(?:mohl[ai]?)?\s*zadat\s+sv[eé]/i.test(tt);
+    
+    const offerUP = /(chcete|potrebujete|mam\s+poslat|poslat\s+vam|najit\s+vam).*?(uzemni\s*plan|up)/i.test(tt);
+    
+    if (offerContact) { 
+      console.log('[Widget] AI offered contact form');
+      S.intent.contactOffer = true; 
+    }
+    if (offerUP) {
+      console.log('[Widget] AI offered UP');
+      S.intent.upOffer = true;
+    }
+  } catch (e) {}
+}
+
+/**
+ * Feature 5: Indikátor "AI píše..."
+ */
+function showTypingIndicator() {
+  const indicator = U.el("div", { class: "chat-msg ai typing-indicator-msg" }, [
+    U.el("img", { class: "msg-avatar", src: FOX_AVATAR, alt: "AI" }),
+    U.el("div", { class: "msg-content typing-indicator" }, [
+      U.el("span"),
+      U.el("span"),
+      U.el("span")
+    ])
+  ]);
+  chatMessages.appendChild(indicator);
+  smoothScrollToBottom();
+  return indicator;
+}
+
+// === PŮVODNÍ FUNKCE ===
+
 function addAI(t, extra, smoothScroll = false) {
   const msgWrapper = U.el("div", { class: "chat-msg ai" });
   
@@ -1364,7 +1684,7 @@ function addAI(t, extra, smoothScroll = false) {
       });
     }, 100);
   } else {
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    smoothScrollToBottom(); // <-- ZMĚNA: Použití nové funkce
   }
   // ← KONEC ZMĚNY
   
@@ -1404,14 +1724,14 @@ function addME(t) {
   msgWrapper.appendChild(content);
   // FIX 1: Žádný avatar pro uživatelské zprávy
   chatMessages.appendChild(msgWrapper);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
+  smoothScrollToBottom(); // <-- ZMĚNA: Použití nové funkce
 }
   
   function addPanel(el) {
     const w = U.el("div", { class: "chat-panel" }, []);
     w.appendChild(el);
     chatMessages.appendChild(w);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    smoothScrollToBottom(); // <-- ZMĚNA: Použití nové funkce
   }
   
   function addLoading(text) {
@@ -1428,7 +1748,7 @@ function addME(t) {
     msgWrapper.appendChild(avatar);
     msgWrapper.appendChild(content);
     chatMessages.appendChild(msgWrapper);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    smoothScrollToBottom(); // <-- ZMĚNA: Použití nové funkce
     return msgWrapper;
   }
 
@@ -1722,7 +2042,7 @@ function addME(t) {
         
         const ctaBox = U.el("div", { class: "cg-step" }, [
           U.el("div", { class: "cg-cta" }, [
-            U.el("button", { class: "cg-btn", type: "button", onclick: () => stepContactVerify() }, ["Kontaktovat odborníka"])
+            U.el("button", { class: "cg-btn", type: "button", onclick: () => { vibrate([5]); stepContactVerify(); } }, ["Kontaktovat odborníka"])
           ])
         ]);
         addPanel(ctaBox);
@@ -1767,7 +2087,7 @@ function addME(t) {
       const ctaBox = U.el("div", { class: "cg-step" }, [
         U.el("p", {}, ["Potřebujete další pomoc s územním plánováním?"]),
         U.el("div", { class: "cg-cta" }, [
-          U.el("button", { class: "cg-btn", type: "button", onclick: () => stepContactVerify() }, ["Kontaktovat odborníka"])
+          U.el("button", { class: "cg-btn", type: "button", onclick: () => { vibrate([5]); stepContactVerify(); } }, ["Kontaktovat odborníka"])
         ])
       ]);
       addPanel(ctaBox);
@@ -1786,7 +2106,7 @@ function addME(t) {
         U.el("button", { 
           class: "cg-card", 
           type: "button", 
-          onclick: () => startPricing(),
+          onclick: () => { vibrate([5]); startPricing(); },
         }, [
           U.el("h3", {}, ["Nacenit nemovitost"]),
           U.el("p", {}, ["Rychlý odhad během jedné minuty."])
@@ -1794,7 +2114,7 @@ function addME(t) {
         U.el("button", { 
           class: "cg-card", 
           type: "button", 
-          onclick: () => startHelp(),
+          onclick: () => { vibrate([5]); startHelp(); },
         }, [
           U.el("h3", {}, ["Potřebuji pomoc"]),
           U.el("p", {}, ["Pomohu Vám zorientovat se v nemovitostech, územních plánech i našich službách."])
@@ -1844,6 +2164,7 @@ function addME(t) {
   let allButtons = [];
   
   const byt = U.el("button", { class: "cg-btn", type: "button", onclick: () => {
+    vibrate([5]); // <-- ZMĚNA: Haptics
     if (S.typeSelected) return; // Dvojitá ochrana
     S.typeSelected = true;
     U.saveSession(); // Ulož stav okamžitě
@@ -1859,6 +2180,7 @@ function addME(t) {
   }}, ["Byt"]);
   
   const dum = U.el("button", { class: "cg-btn", type: "button", onclick: () => {
+    vibrate([5]); // <-- ZMĚNA: Haptics
     if (S.typeSelected) return; // Dvojitá ochrana
     S.typeSelected = true;
     U.saveSession(); // Ulož stav okamžitě
@@ -1874,9 +2196,10 @@ function addME(t) {
   }}, ["Dům"]);
   
   const poz = U.el("button", { class: "cg-btn", type: "button", onclick: () => {
+    vibrate([5]); // <-- ZMĚNA: Haptics
     if (S.typeSelected) return; // Dvojitá ochrana
     S.typeSelected = true;
-    U.saveSession(); // Ulож stav okamžitě
+    U.saveSession(); // Ulоž stav okamžitě
     
     // Deaktivuj všechna tlačítka
     allButtons.forEach(btn => {
@@ -1890,12 +2213,17 @@ function addME(t) {
   
   // Ulož reference pro pozdější deaktivaci
   allButtons = [byt, dum, poz];
+
+  // <-- ZMĚNA: Feature 9 (Progress Bar)
+  const progress = addProgressBar(1, 3);
   
   const box = U.el("div", { class: "cg-step" }, [
     U.el("label", {}, ["Vyberte typ nemovitosti"]),
     U.el("div", { class: "cg-cta" }, [byt, dum, poz])
   ]);
-  addAI("Nacenění – krok 1/3", box);
+  
+  const container = U.el("div", {}, [progress, box]);
+  addAI("Nacenění – krok 1/3", container);
 }
 
   function stepLocation(typ) {
@@ -1918,10 +2246,11 @@ function addME(t) {
     ]);
     
     const nxt = U.el("button", { class: "cg-btn", type: "button", onclick: () => {
+      vibrate([5]); // <-- ZMĚNA: Haptics
       const rawValue = (locationInput.value || "").trim();
       
       if (!rawValue) { 
-        addAI("Zadejte prosím lokalitu."); 
+        showToast("Zadejte prosím lokalitu."); // <-- ZMĚNA: Feature 12 (Toast)
         locationInput.focus(); 
         return; 
       }
@@ -1933,6 +2262,9 @@ function addME(t) {
         if (typ === "Dům") return stepParamsDum(rawValue);
       }
     }}, ["Pokračovat"]);
+
+    // <-- ZMĚNA: Feature 9 (Progress Bar)
+    const progress = addProgressBar(2, 3);
     
     const box = U.el("div", { class: "cg-step" }, [
       U.el("label", {}, [`Lokalita – ${typ}`]),
@@ -1940,8 +2272,9 @@ function addME(t) {
       hint,
       U.el("div", { class: "cg-cta" }, [nxt])
     ]);
-
-    addAI("Nacenění – krok 2/3", box);
+    
+    const container = U.el("div", {}, [progress, box]);
+    addAI("Nacenění – krok 2/3", container);
     
     setTimeout(() => {
       attachSuggest(locationInput, isPozemek);
@@ -1970,6 +2303,7 @@ function addME(t) {
         type: "button",
         onclick: (e) => {
           e.preventDefault();
+          vibrate([5]); // <-- ZMĚNA: Haptics
           dispButtons.forEach(b => {
             b.style.background = "var(--surface)";
             b.style.borderColor = "var(--gray-50)";
@@ -2000,6 +2334,7 @@ function addME(t) {
         type: "button",
         onclick: (e) => {
           e.preventDefault();
+          vibrate([5]); // <-- ZMĚNA: Haptics
           stavButtons.forEach(b => {
             b.style.background = "var(--surface)";
             b.style.borderColor = "var(--gray-50)";
@@ -2036,6 +2371,7 @@ function addME(t) {
         style: { textTransform: "capitalize" },
         onclick: (e) => {
           e.preventDefault();
+          vibrate([5]); // <-- ZMĚNA: Haptics
           vlastButtons.forEach(b => {
             b.style.background = "var(--surface)";
             b.style.borderColor = "var(--gray-50)";
@@ -2065,14 +2401,15 @@ function addME(t) {
       class: "cg-btn", 
       type: "button", 
       onclick: () => {
+        vibrate([5]); // <-- ZMĚNA: Haptics
         if (!selectedDisposition) {
-          addAI("⚠️ Prosím vyberte dispozici bytu.");
+          showToast("Prosím vyberte dispozici bytu."); // <-- ZMĚNA: Feature 12 (Toast)
           return;
         }
         
         const vymera = parseFloat(area.value || 0);
         if (!vymera || vymera <= 0) {
-          addAI("⚠️ Prosím zadejte platnou výměru v m².");
+          showToast("Prosím zadejte platnou výměru v m²."); // <-- ZMĚNA: Feature 12 (Toast)
           area.focus();
           return;
         }
@@ -2089,6 +2426,9 @@ function addME(t) {
         renderLeadBoxPricing(params);
       }
     }, ["Pokračovat k odhadu"]);
+
+    // <-- ZMĚNA: Feature 9 (Progress Bar)
+    const progress = addProgressBar(3, 3);
     
     const box = U.el("div", { class: "cg-step" }, [
       U.el("label", {}, ["Parametry bytu"]),
@@ -2103,8 +2443,9 @@ function addME(t) {
       area,
       U.el("div", { class: "cg-cta" }, [go])
     ]);
-    
-    addAI("Nacenění – krok 3/3", box, true);
+
+    const container = U.el("div", {}, [progress, box]);
+    addAI("Nacenění – krok 3/3", container, true);
 
   }
 
@@ -2127,6 +2468,7 @@ function addME(t) {
         type:"button", 
         onclick:(e)=>{ 
           e.preventDefault(); 
+          vibrate([5]); // <-- ZMĚNA: Haptics
           typDomuButtons.forEach(b=>{
             b.style.background="var(--surface)"; 
             b.style.borderColor="var(--gray-50)"; 
@@ -2162,6 +2504,7 @@ function addME(t) {
         type: "button",
         onclick: (e) => {
           e.preventDefault();
+          vibrate([5]); // <-- ZMĚNA: Haptics
           typButtons.forEach(b => {
             b.style.background = "var(--surface)";
             b.style.borderColor = "var(--gray-50)";
@@ -2195,6 +2538,7 @@ function addME(t) {
         type:"button", 
         onclick:(e)=>{ 
           e.preventDefault(); 
+          vibrate([5]); // <-- ZMĚNA: Haptics
           stavButtons.forEach(b=>{
             b.style.background="var(--surface)"; 
             b.style.borderColor="var(--gray-50)"; 
@@ -2228,6 +2572,7 @@ function addME(t) {
         type: "button",
         onclick: (e) => {
           e.preventDefault();
+          vibrate([5]); // <-- ZMĚNA: Haptics
           zatepleniButtons.forEach(b => {
             b.style.background = "var(--surface)";
             b.style.borderColor = "var(--gray-50)";
@@ -2261,6 +2606,7 @@ function addME(t) {
         type: "button",
         onclick: (e) => {
           e.preventDefault();
+          vibrate([5]); // <-- ZMĚNA: Haptics
           oknaButtons.forEach(b => {
             b.style.background = "var(--surface)";
             b.style.borderColor = "var(--gray-50)";
@@ -2294,6 +2640,7 @@ function addME(t) {
         type:"button", 
         onclick:(e)=>{ 
           e.preventDefault(); 
+          vibrate([5]); // <-- ZMĚNA: Haptics
           parkButtons.forEach(b=>{
             b.style.background="var(--surface)"; 
             b.style.borderColor="var(--gray-50)"; 
@@ -2323,9 +2670,10 @@ function addME(t) {
       class: "cg-btn", 
       type: "button", 
       onclick: () => {
+        vibrate([5]); // <-- ZMĚNA: Haptics
         const vymera = parseFloat(area.value || 0);
         if (!vymera || vymera <= 0) {
-          addAI("⚠️ Prosím zadejte platnou výměru v m².");
+          showToast("Prosím zadejte platnou výměru v m²."); // <-- ZMĚNA: Feature 12 (Toast)
           area.focus();
           return;
         }
@@ -2346,6 +2694,9 @@ function addME(t) {
       }
     }, ["Pokračovat k odhadu"]);
 
+    // <-- ZMĚNA: Feature 9 (Progress Bar)
+    const progress = addProgressBar(3, 3);
+
     const box = U.el("div", { class: "cg-step" }, [
       U.el("label", {}, ["Parametry domu"]),
       U.el("div", { class: "hint" }, ["Adresa: " + adresa]),
@@ -2359,7 +2710,8 @@ function addME(t) {
       U.el("div", { class: "cg-cta" }, [go]),
     ]);
 
-    addAI("Nacenění – krok 3/3", box, true);
+    const container = U.el("div", {}, [progress, box]);
+    addAI("Nacenění – krok 3/3", container, true);
     
   }
 
@@ -2384,6 +2736,7 @@ function addME(t) {
         type: "button",
         onclick: (e) => {
           e.preventDefault();
+          vibrate([5]); // <-- ZMĚNA: Haptics
           katButtons.forEach(b => {
             b.style.background = "var(--surface)";
             b.style.borderColor = "var(--gray-50)";
@@ -2423,6 +2776,7 @@ function addME(t) {
         type: "button",
         onclick: (e) => {
           e.preventDefault();
+          vibrate([5]); // <-- ZMĚNA: Haptics
           spoluvlButtons.forEach(b => {
             b.style.background = "var(--surface)";
             b.style.borderColor = "var(--gray-50)";
@@ -2463,9 +2817,10 @@ function addME(t) {
       class: "cg-btn",
       type: "button",
       onclick: () => {
+        vibrate([5]); // <-- ZMĚNA: Haptics
         const vymera = parseFloat(area.value || 0);
         if (!vymera || vymera <= 0) {
-          addAI("⚠️ Prosím zadejte platnou výměru v m².");
+          showToast("Prosím zadejte platnou výměru v m²."); // <-- ZMĚNA: Feature 12 (Toast)
           area.focus();
           return;
         }
@@ -2481,6 +2836,9 @@ function addME(t) {
       }
     }, ["Pokračovat k odhadu"]);
 
+    // <-- ZMĚNA: Feature 9 (Progress Bar)
+    const progress = addProgressBar(3, 3);
+
     const box = U.el("div", { class: "cg-step" }, [
       U.el("label", {}, ["Parametry pozemku"]),
       U.el("div", { class: "hint" }, ["Obec: " + obec]),
@@ -2493,7 +2851,9 @@ function addME(t) {
       podilContainer,
       U.el("div", { class: "cg-cta" }, [go]),
     ]);
-     addAI("Nacenění – krok 3/3", box, true);
+    
+    const container = U.el("div", {}, [progress, box]);
+    addAI("Nacenění – krok 3/3", container, true);
 
   }
 
@@ -2517,7 +2877,7 @@ function addME(t) {
   "."
 ]),
       U.el("div", { class: "cg-cta" }, [
-        U.el("button", { class: "cg-btn", type: "button", onclick: () => saveLeadPricing() }, ["Odeslat a zobrazit odhad"])
+        U.el("button", { class: "cg-btn", type: "button", onclick: () => { vibrate([5]); saveLeadPricing(); } }, ["Odeslat a zobrazit odhad"])
       ])
     ]);
     addAI("Kontaktní ověření", box);
@@ -2535,7 +2895,7 @@ function addME(t) {
     const phone = (phoneEl && phoneEl.value) ? phoneEl.value.trim() : "";
     
     if (!name || !U.emailOk(email) || !U.phoneOk(phone)) {
-      addAI("Zkontrolujte prosím kontaktní údaje.");
+      showToast("Zkontrolujte prosím kontaktní údaje."); // <-- ZMĚNA: Feature 12 (Toast)
       if (btn) { btn.disabled = false; btn.textContent = "Odeslat a zobrazit odhad"; }
       return;
     }
@@ -2571,7 +2931,7 @@ function addME(t) {
         }
       }
     } catch (e) {
-      addAI("Nepodařilo se uložit kontakt. Zkuste to prosím znovu.");
+      showToast("Nepodařilo se uložit kontakt. Zkuste to prosím znovu."); // <-- ZMĚNA: Feature 12 (Toast)
       if (btn) { btn.disabled = false; btn.textContent = "Odeslat a zobrazit odhad"; }
       return;
     }
@@ -2615,7 +2975,7 @@ function addME(t) {
         U.el("label", {}, ["⚠️ Nelze spočítat odhad"]),
         U.el("div", {}, [res.reason || "Chyba při výpočtu."]),
         U.el("div", { class: "cg-cta" }, [
-          U.el("button", { class: "cg-btn", type: "button", onclick: () => stepContactVerify() }, 
+          U.el("button", { class: "cg-btn", type: "button", onclick: () => { vibrate([5]); stepContactVerify(); } }, 
             ["Kontaktovat odborníka"])
         ])
       ]);
@@ -2632,7 +2992,7 @@ function addME(t) {
         ["Pro bližší informace Vás můžeme spojit s naším specialistou."]
       ),
       U.el("div", { class: "cg-cta", style: { marginTop: "10px" } }, [
-        U.el("button", { class: "cg-btn", type: "button", onclick: () => { addAI("Děkujeme, budeme Vás kontaktovat."); } },
+        U.el("button", { class: "cg-btn", type: "button", onclick: () => { vibrate([5]); addAI("Děkujeme, budeme Vás kontaktovat."); } },
           ["Spojit se specialistou"]
         )
       ])
@@ -2657,7 +3017,7 @@ function addME(t) {
   }, ["zpracováním osobních údajů"]),
   "."
 ]),
-      U.el("div", { class: "cg-cta" }, [ U.el("button", { class:"cg-btn", type:"button", onclick: () => saveLeadContact() }, ["Odeslat"]) ])
+      U.el("div", { class: "cg-cta" }, [ U.el("button", { class:"cg-btn", type:"button", onclick: () => { vibrate([5]); saveLeadContact(); } }, ["Odeslat"]) ])
     ]);
     addAI("Kontaktní formulář", box);
   }
@@ -2670,7 +3030,7 @@ function addME(t) {
     const phone = (shadow.querySelector("#c_phone") || {}).value || "";
     
     if (!name.trim() || !U.emailOk(email) || !U.phoneOk(phone)) {
-      addAI("Zkontrolujte prosím kontaktní údaje.");
+      showToast("Zkontrolujte prosím kontaktní údaje."); // <-- ZMĚNA: Feature 12 (Toast)
       if (btn) { btn.disabled = false; btn.textContent = "Odeslat"; }
       return;
     }
@@ -2705,7 +3065,7 @@ function addME(t) {
       }
       addAI("Děkuji, mám vše zapsané. Ozveme se vám co nejdříve.");
     } catch (e) {
-      addAI("Nepodařilo se uložit kontakt. Zkuste to prosím znovu.");
+      showToast("Nepodařilo se uložit kontakt. Zkuste to prosím znovu."); // <-- ZMĚNA: Feature 12 (Toast)
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = "Odeslat"; }
     }
@@ -2819,13 +3179,8 @@ function addME(t) {
     
     (async () => {
       try {
-        const typing = U.el("div", { class: "chat-msg ai" });
-        const avatar = U.el("img", { class: "msg-avatar", src: FOX_AVATAR, alt: "AI" });
-        const content = U.el("div", { class: "msg-content" }, ["· · ·"]);
-        typing.appendChild(avatar);
-        typing.appendChild(content);
-        chatMessages.appendChild(typing); 
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+        // <-- ZMĚNA: Feature 5 (Typing Indicator)
+        const typing = showTypingIndicator();
         
         const form = new URLSearchParams();
         if (S.cfg && S.cfg.secret) form.set("secret", S.cfg.secret);
@@ -2881,7 +3236,10 @@ function addME(t) {
         }
         
         txt = (txt && String(txt).trim()) || "Rozumím. Ptejte se na cokoliv k nemovitostem.";
-        addAI(txt);
+        
+        // <-- ZMĚNA: Feature 3 (Typing Effect)
+        addAIWithTyping(txt);
+
       } catch (e) { 
         addAI("Omlouvám se, došlo k chybě při komunikaci s AI."); 
         console.error("[Widget] AI chat error:", e); 
@@ -2938,6 +3296,7 @@ function addME(t) {
 
   // ==== Input handlers ====
   chatSendBtn.addEventListener("click", () => { 
+    vibrate([5]); // <-- ZMĚNA: Haptics
     const q = chatTextarea.value.trim(); 
     chatTextarea.value = ""; 
     ask(q); 
@@ -2950,6 +3309,6 @@ function addME(t) {
     } 
   });
 
-  console.log('[Widget] Initialization complete (v8.3 - Smooth Scroll)');
+  console.log('[Widget] Initialization complete (v8.3 - Smooth Scroll + Animations)');
 
 })();
