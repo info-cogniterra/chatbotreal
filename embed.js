@@ -1,7 +1,10 @@
 // Cogniterra embed loader (v8.1) - Brand Colors
 (function(){
   // === VIEWPORT META TAG FIX ===
-  (function ensureViewportMeta() {
+  (function ensureViewportMeta(){
+  try{
+    if (window.innerWidth > 768) { return; }
+
     try {
       let viewport = document.querySelector('meta[name="viewport"]');
       
@@ -31,8 +34,10 @@
     } catch(e) {
       console.warn('[CGTR] Viewport meta setup failed:', e);
     }
-  })();
-  // === END VIEWPORT FIX ===
+  
+  }catch(e){ console.warn('[CGTR] Viewport meta setup failed:', e); }
+})();
+// === END VIEWPORT FIX ===
 
   const tag = document.currentScript;
   const CFG = tag.getAttribute('data-config');
@@ -43,14 +48,14 @@
 
   window.CGTR = { configUrl: CFG, widgetUrl: WIDGET, containerId: 'chatbot-container' };
 
-  const FOX_AVATAR = 'https://raw.githubusercontent.com/info-cogniterra/chatbotreal/main/assets/fox-avatar.png';
+  const FOX_AVATAR = '/chatbot/assets/images/fox-avatar.png';
 
   const css = `
   /* === Brand Colors - Green & Gold Launcher === */
   .cg-launcher {
     position: fixed;
     right: 20px;
-    bottom: 20px;
+    bottom: 0px;
     width: 70px;
     height: 70px;
     border-radius: 0;
@@ -155,7 +160,7 @@
     padding: 0;
   }
   
-  @media (max-width: 767.98px) {
+  @media (max-width: 480px) {
   .cg-launcher {
     right: 16px;
     bottom: 16px;
@@ -190,9 +195,9 @@
       right: 0 !important;
       bottom: 0 !important;
       top: 0 !important;
-      width: 100vw !important;
+      width: 100dvw !important;
       height: 100vh !important;
-      height: 100dvh !important;
+      height: 100dvhh !important;
       border-radius: 0 !important;
     }
   }`;
@@ -227,7 +232,7 @@
   
   const bubble = document.createElement('div');
   bubble.className = 'cg-launcher-bubble';
-  bubble.textContent = 'Nacením Vaší nemovitost a vysvětlím vše potřebné.';
+  bubble.textContent = 'Nacením Vaší nemovitost a zodpovím Vaše dotazy.';
   btn.appendChild(bubble);
   
   // Update bubble theme based on page theme
@@ -291,7 +296,23 @@ if (document.body) {
   });
 } else {
   // Body not ready yet
-  document.addEventListener('DOMContentLoaded', () => {
+  
+// === CGTR: DESKTOP SCROLLBAR-GUTTER FIX ===
+(function applyScrollbarGutterFix(){
+  try{
+    if (window.innerWidth > 768) {
+      var s = document.getElementById('cgtr-scrollbar-gutter-fix');
+      if(!s){
+        s = document.createElement('style');
+        s.id = 'cgtr-scrollbar-gutter-fix';
+        s.textContent = 'html{scrollbar-gutter:stable both-edges;}';
+        document.head.appendChild(s);
+      }
+    }
+  }catch(e){ console.warn('[CGTR] scrollbar gutter fix failed', e); }
+})();
+// === END CGTR FIX ===
+document.addEventListener('DOMContentLoaded', () => {
     if (document.body) {
       themeObserver.observe(document.body, { 
         attributes: true, 
@@ -413,26 +434,52 @@ if (window.innerWidth <= 768) {
     var style = document.createElement('style');
     style.id = 'cg-responsive-override';
     style.textContent = `
-html.cg-open, body.cg-open {
-  overflow: hidden !important;
-  touch-action: none !important;
-  overscroll-behavior: contain !important;
-}
-
-@media (min-width: 768px) {
+/* Desktop - NO body lock, fixed chatbot size */
+@media (min-width: 481px) {
+  html.cg-open, body.cg-open {
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: auto !important;
+  }
+  
   .cg-panel {
-    width: clamp(380px, 36vw, 450px) !important;
-    height: clamp(550px, 75vh, 700px) !important;
+    width: 400px !important;
+    max-width: 400px !important;
+    height: 600px !important;
+    max-height: 600px !important;
     right: 20px !important;
-    bottom: 100px !important;
+    bottom: 20px !important;
+    left: auto !important;
+    top: auto !important;
   }
 }
 
-@media (max-width: 767.98px) {
+/* Mobile - full screen with body lock */
+@media (max-width: 480px) {
+  @media (max-width: 480px) {
+html.cg-open, body.cg-open {
+    overflow: hidden !important;
+    touch-action: none !important;
+    overscroll-behavior: contain !important;
+  }
+}
+  
   .cg-launcher.cg-hidden {
     opacity: 0 !important;
     pointer-events: none !important;
     transform: scale(0.8) !important;
+  }
+  
+  .cg-panel {
+    width: 100dvw !important;
+    height: 100dvh !important; /* <-- Opravený středník */
+    max-width: 100% !important; /* <-- Přidáno pro jistotu */
+    max-height: 100dvh !important; /* <-- Opraveno */
+    right: 0 !important;
+    bottom: 0 !important; /* <-- OPRAVENO: z 20px na 0 */
+    left: 0 !important;
+    top: 0 !important;
+    border-radius: 0 !important; /* <-- Přidáno z původních stylů */
   }
 }
 `;
