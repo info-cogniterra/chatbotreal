@@ -208,8 +208,8 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('focus', updateDarkMode, { passive: true });
 
   // Fox avatar URL
-  const FOX_AVATAR = 'https://raw.githubusercontent.com/info-cogniterra/chatbotreal/main/assets/avatar.png';
-  const LOGO_URL = 'https://raw.githubusercontent.com/info-cogniterra/chatbotreal/main/assets/brand-icon.png';
+  const FOX_AVATAR = '/chatbot/assets/images/avatar.png';
+  const LOGO_URL = '/chatbot/assets/images/brand-icon.png';
   
   // === Global data cache for lazy loading ===
   const DATA_CACHE = { byt:null, dum:null, pozemek:null, up:null, _loading:{} };
@@ -1779,7 +1779,7 @@ function addME(t) {
   if (window.innerWidth > 768) {
     try{chatTextarea.focus();}catch(e){}
   }
-  addAI("Dobrý den, rád Vám pomohu s vaší nemovitostí. Vyberte, co potřebujete.");
+  addAI("Dobrý den, rád Vám pomohu s Vaší nemovitostí. Vyberte, co potřebujete.");
 
     const cards = U.el("div", { class: "cg-start" }, [
       U.el("div", { class: "cg-cards" }, [
