@@ -227,7 +227,7 @@
   
   const bubble = document.createElement('div');
   bubble.className = 'cg-launcher-bubble';
-  bubble.textContent = 'Nacením Vaší nemovitost a pomůžu zorientovat se v realitách.';
+  bubble.textContent = 'Nacením Vaší nemovitost a vysvětlím vše potřebné.';
   btn.appendChild(bubble);
   
   // Update bubble theme based on page theme
