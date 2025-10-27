@@ -9,7 +9,6 @@
       let viewport = document.querySelector('meta[name="viewport"]');
       
       if (!viewport) {
-        console.log('[CGTR] Creating viewport meta tag');
         viewport = document.createElement('meta');
         viewport.name = 'viewport';
         viewport.content = 'width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover';
@@ -27,15 +26,13 @@
         }
         
         if (newContent !== currentContent) {
-          console.log('[CGTR] Updating viewport meta tag');
           viewport.setAttribute('content', newContent.replace(/^,\s*/, '').trim());
         }
       }
     } catch(e) {
-      console.warn('[CGTR] Viewport meta setup failed:', e);
     }
   
-  }catch(e){ console.warn('[CGTR] Viewport meta setup failed:', e); }
+  }catch(e){ }
 })();
 // === END VIEWPORT FIX ===
 
@@ -44,7 +41,7 @@
   const WIDGET = tag.getAttribute('data-widget');
   const STYLES = tag.getAttribute('data-styles');
 
-  if(!CFG || !WIDGET){ console.error('[Cogniterra] Missing data-config or data-widget'); return; }
+  if(!CFG || !WIDGET){ return; }
 
   window.CGTR = { configUrl: CFG, widgetUrl: WIDGET, containerId: 'chatbot-container' };
 
@@ -262,11 +259,6 @@ function updateBubbleTheme() {
   } else {
     bubble.classList.remove('dark-mode');
   }
-  
-  console.log('[CGTR] Bubble theme updated:', isDark ? 'dark' : 'light', {
-    reason: hasExplicitLight ? 'explicit light' : 
-            (hasExplicitDark ? 'explicit dark' : 'system preference')
-  });
 }
   
   
@@ -309,7 +301,7 @@ if (document.body) {
         document.head.appendChild(s);
       }
     }
-  }catch(e){ console.warn('[CGTR] scrollbar gutter fix failed', e); }
+  }catch(e){ }
 })();
 // === END CGTR FIX ===
 document.addEventListener('DOMContentLoaded', () => {
@@ -363,30 +355,25 @@ if (window.innerWidth <= 768) {
   const show = () => {
     if (transitioning || open) return;
     transitioning = true;
-    console.log('[CGTR] Opening chat...');
     panel.style.display = 'block';
     void panel.offsetHeight;
     requestAnimationFrame(() => {
       open = true;
       transitioning = false;
-      console.log('[CGTR] Chat opened');
     });
   }; 
   
   const hide = () => {
     if (transitioning || !open) return;
     transitioning = true;
-    console.log('[CGTR] Closing chat...');
     requestAnimationFrame(() => {
       panel.style.display = 'none';
       open = false;
       transitioning = false;
-      console.log('[CGTR] Chat closed');
     });
   };
   
   const handleToggle = (e) => {
-    console.log('[CGTR] Toggle triggered');
     e.preventDefault();
     e.stopPropagation();
     if (transitioning) return false;
@@ -425,7 +412,7 @@ if (window.innerWidth <= 768) {
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', set, { passive: true });
     }
-  } catch(e){ console.warn('[CGTR] VH setup failed:', e); }
+  } catch(e){ }
 })();
 
 // Responsive overrides & body lock
@@ -484,7 +471,7 @@ html.cg-open, body.cg-open {
 }
 `;
     document.head.appendChild(style);
-  } catch(e) { console.warn('[CGTR] Style inject failed:', e); }
+  } catch(e) { }
 })();
 
 // Panel visibility observer
@@ -500,7 +487,6 @@ html.cg-open, body.cg-open {
       }
       
       var on = function(){ 
-        console.log('[CGTR] Locking scroll...');
         document.documentElement.classList.add('cg-open'); 
         document.body.classList.add('cg-open');
         if (launcher && window.innerWidth < 768) {
@@ -513,7 +499,6 @@ html.cg-open, body.cg-open {
       };
       
       var off = function(){ 
-        console.log('[CGTR] Unlocking scroll...');
         document.documentElement.classList.remove('cg-open'); 
         document.body.classList.remove('cg-open');
         if (launcher) {
@@ -538,5 +523,5 @@ html.cg-open, body.cg-open {
       if (getComputedStyle(panel).display !== 'none') on(); else off();
     };
     checkPanel();
-  } catch(e){ console.warn('[CGTR] Observer failed:', e); }
+  } catch(e){ }
 })();

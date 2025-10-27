@@ -6,28 +6,22 @@
 (function () {
   "use strict";
 
-  console.log('[Widget] Initialization started... (v8.3 - Smooth Scroll + Animations)');
-
   const host = document.querySelector("[data-cogniterra-widget]");
   if (!host) {
-    console.warn('[Widget] Host element not found');
     return;
   }
 
   let shadow;
   try {
     if (host.shadowRoot) {
-      console.log('[Widget] Cleaning existing shadow root...');
       while (host.shadowRoot.firstChild) {
         host.shadowRoot.removeChild(host.shadowRoot.firstChild);
       }
       shadow = host.shadowRoot;
     } else {
-      console.log('[Widget] Creating new shadow root...');
       shadow = host.attachShadow({ mode: "open" });
     }
   } catch (e) {
-    console.error('[Widget] Shadow DOM error:', e);
     return;
   }
 
@@ -43,8 +37,6 @@
     quickActionsUsed: { pricing: false, help: false }, // FIX 2: Prevence opakovaného spouštění
     typeSelected: false  // ← PŘIDAT
  };
-
-  console.log('[Widget] Session:', S.session);
 
   // Dark mode detection - FIXED: explicit class overrides system preference
 let isDarkMode = false;
@@ -71,17 +63,6 @@ function updateDarkMode() {
   const wasInDark = isDarkMode;
   isDarkMode = hasExplicitLight ? false : (hasExplicitDark ? true : systemDark);
   
-  // Log only when changed with detailed reason
-  if (wasInDark !== isDarkMode) {
-    console.log('[Widget] Theme changed:', wasInDark ? 'dark' : 'light', '→', isDarkMode ? 'dark' : 'light', {
-      reason: hasExplicitLight ? 'explicit light class' : 
-              (hasExplicitDark ? 'explicit dark class' : 'system preference'),
-      htmlClass: htmlEl.className,
-      bodyClass: bodyEl?.className,
-      systemDark: systemDark
-    });
-  }
-  
   // Update shadow root immediately with force
   if (shadow && shadow.host) {
     const currentTheme = shadow.host.getAttribute('data-theme');
@@ -89,7 +70,6 @@ function updateDarkMode() {
     
     if (currentTheme !== newTheme) {
       shadow.host.setAttribute('data-theme', newTheme);
-      console.log('[Widget] Shadow DOM theme updated:', newTheme);
     }
   }
   
@@ -99,7 +79,6 @@ function updateDarkMode() {
       detail: { theme: isDarkMode ? 'dark' : 'light' }
     }));
   } catch(e) {
-    console.warn('[Widget] Could not dispatch theme event:', e);
   }
 }
 
@@ -155,7 +134,6 @@ if (window.innerWidth <= 768) {
     mobileChecks++;
     if (mobileChecks >= 30) { // 30 × 100ms = 3 seconds
       clearInterval(themeCheckInterval);
-      console.log('[Widget] Mobile theme polling stopped after', mobileChecks, 'checks');
     }
   }, 100);
 }
@@ -163,14 +141,12 @@ if (window.innerWidth <= 768) {
 // Listen for visibility changes (when user returns to tab)
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
-    console.log('[Widget] Page became visible, re-checking theme');
     updateDarkMode();
   }
 });
 
 // Listen for focus events (when widget is opened)
 window.addEventListener('focus', () => {
-  console.log('[Widget] Window focused, re-checking theme');
   updateDarkMode();
 }, { passive: true });
 
@@ -183,7 +159,6 @@ setTimeout(() => {
         if (mutation.attributeName === 'style') {
           const display = getComputedStyle(panel).display;
           if (display !== 'none') {
-            console.log('[Widget] Panel opened, forcing theme re-check');
             setTimeout(updateDarkMode, 50);
             setTimeout(updateDarkMode, 150);
           }
@@ -197,13 +172,6 @@ setTimeout(() => {
     });
   }
 }, 1000);
-
-// Listen for visibility changes (when user returns to tab)
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) {
-    updateDarkMode();
-  }
-});
 
 // Listen for focus events (when widget is opened)
 window.addEventListener('focus', updateDarkMode, { passive: true });
@@ -242,7 +210,7 @@ window.addEventListener('focus', updateDarkMode, { passive: true });
     const p = fetch(url, {credentials:'omit'}).then(r => r.json()).then(j => (window.PRICES[norm] = DATA_CACHE[norm] = j));
     DATA_CACHE._loading[norm] = p;
     try { const res = await p; delete DATA_CACHE._loading[norm]; return res; }
-    catch(e){ delete DATA_CACHE._loading[norm]; console.warn('[Widget] Lazy load failed for', norm, e); return null; }
+    catch(e){ delete DATA_CACHE._loading[norm]; return null; }
   }
 
   window.PRICES = window.PRICES || {};
@@ -282,7 +250,6 @@ window.addEventListener('focus', updateDarkMode, { passive: true });
     fetchJson(url) { return fetch(url, { credentials: "omit" }).then(r => r.json()); },
     
     clearIntents() {
-      console.log('[Widget] Clearing all intent flags');
       S.intent.contactOffer = false;
       S.intent.upOffer = false;
       S.intent.waitingForLocation = false;
@@ -290,12 +257,10 @@ window.addEventListener('focus', updateDarkMode, { passive: true });
     
     searchUP(query, upData) {
       if (!upData || !upData.map || !Array.isArray(upData.map)) {
-        console.error('[Widget] Invalid UP data structure');
         return [];
       }
       
       const q = U.norm(query);
-      console.log('[Widget] Searching UP for:', query, '-> normalized:', q);
       
       const kuExact = [];
       const kuPartial = [];
@@ -322,9 +287,6 @@ window.addEventListener('focus', updateDarkMode, { passive: true });
         }
       }
       
-      console.log('[Widget] Found - KU exact:', kuExact.length, 'KU partial:', kuPartial.length, 
-                  'Obec exact:', obecExact.length, 'Obec partial:', obecPartial.length);
-      
       if (kuExact.length > 0) return kuExact;
       if (kuPartial.length > 0) return kuPartial.slice(0, 10);
       if (obecExact.length > 0) return obecExact;
@@ -332,14 +294,10 @@ window.addEventListener('focus', updateDarkMode, { passive: true });
     },
     
     extractLocationFromUP(text) {
-      console.log('[Widget] extractLocationFromUP INPUT:', text);
-      
       const normalized = U.norm(text);
-      console.log('[Widget] extractLocationFromUP NORMALIZED:', normalized);
       
       const multipleLocations = /\b(a|nebo|či)\b/.test(normalized);
       if (multipleLocations) {
-        console.log('[Widget] ⚠️ Multiple locations detected');
         return ['__MULTIPLE__'];
       }
       
@@ -352,16 +310,13 @@ window.addEventListener('focus', updateDarkMode, { passive: true });
       for (let i = 0; i < patterns.length; i++) {
         const pattern = patterns[i];
         const match = normalized.match(pattern);
-        console.log(`[Widget] Pattern ${i} test:`, pattern.toString(), '→ match:', match);
         
         if (match && match[1]) {
           const location = match[1].trim();
-          console.log('[Widget] ✅ Extracted location:', location);
           return [location];
         }
       }
       
-      console.log('[Widget] ❌ No location extracted');
       return [];
     },
     
@@ -384,9 +339,7 @@ window.addEventListener('focus', updateDarkMode, { passive: true });
           quickActionsUsed: S.quickActionsUsed
         };
         localStorage.setItem('cgtr_session_' + S.session, JSON.stringify(sessionData));
-        console.log('[Widget] Session saved');
       } catch(e) {
-        console.warn('[Widget] Could not save session:', e);
       }
     },
     
@@ -400,12 +353,10 @@ window.addEventListener('focus', updateDarkMode, { passive: true });
             S.tempPricing = data.tempPricing;
             S.chat.messages = data.messages || [];
             S.quickActionsUsed = data.quickActionsUsed || { pricing: false, help: false };
-            console.log('[Widget] Session restored');
             return true;
           }
         }
       } catch(e) {
-        console.warn('[Widget] Could not load session:', e);
       }
       return false;
     }
@@ -1460,7 +1411,6 @@ window.addEventListener('focus', updateDarkMode, { passive: true });
     onclick: (e) => {
       e.preventDefault();
       e.stopPropagation();
-      console.log('[Widget] Close button clicked');
       S.typeSelected = false;
       S.formOpen = false;
       U.saveSession(); 
@@ -1472,7 +1422,6 @@ window.addEventListener('focus', updateDarkMode, { passive: true });
           const closeBtn = document.querySelector('.cg-close');
           if (closeBtn) closeBtn.click();
         } catch(e) {
-          console.warn('[Widget] Cannot close chat', e);
         }
       }
     }
@@ -1500,8 +1449,6 @@ window.addEventListener('focus', updateDarkMode, { passive: true });
   
   shadow.appendChild(chatContainer);
   
-  console.log('[Widget] UI created successfully');
-
  // === MESSAGE FUNCTIONS ===
 
 // === NOVÉ FUNKCE (Features 3, 5, 9, 10, 11, 12) ===
@@ -1626,11 +1573,9 @@ function addAIWithTyping(text, extra, speed = 30) {
     const offerUP = /(chcete|potrebujete|mam\s+poslat|poslat\s+vam|najit\s+vam).*?(uzemni\s*plan|up)/i.test(tt);
     
     if (offerContact) { 
-      console.log('[Widget] AI offered contact form');
       S.intent.contactOffer = true; 
     }
     if (offerUP) {
-      console.log('[Widget] AI offered UP');
       S.intent.upOffer = true;
     }
   } catch (e) {}
@@ -1702,11 +1647,9 @@ function addAI(t, extra, smoothScroll = false) {
     const offerUP = /(chcete|potrebujete|mam\s+poslat|poslat\s+vam|najit\s+vam).*?(uzemni\s*plan|up)/i.test(tt);
     
     if (offerContact) { 
-      console.log('[Widget] AI offered contact form');
       S.intent.contactOffer = true; 
     }
     if (offerUP) {
-      console.log('[Widget] AI offered UP');
       S.intent.upOffer = true;
     }
   } catch (e) {}
@@ -1756,13 +1699,10 @@ function addME(t) {
   // FIX 3: Opraveno pro pozemky - správné použití type parametru
   function attachSuggest(inputEl, isPozemek) {
     if (!inputEl) {
-      console.warn('[Widget] attachSuggest: no input element');
       return;
     }
     
     const key = (S.cfg && S.cfg.mapy_key) || "EreCyrH41se5wkNErc5JEWX2eMLqnpja5BUVxsvpqzM";
-    
-    console.log('[Widget] Setting up Mapy.cz Geocoding autocomplete, isPozemek:', isPozemek);
     
     const suggestContainer = document.createElement('div');
     suggestContainer.className = 'mapy-suggest-container';
@@ -1799,7 +1739,6 @@ function addME(t) {
       }
       
       if (isSelecting) {
-        console.log('[Widget] Skipping fetch - user is selecting');
         return;
       }
       
@@ -1808,18 +1747,13 @@ function addME(t) {
         const type = 'regional.address';  // PRO VŠECHNY
         const url = `https://api.mapy.cz/v1/geocode?lang=cs&limit=10&type=${type}&query=${encodeURIComponent(query)}&apikey=${key}`;
         
-        console.log('[Widget] Fetching geocoding for:', query, 'type:', type);
-        
         const response = await fetch(url);
         if (!response.ok) {
-          console.error('[Widget] Geocoding API error:', response.status);
           return;
         }
         
         const data = await response.json();
         const items = data.items || [];
-        
-        console.log('[Widget] Geocoding returned', items.length, 'results');
         
         const results = [];
         
@@ -1874,7 +1808,6 @@ function addME(t) {
         }
         
       } catch (e) {
-        console.error('[Widget] Geocoding fetch error:', e);
         suggestContainer.style.display = 'none';
       }
     }
@@ -1906,7 +1839,6 @@ function addME(t) {
           e.stopPropagation();
           
           const selectedValue = div.getAttribute('data-value');
-          console.log('[Widget] Selected:', selectedValue);
           
           isSelecting = true;
           inputEl.value = selectedValue;
@@ -1930,7 +1862,6 @@ function addME(t) {
       });
       
       suggestContainer.style.display = 'block';
-      console.log('[Widget] Rendered', unique.length, 'suggestions');
     }
     
     inputEl.addEventListener('input', (e) => {
@@ -1978,7 +1909,6 @@ function addME(t) {
 
   function needsUP(q) {
     const s = U.norm(q);
-    console.log('[Widget] Checking UP need for:', q);
     
     const hasUPKeyword = /\b(uzemni\s*plan|up)\b/i.test(s);
     
@@ -1997,8 +1927,6 @@ function addME(t) {
   }
   
   async function handleUPQuery(q) {
-    console.log('[Widget] Handling UP query:', q);
-    
     const loadingMsg = addLoading("🔍 Vyhledávám územní plán...");
     
     setTimeout(async () => {
@@ -3078,7 +3006,6 @@ function addME(t) {
   
   function ask(q) {
     if (S.processing) {
-      console.log('[Widget] Already processing, ignoring duplicate request');
       return;
     }
     
@@ -3242,7 +3169,6 @@ function addME(t) {
 
       } catch (e) { 
         addAI("Omlouvám se, došlo k chybě při komunikaci s AI."); 
-        console.error("[Widget] AI chat error:", e); 
       }
     })();
   }
@@ -3254,10 +3180,8 @@ function addME(t) {
       const CFG_URL = scriptEl ? scriptEl.getAttribute("data-config") : null;
       if (CFG_URL) {
         S.cfg = await U.fetchJson(CFG_URL);
-        console.log('[Widget] Config loaded:', S.cfg);
       }
     } catch (e) {
-      console.error('[Widget] Config loading error:', e);
     }
   })();
 
@@ -3265,10 +3189,8 @@ function addME(t) {
   function cgSafeStart() {
     try {
       if (!chatMessages) return setTimeout(cgSafeStart, 40);
-      console.log('[Widget] Rendering start screen...');
       
       if (U.loadSession() && S.chat.messages.length > 0) {
-        console.log('[Widget] Session restored');
         S.chat.messages.forEach(msg => {
           if (msg.role === 'user') {
             addME(msg.content);
@@ -3287,7 +3209,6 @@ function addME(t) {
         renderStart();
       }
     } catch (e) {
-      console.error('[Widget] Start error:', e);
       setTimeout(cgSafeStart, 40);
     }
   }
@@ -3308,7 +3229,5 @@ function addME(t) {
       chatSendBtn.click(); 
     } 
   });
-
-  console.log('[Widget] Initialization complete (v8.3 - Smooth Scroll + Animations)');
 
 })();
