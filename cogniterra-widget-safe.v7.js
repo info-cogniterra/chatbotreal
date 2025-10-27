@@ -210,7 +210,7 @@ window.addEventListener('focus', updateDarkMode, { passive: true });
 
   // Fox avatar URL
   const FOX_AVATAR = '/chatbot/assets/images/avatar.png';
-  const LOGO_URL = '/chatbot/assets/images/brand-icon.png';
+  const LOGO_URL = '/chatbot/assets/images/brand-icon2.png';
   
   // === Global data cache for lazy loading ===
   const DATA_CACHE = { byt:null, dum:null, pozemek:null, up:null, _loading:{} };
