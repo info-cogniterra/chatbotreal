@@ -309,7 +309,7 @@
     if (!medianPrice || !isFinite(medianPrice)) {
       return { ok: false, reason: "Nenašel jsem vhodný vzorek dat." };
     }
-    const kK = 1.0;
+    let kK = 1.0;
     if (useTypCoef) {
       if (typNorm.includes('dřev')) kK = 0.90;
       else if (typNorm.includes('smíšen')) kK = 0.95;
