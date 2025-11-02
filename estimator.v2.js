@@ -192,10 +192,10 @@
   // === DOMY ===
   const KOEF_TYP_DOMU = {
     "rodinný dům": 1.00,
-    "radovy": 0.90, "řadový": 0.90,
-    "dvojdum": 0.95, "dvojdům": 0.95,
+    "radovy": 0.92, "řadový": 0.92,
+    "dvojdum": 0.96, "dvojdům": 0.96,
     "vila": 1.15,
-    "chata": 0.80, "chalupa": 0.80, "chata/chalupa": 0.80
+    "chata": 0.70, "chalupa": 0.70, "chata/chalupa": 0.70
   };
   function coefTypDomu(s) {
     if (!s) return 1.00;
@@ -212,10 +212,22 @@
   }
   function coefStav(s) {
     const t = (s||"").toLowerCase();
-    if (t.includes("novostav")) return 1.20;
-    if (t.includes("rekon")) return 1.12;
-    if (t.includes("hor")) return 0.88;
+    if (t.includes("novostav")) return 1.40;
+    if (t.includes("rekon")) return 1.20;
+    if (t.includes("hor")) return 0.80;
     if (t.includes("dob")) return 1.00;
+    return 1.00;
+  }
+  function coefZatepleni(z) {
+    const t = (z || "").toUpperCase();
+    if (t === "ANO") return 1.10;  // +10%
+    if (t === "NE") return 0.93;   // -7%
+    return 1.00;
+  }
+  function coefOkna(o) {
+    const t = (o || "").toUpperCase();
+    if (t === "ANO") return 1.06;  // +6%
+    if (t === "NE") return 0.96;   // -4%
     return 1.00;
   }
   function parkSurchargeCZK(baselineM2, parkovani) {
@@ -242,7 +254,7 @@
     if (!rows || !rows.length) {
       return { ok: false, reason: "Data nejsou k dispozici." };
     }
-    const { adresa, typ_stavby, zatepleni, nova_okna, vymera } = params;
+    const { adresa, typ_stavby, zatepleni, okna, vymera, stav, typ_domu, parkovani } = params;
     const loc = parseLocation(adresa);
     const targetObec = loc.obec;
     if (!targetObec) {
@@ -303,12 +315,25 @@
       else if (typNorm.includes('smíšen')) kK = 0.95;
       else if (typNorm && !typNorm.includes('cihl')) kK = 0.85;
     }
-    const kTypDomu = coefTypDomu(params.typ_domu);
+    const kTypDomu = coefTypDomu(typ_domu);
     const kVel = coefVelikost(vymera);
-    const kStav = coefStav(params.stav);
-    const pricePerM2 = medianPrice * kK * kTypDomu * kVel * kStav;
-    const addPark = parkSurchargeCZK(pricePerM2, params.parkovani);
+    const kStav = coefStav(stav);
+
+    // NOVÁ LOGIKA: Zateplení a okna se počítají JEN pro staré domy
+    let kZatepleni = 1.0;
+    let kOkna = 1.0;
+
+    const stavNorm = (stav || "").toLowerCase();
+    if (!stavNorm.includes("novostav")) {
+      // Jen pro staré domy má smysl rozlišovat zateplení a okna
+      kZatepleni = coefZatepleni(zatepleni);
+      kOkna = coefOkna(okna);
+    }
+
+    const pricePerM2 = medianPrice * kK * kTypDomu * kVel * kStav * kZatepleni * kOkna;
+    const addPark = parkSurchargeCZK(pricePerM2, parkovani);
     const totalPrice = pricePerM2 * parseFloat(vymera || 0) + addPark;
+
     return {
       ok: true,
       mid: Math.round(totalPrice),
@@ -317,7 +342,7 @@
       per_m2: Math.round(pricePerM2),
       n: count,
       confidence: count >= 20 ? "vysoká" : (count >= 5 ? "střední" : "nízká"),
-      note: `Vzorek: ${usedLevel} (n=${count}). Koef: ${useTypCoef ? `mat=${kK}, ` : ''}typD=${kTypDomu}, vel=${kVel}, stav=${kStav}, park=+${Math.round(addPark)} Kč`
+      note: `Vzorek: ${usedLevel} (n=${count}). Koef: ${useTypCoef ? `mat=${kK}, ` : ''}typD=${kTypDomu}, vel=${kVel}, stav=${kStav}${!stavNorm.includes("novostav") ? `, zatep=${kZatepleni}, okna=${kOkna}` : ''}, park=+${Math.round(addPark)} Kč`
     };
   }
 
